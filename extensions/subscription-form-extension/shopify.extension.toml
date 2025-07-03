@@ -1,0 +1,8 @@
+name = "subscription-form-extension"
+type = "theme"
+
+[settings]
+[[settings.blocks]]
+type = "apps"
+name = "Subscription Builder"
+settings = []
