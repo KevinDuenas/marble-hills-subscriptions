@@ -1,200 +1,175 @@
 <div class="subscription-builder" id="subscription-form-{{ section.id }}">
-  <div class="step-indicator">
-    <div class="step active" data-step="1">1</div>
-    <div class="step" data-step="2">2</div>
-    <div class="step" data-step="3">3</div>
-    <div class="step" data-step="4">4</div>
-  </div>
 
-  <!-- Paso 1: Tipo de suscripción -->
+  <!-- Step 1: Product Selection -->
   <div class="form-step active" data-step="1">
-    <h2>Choose your plan</h2>
-    <div class="subscription-types">
-      <label class="subscription-option">
-        <input type="radio" name="subscription_type" value="curated">
-        <div class="option-content">
-          <div class="option-image">imagen caja</div>
-          <h3>Curated Box</h3>
-          <p>• Perfect for individuals and couples<br>• Up to ___ portions of ___ lbs of your choice</p>
+    <!-- Header -->
+    <div class="step-header">
+      <div class="header-content">
+        <div class="header-left">
+          <h2>Select Cuts</h2>
+          <p>Add more, save more. You can change your cuts month to month</p>
         </div>
-      </label>
-
-      <label class="subscription-option">
-        <input type="radio" name="subscription_type" value="custom">
-        <div class="option-content">
-          <div class="option-image">imagen caja</div>
-          <h3>Custom Box</h3>
-          <p>• Build your own box<br>• Choose your favorite cuts<br>• Save more with more products</p>
+        <div class="header-right">
+          <div class="step-indicator">Step 1/2:</div>
+          <div class="next-step-info">Next step: Choose Frequency</div>
         </div>
-      </label>
-    </div>
-    <div class="step-buttons center">
-      <button class="next-step" data-next="2">Next</button>
-    </div>
-  </div>
-
-  <!-- Paso 2: Tamaño de caja (solo para Curated) -->
-  <div class="form-step" data-step="2">
-    <h2>Select box size</h2>
-    <div class="box-sizes">
-      <label class="box-option">
-        <input type="radio" name="box_size" value="small">
-        <div class="box-info">
-          <div class="box-image">imagen caja</div>
-          <div class="box-details">
-            <h4>Small Box</h4>
-            <ul>
-              <li>Perfect for individuals and couples</li>
-              <li>Up to ___ portions of ___ lbs of your choice</li>
-            </ul>
-          </div>
-        </div>
-        <div class="box-price">$___</div>
-      </label>
-
-      <label class="box-option recommended">
-        <input type="radio" name="box_size" value="medium">
-        <div class="box-info">
-          <div class="box-image">imagen caja</div>
-          <div class="box-details">
-            <h4>Medium Box</h4>
-            <ul>
-              <li>Perfect for small families</li>
-              <li>Up to ___ portions of ___ lbs of your choice</li>
-            </ul>
-          </div>
-        </div>
-        <div class="box-price">$___</div>
-      </label>
-
-      <label class="box-option">
-        <input type="radio" name="box_size" value="big">
-        <div class="box-info">
-          <div class="box-image">imagen caja</div>
-          <div class="box-details">
-            <h4>Premium Box</h4>
-            <ul>
-              <li>Perfect for mid-sized families.</li>
-              <li>Up to ___ portions of ___ lbs of your choice</li>
-            </ul>
-          </div>
-        </div>
-        <div class="box-price">$___</div>
-      </label>
-    </div>
-    <div class="step-buttons">
-      <button class="prev-step" data-prev="1">Previous</button>
-      <button class="next-step" data-next="3">Next</button>
-    </div>
-  </div>
-
-  <!-- Paso 3: Frecuencia -->
-  <div class="form-step" data-step="3">
-    <h2>Frequency</h2>
-    <p>Pause or cancel anytime.</p>
-    <div class="frequency-options">
-      <div class="frequency-option">
-        <input type="radio" name="frequency" value="2weeks" id="freq-2weeks">
-        <label for="freq-2weeks">Every 2 weeks</label>
-      </div>
-
-      <div class="frequency-option">
-        <input type="radio" name="frequency" value="4weeks" id="freq-4weeks" checked>
-        <label for="freq-4weeks">Every 4 weeks</label>
-      </div>
-
-      <div class="frequency-option">
-        <input type="radio" name="frequency" value="8weeks" id="freq-8weeks">
-        <label for="freq-8weeks">Every 8 weeks</label>
-      </div>
-
-      <div class="frequency-option">
-        <input type="radio" name="frequency" value="12weeks" id="freq-12weeks">
-        <label for="freq-12weeks">Every 12 weeks</label>
-        <div class="frequency-note">Recommended for big freezers</div>
       </div>
     </div>
-    <div class="step-buttons">
-      <button class="prev-step" data-prev="2">Previous</button>
-      <button class="next-step" data-next="4">Next</button>
-    </div>
-  </div>
 
-  <!-- Paso 4: Select Products (solo para Custom) -->
-  <div class="form-step" data-step="4">
-    <div class="products-header">
-      <h2>Select Cuts</h2>
-      <p>Add more, save more. You can change your cuts month to month</p>
-
-      <!-- Barra de progreso de descuento -->
-      <div class="discount-progress">
-        <div class="discount-progress-bar"></div>
-        <div class="discount-milestones">
-          <div class="discount-milestone" data-threshold="6">
-            <span class="milestone-dot">✓</span>
-            <span>Add 6, get 5% OFF</span>
+    <!-- Progress Bar with Milestones -->
+    <div class="discount-progress-container">
+      <div class="progress-text">Add more, save more</div>
+      <div class="progress-bar-wrapper">
+        <div class="progress-bar">
+          <div class="progress-fill"></div>
+        </div>
+        <div class="progress-milestones">
+          <div class="milestone" data-threshold="6">
+            <div class="milestone-dot"></div>
+            <div class="milestone-text">Add 6, get 5% OFF</div>
           </div>
-          <div class="discount-milestone" data-threshold="10">
-            <span class="milestone-dot">✓</span>
-            <span>Add 10, get 10% OFF</span>
-            <span class="discount-label">Best Value</span>
+          <div class="milestone" data-threshold="10">
+            <div class="milestone-dot"></div>
+            <div class="milestone-text">Add 10, get 10% OFF</div>
           </div>
         </div>
       </div>
     </div>
 
-    <div class="products-container">
-      <!-- Sidebar de categorías -->
+    <!-- Products Container -->
+    <div class="products-main-container">
+      <!-- Categories Sidebar -->
       <div class="categories-sidebar">
-        <!-- Las categorías se cargarán dinámicamente -->
+        <!-- Categories loaded dynamically -->
       </div>
 
-      <!-- Grid de productos -->
-      <div class="products-grid">
-        <div class="loading-products">
-          <p>Loading products...</p>
+      <!-- Products Grid (3 columns) -->
+      <div class="products-grid-container">
+        <div class="products-grid">
+          <div class="loading-products">
+            <p>Loading products...</p>
+          </div>
         </div>
-        <!-- Los productos se cargarán dinámicamente aquí -->
       </div>
     </div>
 
-    <div class="step-buttons">
-      <button class="prev-step" data-prev="3">Previous</button>
-      <div class="products-counter">
-        <span id="selected-count">0</span> selected
-        <span id="discount-info" style="display: none;"></span>
+    <!-- Floating Bottom Cart Summary -->
+    <div class="floating-cart-summary">
+      <div class="cart-summary-left">
+        <div class="cart-message" id="cart-message">Choose at least 10 for 10% OFF</div>
+        <div class="cart-details" id="cart-details">0 selected: $0.00</div>
       </div>
-      <button class="create-subscription" id="create-subscription" disabled>Select products</button>
+      <div class="cart-summary-right">
+        <button class="select-frequency-btn" id="select-frequency-btn" disabled>Select Frequency</button>
+      </div>
     </div>
   </div>
 
-  <!-- Loading y Success States -->
+  <!-- Step 2: Frequency Selection -->
+  <div class="form-step" data-step="2">
+    <div class="frequency-container">
+      <h2>How often do you want to receive your box?</h2>
+      <p>Pause or cancel anytime</p>
+      
+      <div class="frequency-options">
+        <label class="frequency-option">
+          <input type="radio" name="frequency" value="2weeks" id="freq-2weeks">
+          <div class="frequency-content">
+            <span>Every 2 weeks</span>
+          </div>
+        </label>
+
+        <label class="frequency-option">
+          <input type="radio" name="frequency" value="4weeks" id="freq-4weeks">
+          <div class="frequency-content">
+            <span>Every 4 weeks</span>
+          </div>
+        </label>
+
+        <label class="frequency-option">
+          <input type="radio" name="frequency" value="6weeks" id="freq-6weeks">
+          <div class="frequency-content">
+            <span>Every 6 weeks</span>
+          </div>
+        </label>
+      </div>
+
+      <div class="step-navigation">
+        <button class="nav-btn prev-btn" data-step="1">Previous</button>
+        <button class="nav-btn next-btn" data-step="3" disabled>Next</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 3: One Time Offer -->
+  <div class="form-step" data-step="3">
+    <div class="offer-container">
+      <h2>One Time Offer!</h2>
+      <p>Add these exclusive deals to your first box</p>
+
+      <div class="offer-products">
+        <!-- Offer products loaded dynamically -->
+        <div class="offer-product-card">
+          <div class="discount-badge">50% OFF</div>
+          <div class="offer-product-image"></div>
+          <h3>Product Title</h3>
+          <p>Product Description</p>
+          <button class="add-to-first-box-btn">Add to First Box</button>
+        </div>
+
+        <div class="offer-product-card">
+          <div class="discount-badge">50% OFF</div>
+          <div class="offer-product-image"></div>
+          <h3>Product Title</h3>
+          <p>Product Description</p>
+          <button class="add-to-first-box-btn">Add to First Box</button>
+        </div>
+
+        <div class="offer-product-card">
+          <div class="discount-badge">50% OFF</div>
+          <div class="offer-product-image"></div>
+          <h3>Product Title</h3>
+          <p>Product Description</p>
+          <button class="add-to-first-box-btn">Add to First Box</button>
+        </div>
+      </div>
+
+      <div class="email-capture">
+        <input type="email" placeholder="Write your email" id="customer-email" class="email-input">
+        <p class="email-disclaimer">By continuing, you agree to receive marketing emails and our terms and privacy policy</p>
+      </div>
+
+      <div class="final-actions">
+        <button class="add-to-cart-btn" id="final-add-to-cart">Add to Cart</button>
+        <a href="#" class="skip-offer" id="skip-offer">No thanks, continue without offer</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading State -->
   <div class="loading-state" style="display: none;">
     <div class="loading-spinner"></div>
     <h3>Creating your subscription...</h3>
-    <p>Please wait while we set up your custom box</p>
-  </div>
-
-  <div class="success-state" style="display: none;">
-    <div class="success-icon">✓</div>
-    <h2>Subscription Created Successfully!</h2>
-    <p>Redirecting you to checkout to complete your first order...</p>
-    <div class="subscription-summary-final">
-      <h4>Your Selection:</h4>
-      <div id="final-summary"></div>
-    </div>
+    <p>Please wait while we process your order</p>
   </div>
 </div>
 
-{{ 'subscription-form.css' | asset_url | stylesheet_tag }}
-<script src="{{ 'subscription-form.js' | asset_url }}" defer></script>
+<!-- Load CSS Files -->
+{{ 'base-styles.css' | asset_url | stylesheet_tag }}
+{{ 'subscription-options.css' | asset_url | stylesheet_tag }}
+{{ 'product-selection.css' | asset_url | stylesheet_tag }}
+{{ 'summary.css' | asset_url | stylesheet_tag }}
+
+<!-- Load JS Modules -->
+<script src="{{ 'main-subscription.js' | asset_url }}" defer></script>
+<script src="{{ 'product-manager.js' | asset_url }}" defer></script>
+<script src="{{ 'one-time-offer-manager.js' | asset_url }}" defer></script>
+<script src="{{ 'cart-manager.js' | asset_url }}" defer></script>
 
 {% schema %}
 {
   "name": "Subscription Builder",
   "target": "section",
-  "stylesheet": "subscription-form.css",
-  "javascript": "subscription-form.js",
   "settings": [
     {
       "type": "text",

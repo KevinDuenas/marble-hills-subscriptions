@@ -1,0 +1,249 @@
+/* Subscription Types */
+.subscription-types {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  margin-bottom: 3rem;
+}
+
+.subscription-option {
+  display: block;
+  border: 2px solid #e9ecef;
+  border-radius: 12px;
+  padding: 2rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+  background: #fff;
+}
+
+.subscription-option:hover {
+  border-color: #f7931e;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(247, 147, 30, 0.15);
+}
+
+.subscription-option input[type="radio"] {
+  display: none;
+}
+
+.subscription-option input[type="radio"]:checked + .option-content {
+  color: #f7931e;
+}
+
+.subscription-option:has(input:checked) {
+  border-color: #f7931e !important;
+  background: #fff8f0 !important;
+}
+
+.subscription-option.selected {
+  border-color: #f7931e !important;
+  background: #fff8f0 !important;
+}
+
+.option-content {
+  text-align: center;
+}
+
+.option-content h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+  color: #2c3e50;
+}
+
+.option-content p {
+  color: #6c757d;
+  font-size: 0.95rem;
+  line-height: 1.4;
+  margin: 0;
+}
+
+.option-image {
+  width: 120px;
+  height: 80px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  margin: 0 auto 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #6c757d;
+  font-size: 0.8rem;
+}
+
+/* Box Sizes */
+.box-sizes {
+  max-width: 600px;
+  margin: 0 auto 3rem;
+}
+
+.box-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border: 2px solid #e9ecef;
+  border-radius: 12px;
+  padding: 1.5rem 2rem;
+  margin-bottom: 1.5rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+  background: #fff;
+}
+
+.box-option:hover {
+  border-color: #007ace;
+}
+
+.box-option input[type="radio"] {
+  display: none;
+}
+
+.box-option:has(input:checked) {
+  border-color: #007ace !important;
+  background: #f8fcff !important;
+}
+
+.box-option.selected {
+  border-color: #007ace !important;
+  background: #f8fcff !important;
+}
+
+.box-option.recommended {
+  border-color: #007ace;
+  background: #f8fcff;
+}
+
+.box-option.recommended::after {
+  content: "Best Value";
+  position: absolute;
+  top: -12px;
+  left: 30px;
+  background: #dc3545;
+  color: white;
+  padding: 0.3rem 0.8rem;
+  border-radius: 15px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+.box-info {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  flex: 1;
+}
+
+.box-image {
+  width: 80px;
+  height: 60px;
+  background: #f1f3f4;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #6c757d;
+  font-size: 0.8rem;
+  font-weight: 500;
+  flex-shrink: 0;
+}
+
+.box-details {
+  flex: 1;
+}
+
+.box-details h4 {
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  color: #2c3e50;
+}
+
+.box-details ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.box-details li {
+  color: #6c757d;
+  font-size: 0.9rem;
+  margin-bottom: 0.25rem;
+  position: relative;
+  padding-left: 1rem;
+}
+
+.box-details li::before {
+  content: "•";
+  position: absolute;
+  left: 0;
+  color: #6c757d;
+}
+
+.box-price {
+  font-size: 1.3rem;
+  font-weight: 600;
+  color: #2c3e50;
+  margin-left: 1rem;
+}
+
+/* Frequency Options */
+.frequency-options {
+  max-width: 500px;
+  margin: 0 auto 3rem;
+  background: #f8f9fa;
+  border-radius: 12px;
+  padding: 2rem;
+}
+
+.frequency-option {
+  display: flex;
+  align-items: flex-start;
+  padding: 1rem 0;
+  cursor: pointer;
+  position: relative;
+}
+
+.frequency-option:not(:last-child) {
+  border-bottom: 1px solid #e9ecef;
+}
+
+.frequency-option input[type="radio"] {
+  margin-right: 1rem;
+  margin-top: 0.25rem;
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+.frequency-option label {
+  flex: 1;
+  cursor: pointer;
+  font-weight: 500;
+  color: #2c3e50;
+  font-size: 1rem;
+  line-height: 1.4;
+}
+
+.frequency-note {
+  color: #6c757d;
+  font-size: 0.85rem;
+  font-weight: 400;
+  margin-top: 0.25rem;
+  line-height: 1.3;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .subscription-types {
+    grid-template-columns: 1fr;
+  }
+
+  .box-option {
+    flex-direction: column;
+    text-align: center;
+    gap: 1rem;
+  }
+}

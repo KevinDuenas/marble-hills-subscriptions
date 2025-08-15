@@ -1,0 +1,63 @@
+/* Offer Pricing Styles */\n.offer-pricing {\n  margin: 1rem 0;\n  text-align: center;\n}\n\n.original-price {\n  text-decoration: line-through;\n  color: #6c757d;\n  margin-right: 0.5rem;\n  font-size: 0.9rem;\n}\n\n.offer-price {\n  color: #28a745;\n  font-weight: 700;\n  font-size: 1.1rem;\n}\n\n.offer-product-card.selected {\n  border-color: #28a745 !important;\n  background: #f8fff8 !important;\n}\n\n.add-to-first-box-btn.selected {\n  background: #28a745 !important;\n}\n\n/* Subscription Summary */
+.subscription-summary-final {
+  background: #f8f9fa;
+  border-radius: 12px;
+  padding: 2rem;
+  margin-top: 2rem;
+  text-align: left;
+}
+
+.subscription-summary-final h4 {
+  margin-bottom: 1rem;
+  color: #2c3e50;
+}
+
+.subscription-summary-final .summary-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.subscription-summary-final .summary-item:last-child {
+  border-bottom: none;
+}
+
+.selected-products-list {
+  margin-top: 1rem;
+}
+
+.selected-product-item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.selected-product-item:last-child {
+  border-bottom: none;
+}
+
+.selected-product-image {
+  width: 40px;
+  height: 40px;
+  border-radius: 6px;
+  object-fit: cover;
+}
+
+.selected-product-title {
+  font-weight: 500;
+  color: #2c3e50;
+  flex: 1;
+}
+
+.product-quantity-badge {
+  background: #f7931e;
+  color: white;
+  padding: 0.25rem 0.5rem;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  margin-left: 0.5rem;
+}
