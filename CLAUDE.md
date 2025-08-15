@@ -51,13 +51,14 @@ This is a Shopify subscription app built with:
 
 #### Theme Extension
 - `extensions/subscription-form-extension/`: Shopify theme extension for subscription form
-- Multi-step subscription builder with:
-  - Subscription type selection (Curated vs Custom)
-  - Box size selection
-  - Frequency options (2, 4, 6 weeks)
-  - Product selection with dynamic discounts
+- **NEW 3-Step Flow** (completely redesigned from 4-step to 3-step):
+  1. **Step 1: Product Selection** - Product grid with categories, variant selection, quantity controls, progress bar with discount milestones
+  2. **Step 2: Frequency Selection** - Radio button options for delivery frequency (2, 4, 6 weeks)
+  3. **Step 3: One-Time Offers** - Additional products with discounts and email capture
+- **Progress Bar System**: Visual progress with discount milestones (5% at 6 items in middle, 10% at 10 items at end)
+- **Floating Cart Summary**: Bottom-fixed cart with real-time updates, discount calculations, and "Select Frequency" button
 - CSS modules: base-styles.css, subscription-options.css, product-selection.css, summary.css
-- JavaScript modules: subscription-manager.js, product-manager.js, cart-manager.js
+- JavaScript modules: main-subscription.js, product-manager.js, one-time-offer-manager.js, cart-manager.js
 
 #### Database Schema
 - Single `Session` model for Shopify session storage
@@ -76,10 +77,57 @@ This is a Shopify subscription app built with:
 - Theme extension integrates with storefront for customer-facing subscription flow
 - Webhook handlers for app lifecycle events (uninstall, scope updates)
 
-### Extension Structure
-The subscription form extension is a multi-step wizard that:
-1. Determines subscription type (curated vs custom boxes)
-2. Handles box sizing and pricing
-3. Manages delivery frequency selection
-4. Provides product selection interface with discount tiers
-5. Integrates with cart management for subscription creation
+### Extension Structure (Updated 3-Step Flow)
+The subscription form extension is a streamlined 3-step wizard:
+
+#### Step 1: Product Selection
+- **Header**: "Select Cuts" with step indicator (Step 1/2: Next step: Choose Frequency) positioned right-aligned and vertically centered
+- **Progress Bar**: Visual progress with discount milestones:
+  - 5% discount milestone positioned at 50% of bar (6 items)
+  - 10% discount milestone positioned at 100% of bar (10 items)
+  - Linear progress calculation: 0-6 items = 0%-50%, 6-10 items = 50%-100%
+- **Product Grid**: Categories sidebar + 3-column product grid with:
+  - Variant selection dropdowns
+  - Quantity controls (default: 2 per product)
+  - Add/Remove buttons
+  - Selected product visual indicators
+- **Floating Cart**: Bottom-fixed cart summary with:
+  - Real-time count and pricing updates
+  - Discount calculations and display
+  - "Select Frequency" button (disabled until 6+ items)
+
+#### Step 2: Frequency Selection
+- Centered layout with frequency options (2, 4, 6 weeks)
+- Navigation: Previous (no validation) and Next (requires frequency selection)
+- Previous button allows returning to Step 1 with cart preserved
+
+#### Step 3: One-Time Offers
+- Grid of promotional products with discounts
+- Email capture field
+- Final "Add to Cart" or "Skip Offer" actions
+
+### Technical Implementation Notes
+
+#### JavaScript Architecture
+- **MainSubscriptionManager**: Controls step navigation and state management
+- **ProductManager**: Handles product loading, selection, and cart updates
+- **OneTimeOfferManager**: Manages promotional offers in step 3
+- **CartManager**: Handles cart creation and Shopify integration
+
+#### Key Bug Fixes Implemented
+1. **Progress Bar Visibility**: Fixed CSS issues by applying styles directly via JavaScript with `!important` flags
+2. **Product Loading**: Added fallback mechanisms for product API calls
+3. **Navigation Logic**: Modified `goToStep()` to allow backward navigation without validation
+4. **Button States**: Updated Select Frequency button to require minimum 6 items
+5. **Stepper Styling**: Implemented proper alignment and removed unwanted border lines
+
+#### Critical CSS Patterns
+- Use `cssText` with `!important` for critical progress bar styles
+- Flexbox layout for header alignment with `align-items: center`
+- Absolute positioning for progress milestones at exact percentages
+- Force display properties when elements aren't rendering properly
+
+#### API Integration
+- Primary: `/collections/subscriptions/products.json`
+- Fallback: `/products.json?limit=50`
+- Error handling with retry mechanisms and user feedback
