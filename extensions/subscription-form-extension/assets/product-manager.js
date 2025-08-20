@@ -30,13 +30,15 @@ class ProductManager {
     }
   }
 
-  // Load all products from "subscriptions" collection (no box size filtering)
+  // Load all products from "subscriptions" collection with metafield filtering
   async loadSubscriptionProducts() {
     console.log("Loading subscription products...");
 
     try {
-      console.log("Fetching from /collections/subscriptions/products.json");
-      const response = await fetch("/collections/subscriptions/products.json");
+      // Fetch products (tags are included by default)
+      const apiUrl = "/collections/subscriptions/products.json";
+      console.log("Fetching from:", apiUrl);
+      const response = await fetch(apiUrl);
       
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -46,16 +48,24 @@ class ProductManager {
       console.log("API response:", data);
 
       if (data.products && data.products.length > 0) {
-        this.allProducts = data.products;
-        console.log(`Found ${this.allProducts.length} subscription products`);
+        // Filter products that have subscription metafield
+        const filteredProducts = this.filterSubscriptionProducts(data.products);
+        this.allProducts = filteredProducts;
+        console.log(`Found ${this.allProducts.length} subscription-eligible products (filtered from ${data.products.length} total)`);
 
-        // Group products by categories (no box size filtering)
-        this.createProductCategories(this.allProducts);
+        if (this.allProducts.length > 0) {
+          // Group products by categories using metafields
+          this.createProductCategories(this.allProducts);
 
-        // Show first category
-        const firstCategory = Object.keys(this.productsByCollection)[0];
-        if (firstCategory) {
-          this.displayProducts(this.productsByCollection[firstCategory].products);
+          // Show priority category (Best Sellers first, then first non-empty category)
+          const priorityCategory = this.getDefaultCategory();
+          if (priorityCategory) {
+            this.displayProducts(this.productsByCollection[priorityCategory].products);
+            this.selectCategoryInSidebar(priorityCategory);
+          }
+        } else {
+          console.log("No subscription-eligible products found, trying fallback");
+          throw new Error("No subscription-eligible products found");
         }
       } else {
         console.log("No products in subscriptions collection, trying fallback");
@@ -65,22 +75,25 @@ class ProductManager {
       console.error("Error loading subscription products:", error);
       console.log("Trying fallback to general products...");
       
-      // Fallback to general products
+      // Fallback to general products (tags included by default)
       try {
-        const generalResponse = await fetch("/products.json?limit=50");
+        const fallbackUrl = "/products.json?limit=50";
+        console.log("Trying fallback URL:", fallbackUrl);
+        const generalResponse = await fetch(fallbackUrl);
         
         if (!generalResponse.ok) {
           throw new Error(`Fallback HTTP error! status: ${generalResponse.status}`);
         }
-        
         const generalData = await generalResponse.json();
         console.log("Fallback API response:", generalData);
 
         if (generalData.products && generalData.products.length > 0) {
-          this.allProducts = generalData.products;
-          console.log(`Using ${this.allProducts.length} general products as fallback`);
-          this.createProductCategories(generalData.products);
-          this.displayProducts(generalData.products);
+          // Also filter fallback products
+          const filteredFallback = this.filterSubscriptionProducts(generalData.products);
+          this.allProducts = filteredFallback;
+          console.log(`Using ${this.allProducts.length} filtered general products as fallback (from ${generalData.products.length} total)`);
+          this.createProductCategories(this.allProducts);
+          this.displayProducts(this.allProducts);
         } else {
           throw new Error("No products found in general products either");
         }
@@ -106,8 +119,70 @@ class ProductManager {
     }
   }
 
+  // Filter products that are eligible for subscriptions based on metafields
+  filterSubscriptionProducts(products) {
+    console.log("Filtering products by subscription metafields...");
+    
+    const filteredProducts = products.filter(product => {
+      // Check if product has subscription eligibility metafield
+      const isSubscriptionEligible = this.hasSubscriptionMetafield(product);
+      
+      if (isSubscriptionEligible) {
+        console.log(`✓ Product ${product.title} is subscription eligible`);
+      } else {
+        console.log(`✗ Product ${product.title} is NOT subscription eligible`);
+      }
+      
+      return isSubscriptionEligible;
+    });
+
+    console.log(`Filtered ${filteredProducts.length} subscription products from ${products.length} total products`);
+    return filteredProducts;
+  }
+
+  // Check if product has subscription eligibility based on tags
+  hasSubscriptionMetafield(product) {
+    console.log(`\n--- Checking eligibility for product: ${product.title} ---`);
+    console.log('Product tags:', product.tags);
+    
+    // Primary method: Check for subscription tags
+    if (product.tags && Array.isArray(product.tags)) {
+      const lowerTags = product.tags.map(tag => tag.toLowerCase());
+      
+      // Check for subscription eligibility tags
+      const subscriptionTags = [
+        'subscription',
+        'subscription-eligible', 
+        'eligible',
+        'suscripcion',
+        'suscripcion-elegible'
+      ];
+      
+      const hasEligibilityTag = subscriptionTags.some(eligibleTag => 
+        lowerTags.some(tag => tag === eligibleTag || tag.includes(eligibleTag))
+      );
+      
+      if (hasEligibilityTag) {
+        console.log(`✅ Product ${product.title} is subscription eligible (found tag)`);
+        return true;
+      } else {
+        console.log(`❌ Product ${product.title} - No subscription eligibility tag found`);
+        console.log('Expected tags:', subscriptionTags);
+        console.log('Product tags:', lowerTags);
+        return false;
+      }
+    } else {
+      console.log(`❌ Product ${product.title} has no tags`);
+      return false;
+    }
+  }
+
   // Create categories for products (simplified, no "All Boxes")
   createProductCategories(products) {
+    console.log(`\n=== createProductCategories called ===`);
+    console.log('Input products:', products);
+    console.log('Input products count:', products.length);
+    
     const categories = {
       "best-sellers": { title: "Best Sellers", products: [] },
       steak: { title: "Steak", products: [] },
@@ -120,58 +195,161 @@ class ProductManager {
 
     products.forEach((product) => {
       const productCategory = this.getProductCategory(product);
+      console.log(`Product "${product.title}" primary category: "${productCategory}"`);
 
+      // Add to primary category
       if (categories[productCategory]) {
         categories[productCategory].products.push(product);
+        console.log(`✅ Added to primary category "${productCategory}". New count: ${categories[productCategory].products.length}`);
       } else {
+        console.log(`❌ Category "${productCategory}" not found, using best-sellers`);
         // Default to best sellers if no category found
         categories["best-sellers"].products.push(product);
       }
+
+      // Also check if product should be in Best Sellers
+      if (productCategory !== "best-sellers" && this.isProductBestSeller(product)) {
+        categories["best-sellers"].products.push(product);
+        console.log(`✅ Also added to Best Sellers. New count: ${categories["best-sellers"].products.length}`);
+      }
+    });
+
+    console.log('Final categories structure:');
+    Object.entries(categories).forEach(([key, category]) => {
+      console.log(`- ${key}: ${category.products.length} products`);
     });
 
     this.productsByCollection = categories;
+    
+    // Show which category we're trying to display
+    const firstCategory = Object.keys(this.productsByCollection)[0];
+    console.log('First category to display:', firstCategory);
+    if (firstCategory && this.productsByCollection[firstCategory]) {
+      console.log('Products in first category:', this.productsByCollection[firstCategory].products.length);
+    }
+    
     this.updateCategoriesSidebar();
   }
 
-  // Get product category from metafields or tags (same logic as before)
+  // Check if product should be in Best Sellers category
+  isProductBestSeller(product) {
+    if (product.tags && Array.isArray(product.tags)) {
+      const lowerTags = product.tags.map(tag => tag.toLowerCase());
+      
+      const bestSellerTags = [
+        'best-seller',
+        'popular', 
+        'bestseller',
+        'mejor-vendido'
+      ];
+      
+      return bestSellerTags.some(tag => 
+        lowerTags.some(productTag => productTag === tag || productTag.includes(tag))
+      );
+    }
+    return false;
+  }
+
+  // Get the default category to display (Best Sellers first, then first non-empty)
+  getDefaultCategory() {
+    console.log(`\n=== getDefaultCategory called ===`);
+    
+    // Priority 1: Best Sellers if it has products
+    if (this.productsByCollection["best-sellers"] && 
+        this.productsByCollection["best-sellers"].products.length > 0) {
+      console.log('Using Best Sellers as default (has products)');
+      return "best-sellers";
+    }
+    
+    // Priority 2: First category with products
+    const categoryWithProducts = Object.keys(this.productsByCollection).find(key => 
+      this.productsByCollection[key].products.length > 0
+    );
+    
+    if (categoryWithProducts) {
+      console.log(`Using ${categoryWithProducts} as default (first with products)`);
+      return categoryWithProducts;
+    }
+    
+    console.log('No categories with products found');
+    return null;
+  }
+
+  // Select category in sidebar visually
+  selectCategoryInSidebar(categoryKey) {
+    console.log(`Selecting category in sidebar: ${categoryKey}`);
+    
+    // Remove active class from all categories
+    const allCategoryItems = document.querySelectorAll('.category-item');
+    allCategoryItems.forEach(item => {
+      item.classList.remove('active');
+    });
+    
+    // Add active class to selected category
+    const selectedCategory = document.querySelector(`[data-collection="${categoryKey}"]`);
+    if (selectedCategory) {
+      selectedCategory.classList.add('active');
+      console.log(`✅ Category ${categoryKey} marked as active`);
+    } else {
+      console.log(`❌ Category element not found for: ${categoryKey}`);
+    }
+  }
+
+  // Get product category from tags (simplified tag-based categorization)
   getProductCategory(product) {
-    // Check metafields first
-    if (
-      product.metafields &&
-      product.metafields.custom &&
-      product.metafields.custom.category
-    ) {
-      return product.metafields.custom.category
-        .toLowerCase()
-        .replace(/\s+/g, "-");
+    console.log(`Getting category for product: ${product.title}`);
+    console.log('Product tags:', product.tags);
+    
+    // Primary method: Check tags for category
+    if (product.tags && Array.isArray(product.tags)) {
+      const lowerTags = product.tags.map((tag) => tag.toLowerCase());
+
+      // Check for specific category tags first
+      const categoryMappings = {
+        'steak': ['steak', 'beef', 'carne', 'res'],
+        'pork': ['pork', 'cerdo', 'cochino'],
+        'poultry': ['poultry', 'chicken', 'pollo', 'ave'],
+        'seafood': ['seafood', 'fish', 'pescado', 'mariscos'],
+        'sides': ['sides', 'side', 'acompañante', 'guarnicion'],
+        'desserts': ['desserts', 'dessert', 'postre', 'dulce'],
+        'best-sellers': ['best-seller', 'popular', 'bestseller', 'mejor-vendido']
+      };
+
+      // Find matching category
+      for (const [category, keywords] of Object.entries(categoryMappings)) {
+        const hasKeyword = keywords.some(keyword => 
+          lowerTags.some(tag => tag === keyword || tag.includes(keyword))
+        );
+        
+        if (hasKeyword) {
+          console.log(`Category from tags: ${category}`);
+          return category;
+        }
+      }
     }
 
-    // Check tags
-    if (product.tags) {
-      const tags = product.tags.map((tag) => tag.toLowerCase());
-
-      if (tags.includes("steak") || tags.includes("beef")) return "steak";
-      if (tags.includes("pork")) return "pork";
-      if (tags.includes("poultry") || tags.includes("chicken"))
-        return "poultry";
-      if (tags.includes("seafood") || tags.includes("fish")) return "seafood";
-      if (tags.includes("sides") || tags.includes("side")) return "sides";
-      if (tags.includes("desserts") || tags.includes("dessert"))
-        return "desserts";
-      if (tags.includes("best-seller") || tags.includes("popular"))
-        return "best-sellers";
-    }
-
-    // Check product type
+    // Fallback: Check product type 
     if (product.product_type) {
       const type = product.product_type.toLowerCase();
-      if (type.includes("steak") || type.includes("beef")) return "steak";
-      if (type.includes("pork")) return "pork";
-      if (type.includes("poultry") || type.includes("chicken"))
+      if (type.includes("steak") || type.includes("beef")) {
+        console.log("Category from product_type: steak");
+        return "steak";
+      }
+      if (type.includes("pork")) {
+        console.log("Category from product_type: pork");
+        return "pork";
+      }
+      if (type.includes("poultry") || type.includes("chicken")) {
+        console.log("Category from product_type: poultry");
         return "poultry";
-      if (type.includes("seafood") || type.includes("fish")) return "seafood";
+      }
+      if (type.includes("seafood") || type.includes("fish")) {
+        console.log("Category from product_type: seafood");
+        return "seafood";
+      }
     }
 
+    console.log("Using default category: best-sellers");
     return "best-sellers";
   }
 
@@ -180,29 +358,48 @@ class ProductManager {
     if (!sidebar) return;
 
     let categoriesHTML = "";
-    let isFirst = true;
+    const defaultCategory = this.getDefaultCategory();
+    console.log('Default category for sidebar:', defaultCategory);
 
+    // Get categories with products, prioritizing order
+    const categoriesWithProducts = [];
+    
+    // First add Best Sellers if it has products
+    if (this.productsByCollection["best-sellers"]?.products.length > 0) {
+      categoriesWithProducts.push(["best-sellers", this.productsByCollection["best-sellers"]]);
+    }
+    
+    // Then add other categories with products (excluding best-sellers to avoid duplicates)
     for (const [handle, data] of Object.entries(this.productsByCollection)) {
-      const productCount = data.products.length;
-      if (productCount > 0) {
-        categoriesHTML += `
-          <div class="category-item ${isFirst ? "active" : ""}" data-collection="${handle}">
-            <span>${data.title}</span>
-            <span class="category-badge">${productCount}</span>
-          </div>
-        `;
-        isFirst = false;
+      if (handle !== "best-sellers" && data.products.length > 0) {
+        categoriesWithProducts.push([handle, data]);
       }
     }
+
+    // Generate HTML for categories
+    categoriesWithProducts.forEach(([handle, data], index) => {
+      const isActive = handle === defaultCategory;
+      categoriesHTML += `
+        <div class="category-item ${isActive ? "active" : ""}" data-collection="${handle}">
+          <span>${data.title}</span>
+        </div>
+      `;
+    });
 
     sidebar.innerHTML = categoriesHTML;
     this.initializeCategoryHandlers();
   }
 
   displayProducts(products) {
+    console.log(`\n=== displayProducts called ===`);
+    console.log('Products to display:', products);
+    console.log('Products count:', products ? products.length : 0);
+    
     const productsGrid = document.querySelector(".products-grid");
+    console.log('Products grid element found:', !!productsGrid);
 
     if (!products || products.length === 0) {
+      console.log('❌ No products to display');
       if (productsGrid) {
         productsGrid.innerHTML = '<div class="no-products"><h3>No products found</h3><p>No products available in this category.</p></div>';
       }
@@ -269,8 +466,15 @@ class ProductManager {
       })
       .join('');
 
+    console.log('Generated product cards HTML length:', productCards.length);
+    console.log('First 200 chars of HTML:', productCards.substring(0, 200));
+
     if (productsGrid) {
       productsGrid.innerHTML = productCards;
+      console.log('✅ HTML assigned to products grid');
+      console.log('Products grid children count after assignment:', productsGrid.children.length);
+    } else {
+      console.log('❌ Products grid element not found for HTML assignment');
     }
     
     this.updateProgressBar();
