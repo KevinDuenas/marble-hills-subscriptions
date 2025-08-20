@@ -202,25 +202,35 @@
 
 /* Floating Cart Summary */
 .floating-cart-summary {
-  position: fixed;
-  bottom: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  background: #f8f9fa;
-  border: 1px solid #dee2e6;
-  border-radius: 12px 12px 0 0;
-  padding: 1.5rem 2rem;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  width: calc(100% - 4rem);
-  max-width: 1160px;
-  box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.1);
-  z-index: 100;
+  position: fixed !important;
+  bottom: 0 !important;
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+  background: #f8f9fa !important;
+  border: 1px solid #dee2e6 !important;
+  border-radius: 12px 12px 0 0 !important;
+  padding: 1.5rem 2rem !important;
+  display: flex !important;
+  flex-direction: row !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  width: calc(100% - 4rem) !important;
+  max-width: 1160px !important;
+  box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.1) !important;
+  z-index: 100 !important;
 }
 
-.cart-summary-left {
-  flex: 1;
+.floating-cart-summary .cart-summary-left {
+  flex: 1 !important;
+  display: block !important;
+}
+
+.floating-cart-summary .cart-summary-right {
+  flex: 0 0 auto !important;
+  display: flex !important;
+  flex-direction: row !important;
+  gap: 1rem !important;
+  align-items: center !important;
 }
 
 .cart-message {
@@ -270,6 +280,28 @@
   transform: none;
 }
 
+
+.floating-cart-summary .nav-btn {
+  padding: 1rem 2rem;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  min-width: 120px;
+}
+
+.floating-cart-summary .prev-btn {
+  background: #6c757d;
+  color: white;
+}
+
+.floating-cart-summary .prev-btn:hover {
+  background: #5a6268;
+  transform: translateY(-1px);
+}
+
 /* Step 2: Frequency Selection Styles */
 .frequency-container {
   max-width: 600px;
@@ -304,6 +336,8 @@
 }
 
 /* Radio buttons handled by subscription-options.css - no styles needed here */
+
+/* Floating cart for step 2 uses same styles as step 1 */
 
 /* Step Navigation */
 .step-navigation {

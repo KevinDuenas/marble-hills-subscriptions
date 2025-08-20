@@ -39,6 +39,17 @@ class MainSubscriptionManager {
     if (currentStepElement) {
       currentStepElement.classList.add('active');
       
+      // Show/hide floating carts based on step - both use same class now
+      const floatingCartStep1 = document.querySelector('.floating-cart-summary:not(#floating-cart-step2)');
+      if (floatingCartStep1) {
+        floatingCartStep1.style.display = stepNumber === 1 ? 'block' : 'none';
+      }
+      
+      const floatingCartStep2 = document.getElementById('floating-cart-step2');
+      if (floatingCartStep2) {
+        floatingCartStep2.style.display = stepNumber === 2 ? 'block' : 'none';
+      }
+      
       // Initialize step-specific functionality
       this.initializeStepLogic(stepNumber);
     } else {
@@ -125,6 +136,14 @@ class MainSubscriptionManager {
           }
         });
       }
+
+      // Add frequency selection listeners
+      const frequencyInputs = document.querySelectorAll('input[name="frequency"]');
+      frequencyInputs.forEach(input => {
+        input.addEventListener('change', () => {
+          this.updateFrequencySummary();
+        });
+      });
     }, 100);
 
     // Step 2: Frequency selection validation - wait for DOM
@@ -193,6 +212,41 @@ class MainSubscriptionManager {
       const totalCount = products.reduce((sum, product) => sum + product.quantity, 0);
       selectFrequencyBtn.disabled = totalCount < 6;
       console.log('Select frequency button state - Total items:', totalCount, 'Disabled:', totalCount < 6);
+    }
+  }
+
+  updateFrequencySummary() {
+    const selectedFrequency = document.querySelector('input[name="frequency"]:checked');
+    const cartMessage = document.getElementById('cart-message-step2');
+    const cartDetails = document.getElementById('cart-details-step2');
+    const nextBtn = document.getElementById('frequency-next-btn');
+
+    if (selectedFrequency && cartMessage && cartDetails) {
+      // Get frequency text
+      const frequencyText = selectedFrequency.parentElement.querySelector('span').textContent;
+      
+      // Update display - same style as step 1
+      cartMessage.style.display = 'none';
+      cartDetails.style.display = 'block';
+      cartDetails.textContent = `Frequency: ${frequencyText}`;
+      
+      // Enable next button
+      if (nextBtn) {
+        nextBtn.disabled = false;
+      }
+      
+      console.log('Frequency selected:', frequencyText);
+    } else {
+      // Reset to default state
+      if (cartMessage && cartDetails) {
+        cartMessage.style.display = 'block';
+        cartDetails.style.display = 'none';
+      }
+      
+      // Disable next button
+      if (nextBtn) {
+        nextBtn.disabled = true;
+      }
     }
   }
 
