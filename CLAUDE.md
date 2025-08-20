@@ -97,9 +97,17 @@ The subscription form extension is a streamlined 3-step wizard:
   - "Select Frequency" button (disabled until 6+ items)
 
 #### Step 2: Frequency Selection
-- Centered layout with frequency options (2, 4, 6 weeks)
-- Navigation: Previous (no validation) and Next (requires frequency selection)
-- Previous button allows returning to Step 1 with cart preserved
+- **Orange Background Container**: Centered layout with orange background (#fff4e6) and padding
+- **Custom Radio Buttons**: Black border circles with filled center when selected
+- **Large Text**: Font size 24px and font-weight 700 for frequency options
+- **Frequency Options**: Radio buttons for 2, 4, 6 weeks delivery frequency
+- **Identical Floating Cart**: Uses same `floating-cart-summary` class as Step 1 with:
+  - Same styling, positioning, and layout as Step 1
+  - Left side shows "Select your delivery frequency" initially
+  - Changes to "Frequency: Every X weeks" when option selected
+  - Right side has Previous (gray) and Next (orange) buttons side by side
+  - Previous button allows returning to Step 1 without validation
+  - Next button enabled only after frequency selection
 
 #### Step 3: One-Time Offers
 - Grid of promotional products with discounts
@@ -120,14 +128,56 @@ The subscription form extension is a streamlined 3-step wizard:
 3. **Navigation Logic**: Modified `goToStep()` to allow backward navigation without validation
 4. **Button States**: Updated Select Frequency button to require minimum 6 items
 5. **Stepper Styling**: Implemented proper alignment and removed unwanted border lines
+6. **Tag-Based Filtering**: Switched from metafield to tag-based product filtering system
+7. **Category Selection**: Implemented default category selection with Best Sellers priority
+8. **Mobile Responsive Headers**: Fixed element ordering with CSS flexbox order properties
+9. **Step 2 UI Redesign**: Complete redesign with orange background and custom radio buttons
+10. **Floating Cart Layout**: Fixed side-by-side layout with `!important` CSS overrides
 
 #### Critical CSS Patterns
 - Use `cssText` with `!important` for critical progress bar styles
 - Flexbox layout for header alignment with `align-items: center`
 - Absolute positioning for progress milestones at exact percentages
 - Force display properties when elements aren't rendering properly
+- **Floating Cart Layout**: Use `!important` overrides to ensure side-by-side layout:
+  ```css
+  .floating-cart-summary {
+    display: flex !important;
+    flex-direction: row !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+  }
+  ```
+- **Product Filtering**: Tag-based system using `subscription`, `best-seller`, `beef`, `pork`, `chicken` tags
+- **Custom Radio Buttons**: Use `appearance: none` and `::after` pseudo-elements for styling
+- **Mobile Header Ordering**: Use CSS `order` property instead of `flex-direction: column-reverse`
 
 #### API Integration
 - Primary: `/collections/subscriptions/products.json`
 - Fallback: `/products.json?limit=50`
 - Error handling with retry mechanisms and user feedback
+
+### Recent Implementation Updates
+
+#### Step 2 Floating Cart Implementation
+- **Identical Design**: Step 2 now uses exact same `floating-cart-summary` class as Step 1
+- **Layout Structure**: 
+  - `cart-summary-left`: Contains frequency selection text/status
+  - `cart-summary-right`: Contains Previous and Next buttons
+- **Dynamic Content**: 
+  - Shows "Select your delivery frequency" initially
+  - Updates to "Frequency: Every X weeks" when frequency selected
+  - JavaScript function `updateFrequencySummary()` handles real-time updates
+- **Button Layout**: Previous (gray) and Next (orange) buttons side by side
+- **CSS Override Strategy**: Used `!important` flags to force proper flexbox layout
+
+#### Tag-Based Product System
+- **Product Tags**: `subscription`, `best-seller`, `beef`, `pork`, `chicken`
+- **Category Logic**: Products can appear in multiple categories based on tags
+- **Default Selection**: "Best Sellers" category selected by priority if available
+- **API Fallback**: Graceful degradation when subscription collection not available
+
+#### Mobile Responsive Design
+- **Header Order**: Step indicator above title on mobile using CSS `order` property
+- **Category Display**: Horizontal scrolling category pills on mobile
+- **Progress Bar**: Maintains visibility and functionality across screen sizes
