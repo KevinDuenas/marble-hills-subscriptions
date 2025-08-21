@@ -9,27 +9,27 @@ class OneTimeOfferManager {
     console.log("Loading one-time offer products...");
 
     try {
-      // Load products tagged with "one-time-offer" or from a specific collection
+      // Load products tagged with "one-time-offer"
       const response = await fetch("/products.json?limit=50");
       const data = await response.json();
 
       if (data.products) {
-        // Filter products that are tagged as offers
+        // Filter products that are tagged as "one-time-offer"
         this.offerProducts = data.products.filter(product => 
-          product.tags && (
-            product.tags.includes('one-time-offer') ||
-            product.tags.includes('first-box-offer') ||
-            product.tags.includes('promotional')
-          )
+          product.tags && product.tags.includes('one-time-offer')
         );
 
-        // If no tagged products found, use first 3 products as demo
-        if (this.offerProducts.length === 0) {
-          this.offerProducts = data.products.slice(0, 3);
-        }
+        // Limit to maximum 3 products
+        this.offerProducts = this.offerProducts.slice(0, 3);
 
-        console.log(`Found ${this.offerProducts.length} offer products`);
-        this.displayOfferProducts();
+        console.log(`Found ${this.offerProducts.length} one-time offer products`);
+        
+        if (this.offerProducts.length > 0) {
+          this.displayOfferProducts();
+        } else {
+          console.log("No one-time offer products found, showing demo offers");
+          this.displayDemoOffers();
+        }
       }
     } catch (error) {
       console.error("Error loading offer products:", error);
@@ -38,34 +38,41 @@ class OneTimeOfferManager {
   }
 
   displayOfferProducts() {
-    const offerProductsContainer = document.querySelector('.offer-products');
+    const offerProductsContainer = document.getElementById('offer-products-grid');
     if (!offerProductsContainer) return;
 
-    const offerCards = this.offerProducts.slice(0, 3).map(product => {
+    const offerCards = this.offerProducts.map(product => {
       const isSelected = this.selectedOffers.some(offer => offer.id === product.id);
       const imageSrc = (product.images && product.images[0]?.src) || "";
-      const price = product.variants[0] ? `$${(product.variants[0].price / 100).toFixed(2)}` : "$0.00";
-      const originalPrice = product.variants[0] ? `$${(product.variants[0].price * 2 / 100).toFixed(2)}` : "$0.00"; // Demo 50% off
+      const price = product.variants[0] ? parseFloat(product.variants[0].price) : 0;
+      const formattedPrice = `$${(price / 100).toFixed(2)}`;
       
       return `
-        <div class="offer-product-card ${isSelected ? 'selected' : ''}" data-product-id="${product.id}">
-          <div class="discount-badge">50% OFF</div>
-          
-          <div class="offer-product-image">
-            ${imageSrc ? `<img src="${imageSrc}" alt="${product.title}" style="width: 100%; height: 100%; object-fit: cover;">` : '<div style="color: #999;">No image</div>'}
+        <div class="product-card offer-product-card ${isSelected ? 'selected' : ''}" data-product-id="${product.id}">
+          <div class="product-image">
+            ${imageSrc ? `<img src="${imageSrc}" alt="${product.title}">` : '<div class="no-image">No image</div>'}
           </div>
           
-          <h3>${product.title}</h3>
-          <p>${product.body_html?.replace(/<[^>]*>/g, '').substring(0, 80) || 'Special promotional offer'}</p>
-          
-          <div class="offer-pricing">
-            <span class="original-price">${originalPrice}</span>
-            <span class="offer-price">${price}</span>
+          <div class="product-info">
+            <h3 class="product-title">${product.title}</h3>
+            
+            <div class="product-variants">
+              <select class="variant-select" data-product-id="${product.id}">
+                ${product.variants.map(variant => `
+                  <option value="${variant.id}" data-price="${variant.price}">
+                    ${variant.title} - $${(variant.price / 100).toFixed(2)}
+                  </option>
+                `).join('')}
+              </select>
+            </div>
+            
+            <div class="product-actions">
+              <button class="add-offer-btn ${isSelected ? 'selected' : ''}" 
+                      onclick="window.oneTimeOfferManager.toggleOffer(${product.id})">
+                ${isSelected ? 'Added ✓' : 'Add to First Box'}
+              </button>
+            </div>
           </div>
-          
-          <button class="add-to-first-box-btn ${isSelected ? 'selected' : ''}" onclick="window.oneTimeOfferManager.toggleOffer(${product.id})">
-            ${isSelected ? 'Added ✓' : 'Add to First Box'}
-          </button>
         </div>
       `;
     }).join('');
@@ -74,8 +81,13 @@ class OneTimeOfferManager {
   }
 
   displayDemoOffers() {
-    const offerProductsContainer = document.querySelector('.offer-products');
-    if (!offerProductsContainer) return;
+    console.log("Attempting to display demo offers");
+    const offerProductsContainer = document.getElementById('offer-products-grid');
+    console.log("Offer products container found:", offerProductsContainer);
+    if (!offerProductsContainer) {
+      console.error("offer-products-grid container not found!");
+      return;
+    }
 
     // Demo offers if no products found
     const demoOffers = [
@@ -107,28 +119,32 @@ class OneTimeOfferManager {
       
       return `
         <div class="offer-product-card ${isSelected ? 'selected' : ''}" data-product-id="${offer.id}">
-          <div class="discount-badge">50% OFF</div>
-          
-          <div class="offer-product-image">
+          <div class="product-image">
             <div style="color: #999; display: flex; align-items: center; justify-content: center; height: 100%;">Demo Product</div>
           </div>
           
-          <h3>${offer.title}</h3>
-          <p>${offer.description}</p>
-          
-          <div class="offer-pricing">
-            <span class="original-price">${offer.originalPrice}</span>
-            <span class="offer-price">${offer.offerPrice}</span>
+          <div class="product-info">
+            <h3 class="product-title">${offer.title}</h3>
+            <p>${offer.description}</p>
+            
+            <div class="offer-pricing">
+              <span class="original-price">${offer.originalPrice}</span>
+              <span class="offer-price">${offer.offerPrice}</span>
+            </div>
+            
+            <div class="product-actions">
+              <button class="add-offer-btn ${isSelected ? 'selected' : ''}" onclick="window.oneTimeOfferManager.toggleDemoOffer('${offer.id}', '${offer.title}', '${offer.offerPrice}')">
+                ${isSelected ? 'Added ✓' : 'Add to First Box'}
+              </button>
+            </div>
           </div>
-          
-          <button class="add-to-first-box-btn ${isSelected ? 'selected' : ''}" onclick="window.oneTimeOfferManager.toggleDemoOffer('${offer.id}', '${offer.title}', '${offer.offerPrice}')">
-            ${isSelected ? 'Added ✓' : 'Add to First Box'}
-          </button>
         </div>
       `;
     }).join('');
 
+    console.log("Demo offers HTML generated:", offerCards);
     offerProductsContainer.innerHTML = offerCards;
+    console.log("Demo offers HTML set to container");
   }
 
   toggleOffer(productId) {
@@ -186,7 +202,7 @@ class OneTimeOfferManager {
     if (!card) return;
 
     const isSelected = this.selectedOffers.some(offer => offer.id === productId);
-    const button = card.querySelector('.add-to-first-box-btn');
+    const button = card.querySelector('.add-offer-btn') || card.querySelector('.add-to-first-box-btn');
     
     card.classList.toggle('selected', isSelected);
     
@@ -206,7 +222,7 @@ class OneTimeOfferManager {
     // Update UI
     document.querySelectorAll('.offer-product-card').forEach(card => {
       card.classList.remove('selected');
-      const button = card.querySelector('.add-to-first-box-btn');
+      const button = card.querySelector('.add-offer-btn') || card.querySelector('.add-to-first-box-btn');
       if (button) {
         button.classList.remove('selected');
         button.textContent = 'Add to First Box';

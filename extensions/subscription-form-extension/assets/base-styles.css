@@ -302,6 +302,234 @@
   transform: translateY(-1px);
 }
 
+/* Step 3: One Time Offer Styles */
+.offer-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+  display: block !important;
+  visibility: visible !important;
+}
+
+.offer-header {
+  text-align: center;
+  margin-bottom: 3rem;
+  display: block !important;
+  visibility: visible !important;
+}
+
+.offer-title {
+  font-size: 36px !important;
+  font-weight: 700 !important;
+  color: #2c3e50 !important;
+  margin: 0 0 0.5rem 0 !important;
+  display: block !important;
+  visibility: visible !important;
+}
+
+.offer-subtitle {
+  font-size: 16px !important;
+  font-weight: 700 !important;
+  color: #6c757d !important;
+  margin: 0 !important;
+  display: block !important;
+  visibility: visible !important;
+}
+
+.offer-products-grid {
+  display: grid !important;
+  grid-template-columns: repeat(3, 1fr) !important;
+  gap: 2rem !important;
+  margin-bottom: 3rem !important;
+  visibility: visible !important;
+  min-height: 200px !important;
+}
+
+.offer-product-card {
+  border: 1px solid #dee2e6 !important;
+  border-radius: 12px !important;
+  overflow: hidden !important;
+  transition: all 0.3s ease !important;
+  display: block !important;
+  visibility: visible !important;
+  min-height: 300px !important;
+  background: white !important;
+}
+
+.offer-product-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+
+.offer-product-card.selected {
+  border-color: #e8841a;
+  box-shadow: 0 0 0 2px rgba(232, 132, 26, 0.2);
+}
+
+.offer-product-card .product-image {
+  height: 200px;
+  background: #f8f9fa;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.offer-product-card .product-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.offer-product-card .no-image {
+  color: #999;
+  font-size: 0.9rem;
+}
+
+.offer-product-card .product-info {
+  padding: 1.5rem;
+}
+
+.offer-product-card .product-title {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #2c3e50;
+  margin-bottom: 1rem;
+}
+
+.offer-product-card .variant-select {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  margin-bottom: 1.5rem;
+  background: white;
+}
+
+.offer-product-card .add-offer-btn {
+  width: 100%;
+  padding: 0.75rem 1.5rem;
+  background: #f7931e;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.offer-product-card .add-offer-btn:hover {
+  background: #e8841a;
+  transform: translateY(-1px);
+}
+
+.offer-product-card .add-offer-btn.selected {
+  background: #28a745;
+}
+
+.offer-product-card .add-offer-btn.selected:hover {
+  background: #218838;
+}
+
+.offer-product-card .offer-pricing {
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.offer-product-card .original-price {
+  text-decoration: line-through;
+  color: #6c757d;
+  font-size: 0.9rem;
+}
+
+.offer-product-card .offer-price {
+  color: #28a745;
+  font-weight: 600;
+  font-size: 1.1rem;
+}
+
+.offer-email-section {
+  margin-bottom: 2rem;
+  text-align: center;
+}
+
+.offer-email-input {
+  width: 100%;
+  max-width: 400px;
+  padding: 1rem 1.5rem;
+  border: 1px solid #dee2e6;
+  border-radius: 25px;
+  font-size: 1rem;
+  text-align: center;
+  background: white;
+  transition: all 0.3s ease;
+}
+
+.offer-email-input:focus {
+  outline: none;
+  border-color: #e8841a;
+  box-shadow: 0 0 0 3px rgba(232, 132, 26, 0.1);
+}
+
+.offer-actions {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.offer-add-btn {
+  background: #f7931e;
+  color: white;
+  border: none;
+  padding: 1rem 3rem;
+  border-radius: 8px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.offer-add-btn:hover {
+  background: #e8841a;
+  transform: translateY(-1px);
+}
+
+.offer-skip-link {
+  color: #6c757d;
+  text-decoration: underline;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: color 0.3s ease;
+}
+
+.offer-skip-link:hover {
+  color: #2c3e50;
+}
+
+@media (max-width: 768px) {
+  .offer-container {
+    padding: 1rem;
+  }
+  
+  .offer-products-grid {
+    grid-template-columns: 1fr !important;
+    gap: 1.5rem !important;
+  }
+  
+  .offer-title {
+    font-size: 28px !important;
+  }
+  
+  .offer-email-input {
+    max-width: 100%;
+  }
+}
+
 /* Step 2: Frequency Selection Styles */
 .frequency-container {
   max-width: 600px;

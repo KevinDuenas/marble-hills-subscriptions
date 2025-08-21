@@ -6,6 +6,38 @@ class CartManager {
       "4weeks": "Every 4 weeks",
       "6weeks": "Every 6 weeks",
     };
+    
+    // Selling Plan IDs for different discount tiers
+    this.sellingPlans = {
+      // 6-9 products (5% discount)
+      "5": {
+        "2weeks": "689100587309",
+        "4weeks": "689157964077", 
+        "6weeks": "689157996845"
+      }
+      // TODO: Add 10+ products (10% discount) plan IDs when available
+    };
+  }
+
+  getSellingPlanId(totalCount, frequency) {
+    let discountTier = "0";
+    
+    if (totalCount >= 10) {
+      discountTier = "10"; // TODO: Will be implemented when 10% plan IDs are provided
+    } else if (totalCount >= 6) {
+      discountTier = "5";
+    }
+    
+    console.log(`Getting selling plan for ${totalCount} products, ${frequency} frequency, ${discountTier}% discount`);
+    
+    if (this.sellingPlans[discountTier] && this.sellingPlans[discountTier][frequency]) {
+      const planId = this.sellingPlans[discountTier][frequency];
+      console.log(`Found selling plan ID: ${planId}`);
+      return planId;
+    }
+    
+    console.warn(`No selling plan found for ${discountTier}% discount and ${frequency} frequency`);
+    return null;
   }
 
   async createSubscription(subscriptionData) {
@@ -29,7 +61,7 @@ class CartManager {
       
       // Add subscription products
       for (const product of selectedProducts) {
-        const cartItem = await this.prepareSubscriptionProduct(product, subscriptionData);
+        const cartItem = await this.prepareSubscriptionProduct(product, subscriptionData, totalCount);
         if (cartItem) {
           allCartItems.push(cartItem);
         }
@@ -78,7 +110,7 @@ class CartManager {
     document.querySelector(".form-step.active").style.display = "block";
   }
 
-  async prepareSubscriptionProduct(product, subscriptionData) {
+  async prepareSubscriptionProduct(product, subscriptionData, totalCount) {
     try {
       // Use the selected variant directly
       const variantId = product.selectedVariant?.id;
@@ -88,7 +120,10 @@ class CartManager {
         return null;
       }
 
-      return {
+      // Get the appropriate selling plan
+      const sellingPlanId = this.getSellingPlanId(totalCount, subscriptionData.frequency);
+      
+      const cartItem = {
         id: variantId,
         quantity: product.quantity,
         properties: {
@@ -100,6 +135,14 @@ class CartManager {
           _custom_selection: "true",
         },
       };
+
+      // Add selling plan if available
+      if (sellingPlanId) {
+        cartItem.selling_plan = sellingPlanId;
+        console.log(`Added selling plan ${sellingPlanId} to product ${product.title}`);
+      }
+
+      return cartItem;
     } catch (error) {
       console.error(`Error preparing product ${product.id}:`, error);
       return null;

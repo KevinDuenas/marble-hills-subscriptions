@@ -111,44 +111,22 @@
   <!-- Step 3: One Time Offer -->
   <div class="form-step" data-step="3">
     <div class="offer-container">
-      <h2>One Time Offer!</h2>
-      <p>Add these exclusive deals to your first box</p>
-
-      <div class="offer-products">
-        <!-- Offer products loaded dynamically -->
-        <div class="offer-product-card">
-          <div class="discount-badge">50% OFF</div>
-          <div class="offer-product-image"></div>
-          <h3>Product Title</h3>
-          <p>Product Description</p>
-          <button class="add-to-first-box-btn">Add to First Box</button>
-        </div>
-
-        <div class="offer-product-card">
-          <div class="discount-badge">50% OFF</div>
-          <div class="offer-product-image"></div>
-          <h3>Product Title</h3>
-          <p>Product Description</p>
-          <button class="add-to-first-box-btn">Add to First Box</button>
-        </div>
-
-        <div class="offer-product-card">
-          <div class="discount-badge">50% OFF</div>
-          <div class="offer-product-image"></div>
-          <h3>Product Title</h3>
-          <p>Product Description</p>
-          <button class="add-to-first-box-btn">Add to First Box</button>
-        </div>
+      <div class="offer-header">
+        <h2 class="offer-title">One Time Offer</h2>
+        <p class="offer-subtitle">Add these exclusive deals to your first box</p>
       </div>
 
-      <div class="email-capture">
-        <input type="email" placeholder="Write your email" id="customer-email" class="email-input">
-        <p class="email-disclaimer">By continuing, you agree to receive marketing emails and our terms and privacy policy</p>
+      <div class="offer-products-grid" id="offer-products-grid">
+        <!-- Products will be loaded dynamically -->
       </div>
 
-      <div class="final-actions">
-        <button class="add-to-cart-btn" id="final-add-to-cart">Add to Cart</button>
-        <a href="#" class="skip-offer" id="skip-offer">No thanks, continue without offer</a>
+      <div class="offer-email-section">
+        <input type="email" id="customer-email" placeholder="Enter your email address" class="offer-email-input">
+      </div>
+
+      <div class="offer-actions">
+        <button class="offer-add-btn" id="offer-add-btn">Add to Cart</button>
+        <a href="#" class="offer-skip-link" id="offer-skip-link">No thanks, continue without offer</a>
       </div>
     </div>
   </div>

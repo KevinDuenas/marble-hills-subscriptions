@@ -35,9 +35,11 @@ class MainSubscriptionManager {
     });
 
     // Show current step
-    const currentStepElement = document.querySelector(`[data-step="${stepNumber}"]`);
+    const currentStepElement = document.querySelector(`.form-step[data-step="${stepNumber}"]`);
+    console.log(`Step ${stepNumber} element found:`, currentStepElement);
     if (currentStepElement) {
       currentStepElement.classList.add('active');
+      console.log(`Step ${stepNumber} classes after activation:`, currentStepElement.className);
       
       // Show/hide floating carts based on step - both use same class now
       const floatingCartStep1 = document.querySelector('.floating-cart-summary:not(#floating-cart-step2)');
@@ -64,7 +66,8 @@ class MainSubscriptionManager {
         this.initializeProductStep();
         break;
       case 2:
-        // Frequency selection step - no special initialization needed
+        // Frequency selection step - update cart summary
+        this.updateFrequencySummary();
         break;
       case 3:
         // One-time offer step
@@ -87,15 +90,40 @@ class MainSubscriptionManager {
   }
 
   initializeOfferStep() {
-    if (window.oneTimeOfferManager) {
-      console.log("OneTimeOfferManager found, loading offers");
-      window.oneTimeOfferManager.loadOfferProducts();
-    } else {
-      console.log("OneTimeOfferManager not ready, waiting...");
-      // Wait for OneTimeOfferManager to initialize
-      setTimeout(() => {
-        this.initializeOfferStep();
-      }, 100);
+    // Add delay to ensure Step 3 DOM is ready
+    setTimeout(() => {
+      if (window.oneTimeOfferManager) {
+        console.log("OneTimeOfferManager found, loading offers");
+        window.oneTimeOfferManager.loadOfferProducts();
+        
+        // Initialize Step 3 navigation
+        this.initializeStep3Navigation();
+      } else {
+        console.log("OneTimeOfferManager not ready, waiting...");
+        // Wait for OneTimeOfferManager to initialize
+        setTimeout(() => {
+          this.initializeOfferStep();
+        }, 100);
+      }
+    }, 100);
+  }
+
+  initializeStep3Navigation() {
+    // Add to Cart button
+    const addToCartBtn = document.getElementById('offer-add-btn');
+    if (addToCartBtn) {
+      addToCartBtn.addEventListener('click', () => {
+        this.handleFinalAddToCart(false); // Include offers
+      });
+    }
+
+    // Skip offer link
+    const skipOfferLink = document.getElementById('offer-skip-link');
+    if (skipOfferLink) {
+      skipOfferLink.addEventListener('click', (e) => {
+        e.preventDefault();
+        this.handleFinalAddToCart(true); // Skip offers
+      });
     }
   }
 
@@ -113,7 +141,7 @@ class MainSubscriptionManager {
     // Step 2: Navigation buttons - wait for DOM elements
     setTimeout(() => {
       const prevBtn = document.querySelector('.prev-btn');
-      const nextBtn = document.querySelector('.next-btn');
+      const nextBtn = document.getElementById('frequency-next-btn'); // Use ID instead of class
       
       console.log("Navigation buttons found:", { prevBtn, nextBtn });
       
@@ -127,12 +155,17 @@ class MainSubscriptionManager {
       if (nextBtn) {
         nextBtn.addEventListener('click', () => {
           console.log("Next button clicked");
-          const selectedFrequency = document.querySelector('input[name="frequency"]:checked');
-          if (selectedFrequency) {
-            this.subscriptionData.frequency = selectedFrequency.value;
-            this.goToStep(3);
+          if (!nextBtn.disabled) {
+            const selectedFrequency = document.querySelector('input[name="frequency"]:checked');
+            if (selectedFrequency) {
+              this.subscriptionData.frequency = selectedFrequency.value;
+              console.log("Frequency selected:", selectedFrequency.value);
+              this.goToStep(3);
+            } else {
+              console.log("No frequency selected");
+            }
           } else {
-            console.log("No frequency selected");
+            console.log("Next button is disabled");
           }
         });
       }
@@ -179,26 +212,39 @@ class MainSubscriptionManager {
   }
 
   goToStep(stepNumber) {
+    console.log(`goToStep called with: ${stepNumber}, current step: ${this.currentStep}`);
+    
     // Only validate when going forward, allow going back without validation
     if (stepNumber < this.currentStep || this.validateCurrentStep()) {
+      console.log(`Validation passed, showing step ${stepNumber}`);
       this.showStep(stepNumber);
     } else {
       console.log('Validation failed, cannot proceed to step:', stepNumber);
+      console.log('Current step validation result:', this.validateCurrentStep());
     }
   }
 
   validateCurrentStep() {
+    console.log('Validating current step:', this.currentStep);
+    console.log('Current subscription data:', this.subscriptionData);
+    
     switch (this.currentStep) {
       case 1:
         // Must have selected products
-        return this.subscriptionData.selectedProducts.length > 0;
+        const hasProducts = this.subscriptionData.selectedProducts.length > 0;
+        console.log('Step 1 validation - has products:', hasProducts);
+        return hasProducts;
       case 2:
         // Must have selected frequency
-        return this.subscriptionData.frequency !== null;
+        const hasFrequency = this.subscriptionData.frequency !== null && this.subscriptionData.frequency !== undefined && this.subscriptionData.frequency !== '';
+        console.log('Step 2 validation - has frequency:', hasFrequency, 'frequency value:', this.subscriptionData.frequency);
+        return hasFrequency;
       case 3:
         // No validation needed
+        console.log('Step 3 validation - always true');
         return true;
       default:
+        console.log('Default validation - always true');
         return true;
     }
   }
@@ -221,14 +267,37 @@ class MainSubscriptionManager {
     const cartDetails = document.getElementById('cart-details-step2');
     const nextBtn = document.getElementById('frequency-next-btn');
 
+    // Get cart info from Step 1
+    const selectedProducts = this.subscriptionData.selectedProducts || [];
+    const totalCount = selectedProducts.reduce((sum, product) => sum + product.quantity, 0);
+    const totalPrice = selectedProducts.reduce((sum, product) => sum + (product.price * product.quantity), 0);
+    
+    // Calculate discount
+    let discountPercentage = 0;
+    if (totalCount >= 10) {
+      discountPercentage = 10;
+    } else if (totalCount >= 6) {
+      discountPercentage = 5;
+    }
+    
+    const discountAmount = totalPrice * (discountPercentage / 100);
+    const finalPrice = totalPrice - discountAmount;
+
     if (selectedFrequency && cartMessage && cartDetails) {
       // Get frequency text
       const frequencyText = selectedFrequency.parentElement.querySelector('span').textContent;
       
-      // Update display - same style as step 1
+      // Build cart summary with frequency
+      let cartSummary = `${totalCount} selected: $${finalPrice.toFixed(2)}`;
+      if (discountPercentage > 0) {
+        cartSummary = `${totalCount} selected: $${totalPrice.toFixed(2)} → $${finalPrice.toFixed(2)} (${discountPercentage}% OFF)`;
+      }
+      cartSummary += ` • Frequency: ${frequencyText}`;
+      
+      // Update display
       cartMessage.style.display = 'none';
       cartDetails.style.display = 'block';
-      cartDetails.textContent = `Frequency: ${frequencyText}`;
+      cartDetails.innerHTML = cartSummary;
       
       // Enable next button
       if (nextBtn) {
@@ -237,10 +306,23 @@ class MainSubscriptionManager {
       
       console.log('Frequency selected:', frequencyText);
     } else {
-      // Reset to default state
+      // Show cart info without frequency
       if (cartMessage && cartDetails) {
-        cartMessage.style.display = 'block';
-        cartDetails.style.display = 'none';
+        if (totalCount > 0) {
+          cartMessage.style.display = 'none';
+          cartDetails.style.display = 'block';
+          
+          let cartSummary = `${totalCount} selected: $${finalPrice.toFixed(2)}`;
+          if (discountPercentage > 0) {
+            cartSummary = `${totalCount} selected: $${totalPrice.toFixed(2)} → $${finalPrice.toFixed(2)} (${discountPercentage}% OFF)`;
+          }
+          cartSummary += ' • Select your delivery frequency';
+          
+          cartDetails.innerHTML = cartSummary;
+        } else {
+          cartMessage.style.display = 'block';
+          cartDetails.style.display = 'none';
+        }
       }
       
       // Disable next button
@@ -256,12 +338,20 @@ class MainSubscriptionManager {
       const emailInput = document.getElementById('customer-email');
       if (emailInput && emailInput.value.trim()) {
         this.subscriptionData.customerEmail = emailInput.value.trim();
+        console.log('Email captured:', this.subscriptionData.customerEmail);
       }
 
       // Add one-time offers if not skipped
       if (!skipOffers && window.oneTimeOfferManager) {
-        this.subscriptionData.oneTimeOffers = window.oneTimeOfferManager.getSelectedOffers();
+        const selectedOffers = window.oneTimeOfferManager.getSelectedOffers();
+        this.subscriptionData.oneTimeOffers = selectedOffers;
+        console.log('One-time offers added:', selectedOffers);
+      } else {
+        this.subscriptionData.oneTimeOffers = [];
+        console.log('Skipping one-time offers');
       }
+
+      console.log('Final subscription data:', this.subscriptionData);
 
       // Show loading state
       this.showLoadingState();
