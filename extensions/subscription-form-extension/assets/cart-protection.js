@@ -24,30 +24,28 @@ class CartProtection {
     
     // Block remove buttons initially
     setTimeout(() => this.blockRemoveButtons(), 1000);
-    
-    console.log("🛡️ Cart Protection System initialized");
   }
 
   async checkSubscriptionCart() {
     try {
-      const response = await this.originalFetch.call(window, '/cart.js');
+      const response = await fetch('/cart.js');
       const cart = await response.json();
       
-      // Check if cart has subscription attributes
-      if (cart.attributes && cart.attributes.subscription_type) {
+      // Check if cart has subscription attributes AND subscription items
+      if (cart.attributes && cart.attributes.subscription_type === 'custom') {
         this.isSubscriptionCart = true;
         
         // Store subscription item keys for tracking
+        let hasSubscriptionItems = false;
         cart.items.forEach(item => {
           if (item.properties && (item.properties._subscription_type || item.properties._protected_item)) {
             this.subscriptionItems.add(item.key);
+            hasSubscriptionItems = true;
           }
         });
         
-        console.log("🔒 Subscription cart detected with protection enabled");
-        console.log("Protected items:", Array.from(this.subscriptionItems));
-        
-        this.isProtectionActive = true;
+        // Only activate protection if we actually have subscription items
+        this.isProtectionActive = hasSubscriptionItems && cart.items.length > 0;
       }
     } catch (error) {
       console.error("Error checking subscription cart:", error);
@@ -86,22 +84,21 @@ class CartProtection {
 
   async handleCartModification(url, options) {
     if (!this.isProtectionActive) {
-      return this.originalFetch(url, options);
-    }
-
-    console.log("🚨 Cart modification detected:", url, options);
-
-    // If it's a clear request, allow it
-    if (url.includes('/cart/clear.js')) {
       return this.originalFetch.call(window, url, options);
     }
 
-    // For ANY modification to subscription cart, clear everything
-    // This is the "all or nothing" approach
+    // If it's a clear or add request, allow it (needed for subscription creation)
+    if (url.includes('/cart/clear.js') || url.includes('/cart/add.js')) {
+      return this.originalFetch.call(window, url, options);
+    }
+
+    // For modification requests (change/update/remove), check if we have subscription items
     if (url.includes('/cart/change') || url.includes('/cart/update') || url.includes('/cart/remove')) {
-      console.log("🛡️ Cart modification blocked - clearing entire cart");
-      this.showProtectionWarning();
-      return this.clearEntireCart();
+      // Only protect if we currently have subscription items
+      if (this.subscriptionItems.size > 0) {
+        this.showProtectionWarning();
+        return this.clearEntireCart();
+      }
     }
 
     // Allow other requests
@@ -121,7 +118,6 @@ class CartProtection {
           
           // Check for line item changes
           if (data.line && data.quantity === 0) {
-            console.log(`🔍 Detected quantity change to 0 for line ${data.line}`);
             return true; // Any quantity change to 0 triggers protection
           }
           
@@ -154,10 +150,12 @@ class CartProtection {
 
   async clearEntireCart() {
     try {
-      console.log("🧹 Clearing entire cart due to protection rule");
+      // Disable protection temporarily to avoid recursion
+      this.isProtectionActive = false;
+      this.subscriptionItems.clear();
       
-      // Clear cart and reset protection - use call to maintain proper context
-      const response = await this.originalFetch.call(window, '/cart/clear.js', { 
+      // Use original fetch without interception
+      const response = await fetch('/cart/clear.js', { 
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -165,38 +163,34 @@ class CartProtection {
       });
       
       if (response.ok) {
-        console.log("✅ Cart cleared successfully");
-        this.isProtectionActive = false;
-        this.subscriptionItems.clear();
-        
         // Force page refresh to update cart UI
         setTimeout(() => {
           window.location.reload();
         }, 1000);
-      } else {
-        console.error("❌ Failed to clear cart:", response.status);
+        
+        // Return a successful response to prevent the original modification
+        return new Response(JSON.stringify({ 
+          success: true, 
+          message: "Cart cleared due to subscription protection",
+          items: [],
+          item_count: 0,
+          total_price: 0
+        }), { 
+          status: 200,
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        });
       }
       
-      // Return a successful response to prevent the original modification
-      return new Response(JSON.stringify({ 
-        success: true, 
-        message: "Cart cleared due to subscription protection",
-        items: [],
-        item_count: 0,
-        total_price: 0
-      }), { 
-        status: 200,
-        headers: {
-          'Content-Type': 'application/json',
-        }
-      });
+      return response;
     } catch (error) {
       console.error("Error clearing cart:", error);
       return new Response(JSON.stringify({ 
         success: false, 
         error: "Failed to clear cart" 
       }), { 
-        status: 200, // Return 200 to prevent original action
+        status: 200,
         headers: {
           'Content-Type': 'application/json',
         }
@@ -205,98 +199,99 @@ class CartProtection {
   }
 
   showProtectionWarning() {
-    // Create warning message
-    const warning = document.createElement('div');
-    warning.innerHTML = `
-      <div style="
+    // Create professional system notification
+    const notification = document.createElement('div');
+    notification.innerHTML = `
+      <div class="cart-protection-notification" style="
         position: fixed;
-        top: 20px;
+        top: 24px;
         left: 50%;
         transform: translateX(-50%);
-        background: #ff6b35;
-        color: white;
-        padding: 16px 24px;
-        border-radius: 8px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        background: #ffffff;
+        color: #1a1a1a;
+        border: 1px solid #e1e5e9;
+        border-left: 4px solid #0066cc;
+        padding: 16px 20px;
+        border-radius: 6px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08), 0 2px 6px rgba(0, 0, 0, 0.04);
         z-index: 10000;
-        font-family: system-ui, -apple-system, sans-serif;
-        font-weight: 600;
-        animation: slideDown 0.3s ease-out;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+        font-size: 14px;
+        line-height: 1.4;
+        min-width: 320px;
+        max-width: 480px;
+        animation: slideInDown 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
       ">
-        🛡️ No puedes modificar productos individuales de una suscripción.<br>
-        Se ha limpiado todo el carrito. Volviendo a la tienda...
+        <div style="display: flex; align-items: flex-start; gap: 12px;">
+          <div style="
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 20px;
+            height: 20px;
+            background: #0066cc;
+            border-radius: 50%;
+            flex-shrink: 0;
+            margin-top: 1px;
+          ">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            </svg>
+          </div>
+          <div>
+            <div style="font-weight: 600; margin-bottom: 4px; color: #1a1a1a;">
+              Subscription Protected
+            </div>
+            <div style="color: #666; font-size: 13px; margin-bottom: 8px;">
+              Items cannot be modified individually. Cart has been cleared.
+            </div>
+            <div style="font-size: 12px; color: #888;">
+              Redirecting to subscription builder...
+            </div>
+          </div>
+        </div>
       </div>
       <style>
-        @keyframes slideDown {
-          from { opacity: 0; transform: translate(-50%, -20px); }
-          to { opacity: 1; transform: translate(-50%, 0); }
+        @keyframes slideInDown {
+          from { 
+            opacity: 0; 
+            transform: translate(-50%, -20px) scale(0.95); 
+          }
+          to { 
+            opacity: 1; 
+            transform: translate(-50%, 0) scale(1); 
+          }
+        }
+        .cart-protection-notification {
+          backdrop-filter: blur(8px);
+          -webkit-backdrop-filter: blur(8px);
         }
       </style>
     `;
     
-    document.body.appendChild(warning);
+    document.body.appendChild(notification);
     
-    // Remove warning after 3 seconds
+    // Remove notification after 3 seconds
     setTimeout(() => {
-      if (warning.parentNode) {
-        warning.parentNode.removeChild(warning);
+      if (notification.parentNode) {
+        notification.style.animation = 'slideInDown 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275) reverse';
+        setTimeout(() => {
+          if (notification.parentNode) {
+            notification.parentNode.removeChild(notification);
+          }
+        }, 200);
       }
-    }, 3000);
+    }, 2500);
   }
 
   addVisualProtection() {
-    if (!this.isProtectionActive) return;
-
-    // Add protection notice to cart
-    const style = document.createElement('style');
-    style.textContent = `
-      .cart-protection-notice {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        padding: 12px 16px;
-        margin: 10px 0;
-        border-radius: 6px;
-        font-size: 14px;
-        font-weight: 600;
-        text-align: center;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-      }
-      
-      .cart-item[data-subscription="true"] {
-        border-left: 4px solid #667eea;
-        background: rgba(102, 126, 234, 0.05);
-      }
-      
-      .cart-item[data-subscription="true"] .cart-item__remove {
-        opacity: 0.5;
-        pointer-events: none;
-      }
-    `;
-    document.head.appendChild(style);
-
-    // Add notice to cart areas
-    this.addProtectionNotices();
+    // Skip visual protection to avoid UI conflicts
+    return;
   }
 
   addProtectionNotices() {
-    // Add notices to common cart selectors
-    const cartSelectors = [
-      '.cart',
-      '.cart-drawer',
-      '.cart-items',
-      '#cart-drawer',
-      '.mini-cart'
-    ];
-
-    cartSelectors.forEach(selector => {
-      const cartElement = document.querySelector(selector);
-      if (cartElement && !cartElement.querySelector('.cart-protection-notice')) {
-        const notice = document.createElement('div');
-        notice.className = 'cart-protection-notice';
-        notice.innerHTML = '🛡️ Suscripción Protegida - Los productos van juntos';
-        cartElement.insertBefore(notice, cartElement.firstChild);
-      }
-    });
+    // Skip adding notices - they interfere with normal cart flow
+    return;
   }
 
   overrideShopifyCart() {
@@ -319,7 +314,6 @@ class CartProtection {
           e.preventDefault();
           e.stopPropagation();
           
-          console.log("🛡️ Cart item removal blocked");
           self.showProtectionWarning();
           self.clearEntireCart();
           
@@ -354,7 +348,8 @@ class CartProtection {
       if (this.isProtectionActive) {
         button.style.opacity = '0.3';
         button.style.pointerEvents = 'none';
-        button.title = 'No puedes remover productos individuales de una suscripción';
+        button.style.cursor = 'not-allowed';
+        button.title = 'Subscription items are protected - removing one item will clear the entire cart';
         
         // Add click handler to show warning
         button.addEventListener('click', (e) => {
@@ -369,19 +364,35 @@ class CartProtection {
   }
 }
 
-// Initialize cart protection when DOM is ready
+// Initialize cart protection only if we're not on checkout pages
 document.addEventListener('DOMContentLoaded', function() {
+  // Skip initialization on checkout pages
+  if (window.location.pathname.includes('/checkout') || 
+      window.location.pathname.includes('/thank') ||
+      window.location.pathname.includes('/orders')) {
+    return;
+  }
+  
   // Small delay to ensure cart is loaded
   setTimeout(() => {
-    window.cartProtection = new CartProtection();
-  }, 500);
+    if (!window.cartProtection) {
+      window.cartProtection = new CartProtection();
+    }
+  }, 1000);
 });
 
 // Also initialize on page load for themes that load cart via AJAX
 window.addEventListener('load', function() {
+  // Skip on checkout pages
+  if (window.location.pathname.includes('/checkout') || 
+      window.location.pathname.includes('/thank') ||
+      window.location.pathname.includes('/orders')) {
+    return;
+  }
+  
   if (!window.cartProtection) {
     setTimeout(() => {
       window.cartProtection = new CartProtection();
-    }, 1000);
+    }, 1500);
   }
 });

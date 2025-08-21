@@ -346,6 +346,11 @@ class CartManager {
 
   async addToCartWithSubscription(cartItems, discount = 0, subscriptionData) {
     try {
+      // Temporarily disable cart protection during subscription creation
+      if (window.cartProtection) {
+        window.cartProtection.isProtectionActive = false;
+      }
+      
       // Clear cart
       await fetch("/cart/clear.js", { method: "POST" });
 
@@ -397,9 +402,22 @@ class CartManager {
         }),
       });
 
+      // Re-enable cart protection after successful cart creation
+      setTimeout(() => {
+        if (window.cartProtection) {
+          window.cartProtection.checkSubscriptionCart();
+        }
+      }, 500);
+
       return { success: true, cart: cartData };
     } catch (error) {
       console.error("Cart error:", error);
+      
+      // Re-enable protection even on error
+      if (window.cartProtection) {
+        window.cartProtection.isProtectionActive = false;
+      }
+      
       return { success: false, error: error.message };
     }
   }
