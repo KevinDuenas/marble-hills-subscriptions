@@ -7,6 +7,13 @@ class CartManager {
       "6weeks": "Every 6 weeks",
     };
     
+    // Bundle Product Configuration
+    this.bundleProduct = {
+      variantId: "51266685731117",
+      productId: "10096558113069",
+      basePrice: 0.01 // Current base price in dollars
+    };
+    
     // Selling Plan IDs for different discount tiers
     this.sellingPlans = {
       // 6-9 products (5% discount)
@@ -61,10 +68,10 @@ class CartManager {
         discount = 5;
       }
 
-      // Prepare all cart items (subscription products + offers)
+      // Prepare all cart items
       const allCartItems = [];
       
-      // Add subscription products
+      // Add individual subscription products with selling plans
       for (const product of selectedProducts) {
         const cartItem = await this.prepareSubscriptionProduct(product, subscriptionData, totalCount);
         if (cartItem) {
@@ -84,18 +91,14 @@ class CartManager {
         throw new Error("No products to add to cart");
       }
 
-      // Add to cart
-      const cartResponse = await this.addToCartWithSubscription(
-        allCartItems,
-        discount,
-        subscriptionData
-      );
+      // Create Draft Order instead of adding to cart
+      const draftOrderResponse = await this.createDraftOrder(allCartItems, subscriptionData);
 
-      if (cartResponse.success) {
-        // Direct redirect to cart (no delay)
-        window.location.href = "/cart";
+      if (draftOrderResponse.success) {
+        // Redirect to Draft Order checkout
+        window.location.href = draftOrderResponse.checkout_url;
       } else {
-        throw new Error(cartResponse.error || "Error adding to cart");
+        throw new Error(draftOrderResponse.error || "Failed to create checkout");
       }
     } catch (error) {
       console.error("Error creating subscription:", error);
@@ -113,6 +116,77 @@ class CartManager {
   hideLoading() {
     document.querySelector(".loading-state").style.display = "none";
     document.querySelector(".form-step.active").style.display = "block";
+  }
+
+  async prepareSubscriptionBundle(selectedProducts, subscriptionData, totalCount) {
+    try {
+      // Calculate total price of all selected products
+      const totalPrice = selectedProducts.reduce((sum, product) => {
+        return sum + (product.price * product.quantity);
+      }, 0);
+
+      // Get the appropriate selling plan
+      const sellingPlanId = this.getSellingPlanId(totalCount, subscriptionData.frequency);
+      
+      // Build comprehensive product details for line item properties
+      const productDetails = selectedProducts.map((product, index) => {
+        return {
+          [`_product_${index + 1}_title`]: product.title,
+          [`_product_${index + 1}_variant`]: product.selectedVariant.title,
+          [`_product_${index + 1}_quantity`]: product.quantity.toString(),
+          [`_product_${index + 1}_price`]: (product.price / 100).toFixed(2),
+          [`_product_${index + 1}_id`]: product.id.toString()
+        };
+      }).reduce((acc, curr) => ({ ...acc, ...curr }), {});
+
+      const bundleItem = {
+        id: this.bundleProduct.variantId,
+        quantity: 1, // Always 1 bundle
+        // Remove price property - Shopify Cart API doesn't support price overrides
+        properties: {
+          _subscription_type: "bundle",
+          _frequency: subscriptionData.frequency,
+          _total_products: totalCount.toString(),
+          _total_price: (totalPrice / 100).toFixed(2),
+          _bundle_created: new Date().toISOString(),
+          _frequency_text: this.frequencyText[subscriptionData.frequency],
+          _calculated_total: `$${(totalPrice / 100).toFixed(2)}`,
+          _price_override: "true",
+          ...productDetails
+        },
+      };
+
+      // Add selling plan if available (for discount)
+      if (sellingPlanId) {
+        bundleItem.selling_plan = sellingPlanId;
+        
+        // Calculate discount info
+        let discountPercentage = 0;
+        if (totalCount >= 10) discountPercentage = 10;
+        else if (totalCount >= 6) discountPercentage = 5;
+        
+        // Calculate discounted price
+        const discountedPrice = totalPrice * (1 - discountPercentage / 100);
+        bundleItem.properties._discounted_price = `$${(discountedPrice / 100).toFixed(2)}`;
+        bundleItem.properties._discount_amount = `${discountPercentage}%`;
+        
+        console.log(`✅ Bundle created:`);
+        console.log(`   - ${totalCount} products`);
+        console.log(`   - ${this.frequencyText[subscriptionData.frequency]}`);
+        console.log(`   - ${discountPercentage}% discount (Selling Plan: ${sellingPlanId})`);
+        console.log(`   - Original price: $${(totalPrice / 100).toFixed(2)}`);
+        console.log(`   - Discounted price: $${(discountedPrice / 100).toFixed(2)}`);
+      } else {
+        console.log(`❌ No selling plan applied (${totalCount} products, ${subscriptionData.frequency})`);
+      }
+
+      console.log("Bundle details:", bundleItem);
+      return bundleItem;
+      
+    } catch (error) {
+      console.error("Error preparing subscription bundle:", error);
+      return null;
+    }
   }
 
   async prepareSubscriptionProduct(product, subscriptionData, totalCount) {
@@ -227,6 +301,48 @@ class CartManager {
     }
   }
 
+  async createDraftOrder(cartItems, subscriptionData) {
+    try {
+      console.log("Creating subscription with individual products:", cartItems);
+      
+      // Calculate discount for display
+      const selectedProducts = subscriptionData.selectedProducts || [];
+      const totalCount = selectedProducts.reduce((sum, product) => sum + product.quantity, 0);
+      let discount = 0;
+      if (totalCount >= 10) {
+        discount = 10;
+      } else if (totalCount >= 6) {
+        discount = 5;
+      }
+      
+      // Use the regular cart API with individual products and selling plans
+      const result = await this.addToCartWithSubscription(cartItems, discount, subscriptionData);
+      
+      if (result.success) {
+        console.log("✅ Subscription products added to cart successfully!");
+        console.log(`   - ${cartItems.length} items added`);
+        console.log(`   - ${discount}% discount applied via selling plans`);
+        
+        // Redirect to checkout
+        window.location.href = "/checkout";
+        
+        return {
+          success: true,
+          checkout_url: "/checkout"
+        };
+      } else {
+        throw new Error(result.error || "Failed to add products to cart");
+      }
+      
+    } catch (error) {
+      console.error("❌ Error creating subscription:", error);
+      return {
+        success: false,
+        error: "Network error creating checkout"
+      };
+    }
+  }
+
   async addToCartWithSubscription(cartItems, discount = 0, subscriptionData) {
     try {
       // Clear cart
@@ -262,14 +378,20 @@ class CartManager {
         },
         body: JSON.stringify({
           attributes: {
-            subscription_type: "custom", // Always custom now
+            subscription_type: "custom", // Individual products with selling plans
             frequency: subscriptionData.frequency,
             discount_percentage: discount.toString(),
             product_count: totalCount.toString(),
             unique_products: selectedProducts.length.toString(),
             customer_email: subscriptionData.customerEmail || "",
             has_one_time_offers: (oneTimeOffers.length > 0).toString(),
-            offer_count: oneTimeOffers.length.toString()
+            offer_count: oneTimeOffers.length.toString(),
+            subscription_created: new Date().toISOString(),
+            frequency_text: this.frequencyText[subscriptionData.frequency] || subscriptionData.frequency,
+            // Add detailed pricing information  
+            calculated_total: selectedProducts.reduce((sum, p) => sum + (p.price * p.quantity), 0) / 100,
+            display_price: `$${(selectedProducts.reduce((sum, p) => sum + (p.price * p.quantity), 0) / 100).toFixed(2)}`,
+            subscription_note: `Custom subscription with ${totalCount} products and ${discount}% discount`
           },
         }),
       });

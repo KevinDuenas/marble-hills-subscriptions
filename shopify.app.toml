@@ -3,7 +3,7 @@
 client_id = "cbb5a44b5fc8b588a7198a726ec321ab"
 name = "marble-hills-subscription"
 handle = "marble-hills-subscription"
-application_url = "https://differ-nothing-parcel-matrix.trycloudflare.com"
+application_url = "https://rangers-diversity-tulsa-initiative.trycloudflare.com"
 embedded = true
 
 [build]
@@ -23,10 +23,15 @@ api_version = "2025-04"
 
 [access_scopes]
 # Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
-scopes = "write_products"
+scopes = "write_products,write_draft_orders"
 
 [auth]
-redirect_urls = ["https://differ-nothing-parcel-matrix.trycloudflare.com/auth/callback", "https://differ-nothing-parcel-matrix.trycloudflare.com/auth/shopify/callback", "https://differ-nothing-parcel-matrix.trycloudflare.com/api/auth/callback"]
+redirect_urls = ["https://rangers-diversity-tulsa-initiative.trycloudflare.com/auth/callback", "https://rangers-diversity-tulsa-initiative.trycloudflare.com/auth/shopify/callback", "https://rangers-diversity-tulsa-initiative.trycloudflare.com/api/auth/callback"]
 
 [pos]
 embedded = false
+
+[app_proxy]
+url = "https://rangers-diversity-tulsa-initiative.trycloudflare.com/apps"
+subpath = "subscription"
+prefix = "apps"
