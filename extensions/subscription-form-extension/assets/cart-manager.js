@@ -14,8 +14,13 @@ class CartManager {
         "2weeks": "689100587309",
         "4weeks": "689157964077", 
         "6weeks": "689157996845"
+      },
+      // 10+ products (10% discount)
+      "10": {
+        "2weeks": "689425580333",
+        "4weeks": "689425613101",
+        "6weeks": "689425645869"
       }
-      // TODO: Add 10+ products (10% discount) plan IDs when available
     };
   }
 
@@ -23,7 +28,7 @@ class CartManager {
     let discountTier = "0";
     
     if (totalCount >= 10) {
-      discountTier = "10"; // TODO: Will be implemented when 10% plan IDs are provided
+      discountTier = "10";
     } else if (totalCount >= 6) {
       discountTier = "5";
     }
