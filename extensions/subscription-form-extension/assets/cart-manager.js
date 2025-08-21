@@ -212,6 +212,7 @@ class CartManager {
           _selected_variant: product.selectedVariant.title,
           _quantity: product.quantity.toString(),
           _custom_selection: "true",
+          _protected_item: "true", // Mark for cart protection
         },
       };
 
