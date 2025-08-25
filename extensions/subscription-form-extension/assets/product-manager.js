@@ -719,17 +719,23 @@ class ProductManager {
 
     if (cartMessage && cartDetails) {
       if (totalCount >= 10) {
-        // State 2: Achievement state
-        cartMessage.textContent = "Congratulations! You've got 10% OFF";
+        // State 3: Maximum discount achieved (10% OFF)
+        cartMessage.textContent = "Amazing! You've unlocked 10% recurring savings";
         cartDetails.innerHTML = `${totalCount} selected: <span class="original-price">$${parseFloat(totalPrice).toFixed(2)}</span> <span class="discount-price">$${parseFloat(discountedPrice).toFixed(2)} (10% OFF)</span>`;
+      } else if (totalCount >= 6) {
+        // State 2: First discount achieved, show progress to next level (5% OFF)
+        const remaining = 10 - totalCount;
+        cartMessage.textContent = `Great! Add ${remaining} more for 10% recurring savings`;
+        cartDetails.innerHTML = `${totalCount} selected: <span class="original-price">$${parseFloat(totalPrice).toFixed(2)}</span> <span class="discount-price">$${parseFloat(discountedPrice).toFixed(2)} (5% OFF)</span>`;
+      } else if (totalCount >= 1) {
+        // State 1: Building towards first discount (1-5 items)
+        const remaining = 6 - totalCount;
+        cartMessage.textContent = `Add ${remaining} more for 5% recurring savings`;
+        cartDetails.textContent = `${totalCount} selected: $${parseFloat(totalPrice).toFixed(2)}`;
       } else {
-        // State 1: Call to action state
-        cartMessage.textContent = "Choose at least 10 for 10% OFF";
-        if (discount > 0) {
-          cartDetails.innerHTML = `${totalCount} selected: <span class="original-price">$${parseFloat(totalPrice).toFixed(2)}</span> <span class="discount-price">$${parseFloat(discountedPrice).toFixed(2)} (${discount}% OFF)</span>`;
-        } else {
-          cartDetails.textContent = `${totalCount} selected: $${parseFloat(totalPrice).toFixed(2)}`;
-        }
+        // State 0: No items selected
+        cartMessage.textContent = "Choose at least 6 items for 5% recurring savings";
+        cartDetails.textContent = "0 selected: $0.00";
       }
     }
   }
