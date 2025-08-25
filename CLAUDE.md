@@ -128,7 +128,7 @@ The subscription form extension is a streamlined 3-step wizard:
 3. **Navigation Logic**: Modified `goToStep()` to allow backward navigation without validation
 4. **Button States**: Updated Select Frequency button to require minimum 6 items
 5. **Stepper Styling**: Implemented proper alignment and removed unwanted border lines
-6. **Tag-Based Filtering**: Switched from metafield to tag-based product filtering system
+6. **Tag-Based Filtering**: Switched from metafield to dynamic sb- prefix tag-based product filtering system
 7. **Category Selection**: Implemented default category selection with Best Sellers priority
 8. **Mobile Responsive Headers**: Fixed element ordering with CSS flexbox order properties
 9. **Step 2 UI Redesign**: Complete redesign with orange background and custom radio buttons
@@ -148,7 +148,7 @@ The subscription form extension is a streamlined 3-step wizard:
     align-items: center !important;
   }
   ```
-- **Product Filtering**: Tag-based system using `subscription`, `best-seller`, `beef`, `pork`, `chicken` tags
+- **Product Filtering**: Dynamic tag-based system using `sb-` prefix tags (see Dynamic Tag-Based Product System section)
 - **Custom Radio Buttons**: Use `appearance: none` and `::after` pseudo-elements for styling
 - **Mobile Header Ordering**: Use CSS `order` property instead of `flex-direction: column-reverse`
 
@@ -171,13 +171,85 @@ The subscription form extension is a streamlined 3-step wizard:
 - **Button Layout**: Previous (gray) and Next (orange) buttons side by side
 - **CSS Override Strategy**: Used `!important` flags to force proper flexbox layout
 
-#### Tag-Based Product System
-- **Product Tags**: `subscription`, `best-seller`, `beef`, `pork`, `chicken`
-- **Category Logic**: Products can appear in multiple categories based on tags
-- **Default Selection**: "Best Sellers" category selected by priority if available
+#### Dynamic Tag-Based Product System (sb- Prefix)
+**UPDATED SYSTEM**: All product tags now use "sb-" prefix (Subscription Builder) to prevent conflicts with other store tags and ensure organization.
+
+**Subscription Eligibility Tags** (Required - at least one needed):
+- `sb-subscription`
+- `sb-subscription-eligible`
+- `sb-eligible`
+- `sb-suscripcion`
+- `sb-suscripcion-elegible`
+
+**Dynamic Category System**:
+- **Format**: `sb-category-[CategoryName]`
+- **Examples**: 
+  - `sb-category-Steaks` → Creates "Steaks" category
+  - `sb-category-Premium-Cuts` → Creates "Premium Cuts" category
+  - `sb-category-chicken_wings` → Creates "Chicken Wings" category
+- **Case Sensitive**: `sb-category-Steak` ≠ `sb-category-steak` (creates different categories)
+- **Multiple Categories**: Products can have multiple `sb-category-` tags to appear in multiple categories
+- **Auto-formatting**: Category names auto-format (capitalize first letters, replace dashes/underscores with spaces)
+
+**Best Sellers Tags**:
+- `sb-best-seller`
+- `sb-popular`
+- `sb-bestseller`
+- `sb-mejor-vendido`
+
+**One-Time Offers Tag**:
+- `sb-one-time-offer`
+
+**Example Product Tagging**:
+```
+Product with tags: [
+  "sb-subscription",           // Required for eligibility
+  "sb-category-Steaks",       // Appears in Steaks category
+  "sb-category-Premium",      // Also appears in Premium category
+  "sb-category-BBQ",          // Also appears in BBQ category
+  "sb-best-seller"            // Also appears in Best Sellers
+]
+Result: Product appears in 4 categories: Steaks, Premium, BBQ, Best Sellers
+```
+
+**System Behavior**:
+- Categories are created dynamically based on `sb-category-` tags found in products
+- No predefined category mapping - any name after `sb-category-` becomes a category
+- Best Sellers remains special category, shown first when populated
+- Products without `sb-category-` tags default to Best Sellers
 - **API Fallback**: Graceful degradation when subscription collection not available
 
 #### Mobile Responsive Design
 - **Header Order**: Step indicator above title on mobile using CSS `order` property
 - **Category Display**: Horizontal scrolling category pills on mobile
 - **Progress Bar**: Maintains visibility and functionality across screen sizes
+
+### Latest Updates (August 2025)
+
+#### Dynamic Category System Implementation
+**Major Update**: Completely revamped the product categorization system to be fully dynamic and conflict-free.
+
+**Key Changes**:
+1. **sb- Prefix System**: All app-specific tags now use "sb-" prefix to prevent conflicts with store tags
+2. **Dynamic Category Creation**: Categories are created automatically from `sb-category-[name]` tags
+3. **Case Sensitive Categories**: `sb-category-Steak` creates different category than `sb-category-steak`
+4. **Multiple Category Support**: Products can appear in multiple categories with multiple `sb-category-` tags
+5. **Auto-formatting**: Category names automatically format with proper capitalization and spacing
+
+**Implementation Files Modified**:
+- `extensions/subscription-form-extension/assets/product-manager.js`:
+  - Updated `hasSubscriptionMetafield()` to check for `sb-subscription*` tags
+  - Replaced `getProductCategory()` with `getProductCategories()` for multiple category support
+  - Added `formatCategoryTitle()` for automatic category name formatting
+  - Modified `createProductCategories()` to create categories dynamically
+- `extensions/subscription-form-extension/assets/one-time-offer-manager.js`:
+  - Updated to filter products with `sb-one-time-offer` tag
+
+**Developer Guidelines**:
+- Always use `sb-` prefix for all Subscription Builder related tags
+- Use `sb-subscription` (or variants) for subscription eligibility
+- Use `sb-category-[Name]` format for categories (exact name will be used)
+- Use `sb-best-seller` (or variants) for best seller designation
+- Use `sb-one-time-offer` for promotional offers
+- Products can have multiple category tags to appear in multiple categories
+- Category names are case-sensitive and preserve exact formatting after prefix

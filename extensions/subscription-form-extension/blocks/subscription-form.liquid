@@ -1,3 +1,4 @@
+
 <div class="subscription-builder" id="subscription-form-{{ section.id }}">
 
   <!-- Step 1: Product Selection -->
@@ -6,8 +7,8 @@
     <div class="step-header">
       <div class="header-content">
         <div class="header-left">
-          <h2>Select Cuts</h2>
-          <p>Add more, save more. You can change your cuts month to month</p>
+          <h2>Select Items</h2>
+          <p>Add more, save more. You can change your items month to month</p>
         </div>
         <div class="header-right">
           <div class="step-indicator">Step 1/2:</div>
@@ -18,7 +19,7 @@
 
     <!-- Progress Bar with Milestones -->
     <div class="discount-progress-container">
-      <div class="progress-text">Add more, save more</div>
+      <div class="progress-text">{{ block.settings.progress_text }}</div>
       <div class="progress-bar-wrapper">
         <div class="progress-bar">
           <div class="progress-fill"></div>
@@ -26,11 +27,11 @@
         <div class="progress-milestones">
           <div class="milestone" data-threshold="6">
             <div class="milestone-dot"></div>
-            <div class="milestone-text">Add 6, get 5% OFF</div>
+            <div class="milestone-text">{{ block.settings.milestone_5_text }}</div>
           </div>
           <div class="milestone" data-threshold="10">
             <div class="milestone-dot"></div>
-            <div class="milestone-text">Add 10, get 10% OFF</div>
+            <div class="milestone-text">{{ block.settings.milestone_10_text }}</div>
           </div>
         </div>
       </div>
@@ -144,6 +145,7 @@
 {{ 'subscription-options.css' | asset_url | stylesheet_tag }}
 {{ 'product-selection.css' | asset_url | stylesheet_tag }}
 {{ 'summary.css' | asset_url | stylesheet_tag }}
+
 
 <!-- Load JS Modules -->
 <script src="{{ 'main-subscription.js' | asset_url }}" defer></script>

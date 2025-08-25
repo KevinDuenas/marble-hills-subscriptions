@@ -9,14 +9,14 @@ class OneTimeOfferManager {
     console.log("Loading one-time offer products...");
 
     try {
-      // Load products tagged with "one-time-offer"
+      // Load products tagged with "sb-one-time-offer"
       const response = await fetch("/products.json?limit=50");
       const data = await response.json();
 
       if (data.products) {
-        // Filter products that are tagged as "one-time-offer"
+        // Filter products that are tagged with "sb-one-time-offer"
         this.offerProducts = data.products.filter(product => 
-          product.tags && product.tags.includes('one-time-offer')
+          product.tags && product.tags.includes('sb-one-time-offer')
         );
 
         // Limit to maximum 3 products

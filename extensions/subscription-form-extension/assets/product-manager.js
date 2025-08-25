@@ -150,13 +150,13 @@ class ProductManager {
     if (product.tags && Array.isArray(product.tags)) {
       const lowerTags = product.tags.map(tag => tag.toLowerCase());
       
-      // Check for subscription eligibility tags
+      // Check for subscription eligibility tags with sb- prefix
       const subscriptionTags = [
-        'subscription',
-        'subscription-eligible', 
-        'eligible',
-        'suscripcion',
-        'suscripcion-elegible'
+        'sb-subscription',
+        'sb-subscription-eligible', 
+        'sb-eligible',
+        'sb-suscripcion',
+        'sb-suscripcion-elegible'
       ];
       
       const hasEligibilityTag = subscriptionTags.some(eligibleTag => 
@@ -178,38 +178,37 @@ class ProductManager {
     }
   }
 
-  // Create categories for products (simplified, no "All Boxes")
+  // Create categories dynamically from sb-category- tags
   createProductCategories(products) {
     console.log(`\n=== createProductCategories called ===`);
     console.log('Input products:', products);
     console.log('Input products count:', products.length);
     
+    // Start with Best Sellers category
     const categories = {
-      "best-sellers": { title: "Best Sellers", products: [] },
-      steak: { title: "Steak", products: [] },
-      pork: { title: "Pork", products: [] },
-      poultry: { title: "Poultry", products: [] },
-      seafood: { title: "Sea food", products: [] },
-      sides: { title: "Sides", products: [] },
-      desserts: { title: "Desserts", products: [] },
+      "best-sellers": { title: "Best Sellers", products: [] }
     };
 
     products.forEach((product) => {
-      const productCategory = this.getProductCategory(product);
-      console.log(`Product "${product.title}" primary category: "${productCategory}"`);
+      // Get all categories this product belongs to
+      const productCategories = this.getProductCategories(product);
+      console.log(`Product "${product.title}" categories:`, productCategories);
 
-      // Add to primary category
-      if (categories[productCategory]) {
-        categories[productCategory].products.push(product);
-        console.log(`✅ Added to primary category "${productCategory}". New count: ${categories[productCategory].products.length}`);
-      } else {
-        console.log(`❌ Category "${productCategory}" not found, using best-sellers`);
-        // Default to best sellers if no category found
-        categories["best-sellers"].products.push(product);
-      }
+      // Add to each category (create if doesn't exist)
+      productCategories.forEach(categoryKey => {
+        if (!categories[categoryKey]) {
+          // Create new category dynamically
+          const categoryTitle = this.formatCategoryTitle(categoryKey);
+          categories[categoryKey] = { title: categoryTitle, products: [] };
+          console.log(`✅ Created new category: ${categoryKey} (${categoryTitle})`);
+        }
+        
+        categories[categoryKey].products.push(product);
+        console.log(`✅ Added to category "${categoryKey}". New count: ${categories[categoryKey].products.length}`);
+      });
 
       // Also check if product should be in Best Sellers
-      if (productCategory !== "best-sellers" && this.isProductBestSeller(product)) {
+      if (this.isProductBestSeller(product)) {
         categories["best-sellers"].products.push(product);
         console.log(`✅ Also added to Best Sellers. New count: ${categories["best-sellers"].products.length}`);
       }
@@ -238,10 +237,10 @@ class ProductManager {
       const lowerTags = product.tags.map(tag => tag.toLowerCase());
       
       const bestSellerTags = [
-        'best-seller',
-        'popular', 
-        'bestseller',
-        'mejor-vendido'
+        'sb-best-seller',
+        'sb-popular', 
+        'sb-bestseller',
+        'sb-mejor-vendido'
       ];
       
       return bestSellerTags.some(tag => 
@@ -262,9 +261,9 @@ class ProductManager {
       return "best-sellers";
     }
     
-    // Priority 2: First category with products
+    // Priority 2: First category with products (excluding best-sellers)
     const categoryWithProducts = Object.keys(this.productsByCollection).find(key => 
-      this.productsByCollection[key].products.length > 0
+      key !== "best-sellers" && this.productsByCollection[key].products.length > 0
     );
     
     if (categoryWithProducts) {
@@ -296,62 +295,44 @@ class ProductManager {
     }
   }
 
-  // Get product category from tags (simplified tag-based categorization)
-  getProductCategory(product) {
-    console.log(`Getting category for product: ${product.title}`);
+  // Get all categories this product belongs to from sb-category- tags
+  getProductCategories(product) {
+    console.log(`Getting categories for product: ${product.title}`);
     console.log('Product tags:', product.tags);
     
-    // Primary method: Check tags for category
+    const categories = [];
+    
     if (product.tags && Array.isArray(product.tags)) {
-      const lowerTags = product.tags.map((tag) => tag.toLowerCase());
-
-      // Check for specific category tags first
-      const categoryMappings = {
-        'steak': ['steak', 'beef', 'carne', 'res'],
-        'pork': ['pork', 'cerdo', 'cochino'],
-        'poultry': ['poultry', 'chicken', 'pollo', 'ave'],
-        'seafood': ['seafood', 'fish', 'pescado', 'mariscos'],
-        'sides': ['sides', 'side', 'acompañante', 'guarnicion'],
-        'desserts': ['desserts', 'dessert', 'postre', 'dulce'],
-        'best-sellers': ['best-seller', 'popular', 'bestseller', 'mejor-vendido']
-      };
-
-      // Find matching category
-      for (const [category, keywords] of Object.entries(categoryMappings)) {
-        const hasKeyword = keywords.some(keyword => 
-          lowerTags.some(tag => tag === keyword || tag.includes(keyword))
-        );
-        
-        if (hasKeyword) {
-          console.log(`Category from tags: ${category}`);
-          return category;
+      // Look for sb-category- tags
+      product.tags.forEach(tag => {
+        if (tag.startsWith('sb-category-')) {
+          // Extract category name after sb-category-
+          const categoryName = tag.substring('sb-category-'.length);
+          if (categoryName) {
+            categories.push(categoryName);
+            console.log(`Found category tag: ${tag} -> category: ${categoryName}`);
+          }
         }
-      }
+      });
     }
-
-    // Fallback: Check product type 
-    if (product.product_type) {
-      const type = product.product_type.toLowerCase();
-      if (type.includes("steak") || type.includes("beef")) {
-        console.log("Category from product_type: steak");
-        return "steak";
-      }
-      if (type.includes("pork")) {
-        console.log("Category from product_type: pork");
-        return "pork";
-      }
-      if (type.includes("poultry") || type.includes("chicken")) {
-        console.log("Category from product_type: poultry");
-        return "poultry";
-      }
-      if (type.includes("seafood") || type.includes("fish")) {
-        console.log("Category from product_type: seafood");
-        return "seafood";
-      }
+    
+    // If no sb-category- tags found, put in best-sellers
+    if (categories.length === 0) {
+      console.log("No sb-category- tags found, using best-sellers");
+      categories.push("best-sellers");
     }
-
-    console.log("Using default category: best-sellers");
-    return "best-sellers";
+    
+    return categories;
+  }
+  
+  // Format category key into a display title
+  formatCategoryTitle(categoryKey) {
+    // Simply capitalize first letter and replace dashes/underscores with spaces
+    return categoryKey
+      .replace(/[-_]/g, ' ')
+      .split(' ')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(' ');
   }
 
   updateCategoriesSidebar() {
@@ -718,23 +699,32 @@ class ProductManager {
     const discountedPrice = totalPrice * (1 - discount / 100);
 
     if (cartMessage && cartDetails) {
+      // Get messages from configuration or use defaults
+      const config = window.subscriptionConfig?.messages || {};
+      const messages = {
+        noItems: config.noItems || "Choose at least 6 items for 5% recurring savings",
+        building: config.building || "Add {remaining} more for 5% recurring savings", 
+        fivePercent: config.fivePercent || "Great! Add {remaining} more for 10% recurring savings",
+        tenPercent: config.tenPercent || "Amazing! You've unlocked 10% recurring savings"
+      };
+
       if (totalCount >= 10) {
         // State 3: Maximum discount achieved (10% OFF)
-        cartMessage.textContent = "Amazing! You've unlocked 10% recurring savings";
+        cartMessage.textContent = messages.tenPercent;
         cartDetails.innerHTML = `${totalCount} selected: <span class="original-price">$${parseFloat(totalPrice).toFixed(2)}</span> <span class="discount-price">$${parseFloat(discountedPrice).toFixed(2)} (10% OFF)</span>`;
       } else if (totalCount >= 6) {
         // State 2: First discount achieved, show progress to next level (5% OFF)
         const remaining = 10 - totalCount;
-        cartMessage.textContent = `Great! Add ${remaining} more for 10% recurring savings`;
+        cartMessage.textContent = messages.fivePercent.replace('{remaining}', remaining);
         cartDetails.innerHTML = `${totalCount} selected: <span class="original-price">$${parseFloat(totalPrice).toFixed(2)}</span> <span class="discount-price">$${parseFloat(discountedPrice).toFixed(2)} (5% OFF)</span>`;
       } else if (totalCount >= 1) {
         // State 1: Building towards first discount (1-5 items)
         const remaining = 6 - totalCount;
-        cartMessage.textContent = `Add ${remaining} more for 5% recurring savings`;
+        cartMessage.textContent = messages.building.replace('{remaining}', remaining);
         cartDetails.textContent = `${totalCount} selected: $${parseFloat(totalPrice).toFixed(2)}`;
       } else {
         // State 0: No items selected
-        cartMessage.textContent = "Choose at least 6 items for 5% recurring savings";
+        cartMessage.textContent = messages.noItems;
         cartDetails.textContent = "0 selected: $0.00";
       }
     }
