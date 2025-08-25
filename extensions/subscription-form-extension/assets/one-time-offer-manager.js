@@ -45,7 +45,7 @@ class OneTimeOfferManager {
       const isSelected = this.selectedOffers.some(offer => offer.id === product.id);
       const imageSrc = (product.images && product.images[0]?.src) || "";
       const price = product.variants[0] ? parseFloat(product.variants[0].price) : 0;
-      const formattedPrice = `$${(price / 100).toFixed(2)}`;
+      const formattedPrice = `$${price.toFixed(2)}`;
       
       return `
         <div class="product-card offer-product-card ${isSelected ? 'selected' : ''}" data-product-id="${product.id}">
@@ -54,13 +54,16 @@ class OneTimeOfferManager {
           </div>
           
           <div class="product-info">
-            <h3 class="product-title">${product.title}</h3>
+            <div class="product-info-row">
+              <div class="product-title">${product.title}</div>
+              <div class="product-price">${formattedPrice}</div>
+            </div>
             
-            <div class="product-variants">
-              <select class="variant-select" data-product-id="${product.id}">
+            <div class="variant-selector">
+              <select data-product-id="${product.id}">
                 ${product.variants.map(variant => `
                   <option value="${variant.id}" data-price="${variant.price}">
-                    ${variant.title} - $${(variant.price / 100).toFixed(2)}
+                    ${variant.title} - $${parseFloat(variant.price).toFixed(2)}
                   </option>
                 `).join('')}
               </select>
@@ -124,12 +127,14 @@ class OneTimeOfferManager {
           </div>
           
           <div class="product-info">
-            <h3 class="product-title">${offer.title}</h3>
-            <p>${offer.description}</p>
+            <div class="product-info-row">
+              <div class="product-title">${offer.title}</div>
+              <div class="product-price">${offer.offerPrice}</div>
+            </div>
+            <p class="product-description">${offer.description}</p>
             
             <div class="offer-pricing">
               <span class="original-price">${offer.originalPrice}</span>
-              <span class="offer-price">${offer.offerPrice}</span>
             </div>
             
             <div class="product-actions">

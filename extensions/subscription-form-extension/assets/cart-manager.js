@@ -134,7 +134,7 @@ class CartManager {
           [`_product_${index + 1}_title`]: product.title,
           [`_product_${index + 1}_variant`]: product.selectedVariant.title,
           [`_product_${index + 1}_quantity`]: product.quantity.toString(),
-          [`_product_${index + 1}_price`]: (product.price / 100).toFixed(2),
+          [`_product_${index + 1}_price`]: parseFloat(product.price).toFixed(2),
           [`_product_${index + 1}_id`]: product.id.toString()
         };
       }).reduce((acc, curr) => ({ ...acc, ...curr }), {});
@@ -147,10 +147,10 @@ class CartManager {
           _subscription_type: "bundle",
           _frequency: subscriptionData.frequency,
           _total_products: totalCount.toString(),
-          _total_price: (totalPrice / 100).toFixed(2),
+          _total_price: parseFloat(totalPrice).toFixed(2),
           _bundle_created: new Date().toISOString(),
           _frequency_text: this.frequencyText[subscriptionData.frequency],
-          _calculated_total: `$${(totalPrice / 100).toFixed(2)}`,
+          _calculated_total: `$${parseFloat(totalPrice).toFixed(2)}`,
           _price_override: "true",
           ...productDetails
         },
@@ -167,15 +167,15 @@ class CartManager {
         
         // Calculate discounted price
         const discountedPrice = totalPrice * (1 - discountPercentage / 100);
-        bundleItem.properties._discounted_price = `$${(discountedPrice / 100).toFixed(2)}`;
+        bundleItem.properties._discounted_price = `$${parseFloat(discountedPrice).toFixed(2)}`;
         bundleItem.properties._discount_amount = `${discountPercentage}%`;
         
         console.log(`✅ Bundle created:`);
         console.log(`   - ${totalCount} products`);
         console.log(`   - ${this.frequencyText[subscriptionData.frequency]}`);
         console.log(`   - ${discountPercentage}% discount (Selling Plan: ${sellingPlanId})`);
-        console.log(`   - Original price: $${(totalPrice / 100).toFixed(2)}`);
-        console.log(`   - Discounted price: $${(discountedPrice / 100).toFixed(2)}`);
+        console.log(`   - Original price: $${parseFloat(totalPrice).toFixed(2)}`);
+        console.log(`   - Discounted price: $${parseFloat(discountedPrice).toFixed(2)}`);
       } else {
         console.log(`❌ No selling plan applied (${totalCount} products, ${subscriptionData.frequency})`);
       }
@@ -395,8 +395,8 @@ class CartManager {
             subscription_created: new Date().toISOString(),
             frequency_text: this.frequencyText[subscriptionData.frequency] || subscriptionData.frequency,
             // Add detailed pricing information  
-            calculated_total: selectedProducts.reduce((sum, p) => sum + (p.price * p.quantity), 0) / 100,
-            display_price: `$${(selectedProducts.reduce((sum, p) => sum + (p.price * p.quantity), 0) / 100).toFixed(2)}`,
+            calculated_total: selectedProducts.reduce((sum, p) => sum + (p.price * p.quantity), 0),
+            display_price: `$${selectedProducts.reduce((sum, p) => sum + (p.price * p.quantity), 0).toFixed(2)}`,
             subscription_note: `Custom subscription with ${totalCount} products and ${discount}% discount`
           },
         }),

@@ -4,6 +4,7 @@ class ProductManager {
     this.selectedProducts = [];
     this.productsByCollection = {};
     this.allProducts = [];
+    this.preSelectedVariants = {}; // Store variant selections before products are added
     this.DISCOUNT_THRESHOLDS = {
       6: 5,
       10: 10,
@@ -410,16 +411,17 @@ class ProductManager {
       .map((product) => {
         const selectedProduct = this.selectedProducts.find(p => p.id === product.id);
         const isSelected = !!selectedProduct;
-        const quantity = selectedProduct ? selectedProduct.quantity : 2; // Default quantity: 2
-        const selectedVariant = selectedProduct ? selectedProduct.selectedVariant : product.variants[0];
+        const quantity = selectedProduct ? selectedProduct.quantity : 1; // Default quantity: 1
+        const selectedVariant = selectedProduct ? selectedProduct.selectedVariant : 
+                               (this.preSelectedVariants?.[product.id] || product.variants[0]);
         const imageSrc = (product.images && product.images[0]?.src) || "";
-        const price = selectedVariant ? `$${(selectedVariant.price / 100).toFixed(2)}` : "$0.00";
+        const price = selectedVariant ? `$${parseFloat(selectedVariant.price).toFixed(2)}` : "$0.00";
 
         // Generate variant options - check if variants exist
         const variantOptions = (product.variants && product.variants.length > 0) ? 
           product.variants.map(variant => 
             `<option value="${variant.id}" ${selectedVariant && selectedVariant.id === variant.id ? 'selected' : ''}>
-              ${variant.title} - $${(variant.price / 100).toFixed(2)}
+              ${variant.title} - $${parseFloat(variant.price).toFixed(2)}
             </option>`
           ).join('') : 
           '<option value="">Default - $0.00</option>';
@@ -432,8 +434,10 @@ class ProductManager {
               ${imageSrc ? `<img src="${imageSrc}" alt="${product.title}">` : '<div style="color: #999; font-size: 0.9rem;">No image</div>'}
             </div>
             
-            <div class="product-title">${product.title}</div>
-            <div class="product-price">${price}</div>
+            <div class="product-info-row">
+              <div class="product-title">${product.title}</div>
+              <div class="product-price">${price}</div>
+            </div>
             <div class="product-description">${product.body_html?.replace(/<[^>]*>/g, '').substring(0, 100) || 'Product description'}</div>
             
             <div class="variant-selector">
@@ -488,8 +492,10 @@ class ProductManager {
     const existingProduct = this.selectedProducts.find(p => p.id === productId);
     
     if (!existingProduct) {
-      // Add new product with default quantity of 2
-      const selectedVariant = (product.variants && product.variants.length > 0) ? product.variants[0] : null;
+      // Add new product with default quantity of 1
+      // Use pre-selected variant if available, otherwise use first variant
+      const selectedVariant = this.preSelectedVariants?.[productId] || 
+                             ((product.variants && product.variants.length > 0) ? product.variants[0] : null);
       
       if (!selectedVariant) {
         console.error(`No variants found for product ${productId}`);
@@ -502,9 +508,14 @@ class ProductManager {
         image: (product.images && product.images[0]?.src) || "",
         price: selectedVariant.price,
         selectedVariant: selectedVariant,
-        quantity: 2,
+        quantity: 1,
         type: "individual"
       });
+
+      // Clear pre-selected variant since product is now added
+      if (this.preSelectedVariants?.[productId]) {
+        delete this.preSelectedVariants[productId];
+      }
 
       this.updateProductUI(productId);
       this.updateProgressBar();
@@ -529,6 +540,12 @@ class ProductManager {
       // Update existing product's variant
       selectedProduct.selectedVariant = variant;
       selectedProduct.price = variant.price;
+    } else {
+      // Store the selected variant for when the product is added later
+      if (!this.preSelectedVariants) {
+        this.preSelectedVariants = {};
+      }
+      this.preSelectedVariants[productId] = variant;
     }
 
     // Update UI to reflect new variant and price
@@ -587,6 +604,13 @@ class ProductManager {
     // Update card selection state
     card.classList.toggle('selected', isSelected);
     
+    // Update price display
+    const priceDisplay = card.querySelector('.product-price');
+    if (priceDisplay && product && product.selectedVariant) {
+      const formattedPrice = `$${parseFloat(product.selectedVariant.price).toFixed(2)}`;
+      priceDisplay.textContent = formattedPrice;
+    }
+    
     // Update quantity display
     const quantityDisplay = card.querySelector('.quantity-number');
     const quantityValue = card.querySelector('.quantity-value');
@@ -599,8 +623,8 @@ class ProductManager {
         setTimeout(() => quantityValue.classList.remove('bounce'), 300);
       }
     } else {
-      if (quantityDisplay) quantityDisplay.textContent = '2'; // Default
-      if (quantityValue) quantityValue.textContent = '2';
+      if (quantityDisplay) quantityDisplay.textContent = '1'; // Default
+      if (quantityValue) quantityValue.textContent = '1';
     }
   }
 
@@ -677,7 +701,11 @@ class ProductManager {
     const cartDetails = document.getElementById('cart-details');
 
     const totalCount = this.selectedProducts.reduce((sum, product) => sum + product.quantity, 0);
-    const totalPrice = this.selectedProducts.reduce((sum, product) => sum + (product.price * product.quantity), 0);
+    const totalPrice = this.selectedProducts.reduce((sum, product) => {
+      // Always use the price from selectedVariant to ensure accuracy
+      const price = product.selectedVariant ? product.selectedVariant.price : product.price;
+      return sum + (price * product.quantity);
+    }, 0);
     
     // Calculate discount
     let discount = 0;
@@ -693,14 +721,14 @@ class ProductManager {
       if (totalCount >= 10) {
         // State 2: Achievement state
         cartMessage.textContent = "Congratulations! You've got 10% OFF";
-        cartDetails.innerHTML = `${totalCount} selected: <span class="original-price">$${(totalPrice / 100).toFixed(2)}</span> <span class="discount-price">$${(discountedPrice / 100).toFixed(2)} (10% OFF)</span>`;
+        cartDetails.innerHTML = `${totalCount} selected: <span class="original-price">$${parseFloat(totalPrice).toFixed(2)}</span> <span class="discount-price">$${parseFloat(discountedPrice).toFixed(2)} (10% OFF)</span>`;
       } else {
         // State 1: Call to action state
         cartMessage.textContent = "Choose at least 10 for 10% OFF";
         if (discount > 0) {
-          cartDetails.innerHTML = `${totalCount} selected: <span class="original-price">$${(totalPrice / 100).toFixed(2)}</span> <span class="discount-price">$${(discountedPrice / 100).toFixed(2)} (${discount}% OFF)</span>`;
+          cartDetails.innerHTML = `${totalCount} selected: <span class="original-price">$${parseFloat(totalPrice).toFixed(2)}</span> <span class="discount-price">$${parseFloat(discountedPrice).toFixed(2)} (${discount}% OFF)</span>`;
         } else {
-          cartDetails.textContent = `${totalCount} selected: $${(totalPrice / 100).toFixed(2)}`;
+          cartDetails.textContent = `${totalCount} selected: $${parseFloat(totalPrice).toFixed(2)}`;
         }
       }
     }

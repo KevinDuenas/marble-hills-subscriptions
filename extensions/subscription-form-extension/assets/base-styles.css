@@ -398,12 +398,31 @@
 
 .offer-product-card .variant-select {
   width: 100%;
-  padding: 0.75rem;
-  border: 1px solid #dee2e6;
-  border-radius: 8px;
-  font-size: 0.9rem;
-  margin-bottom: 1.5rem;
-  background: white;
+  padding: 8px 32px 8px 10px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 13px;
+  color: #374151;
+  background: #ffffff;
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%236b7280'%3e%3cpath fill-rule='evenodd' d='M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z' clip-rule='evenodd'/%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  background-size: 14px 14px;
+  margin-bottom: 1rem;
+}
+
+.offer-product-card .variant-select:hover {
+  border-color: #9ca3af;
+}
+
+.offer-product-card .variant-select:focus {
+  outline: none;
+  border-color: #f97316;
 }
 
 .offer-product-card .add-offer-btn {
