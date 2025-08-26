@@ -4,10 +4,9 @@
   margin: 2rem auto;
   padding: 2rem;
   min-height: 700px;
-  font-family:
-    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-family: "Archivo", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   position: relative;
-  background: #fff;
+  background: transparent;
 }
 
 /* Form Steps */
@@ -59,19 +58,19 @@
   font-size: 36px;
   font-weight: 700;
   margin: 0 0 0.5rem 0;
-  color: #2c3e50;
+  color: #5B4B41;
 }
 
 .header-left p {
   font-size: 16px;
   font-weight: 700;
-  color: #6c757d;
+  color: #8B7355;
   margin: 0;
 }
 
 .header-right {
   text-align: right;
-  color: #2c3e50;
+  color: #5B4B41;
   font-size: 1rem;
   font-weight: 600;
   white-space: nowrap;
@@ -83,7 +82,7 @@
 
 .step-indicator {
   font-weight: 600;
-  color: #2c3e50;
+  color: #5B4B41;
   font-size: 20px;
   margin: 0 !important;
   padding: 0 !important;
@@ -93,7 +92,7 @@
 
 .next-step-info {
   font-weight: 400;
-  color: #6c757d;
+  color: #8B7355;
   font-size: 16px;
   margin: 0.25rem 0 0 0 !important;
   padding: 0 !important;
@@ -109,7 +108,7 @@
 .progress-text {
   font-size: 1.1rem;
   font-weight: 500;
-  color: #2c3e50;
+  color: #5B4B41;
   margin-bottom: 1rem;
 }
 
@@ -121,18 +120,18 @@
 
 .progress-bar {
   height: 12px;
-  background: #e9ecef;
-  border-radius: 6px;
+  background: #E8DCC6;
+  border-radius: 0.4rem;
   overflow: visible;
   margin: 2rem 0;
-  border: 1px solid #dee2e6;
+  border: 1px solid #D4C5A9;
   position: relative;
 }
 
 .progress-fill {
   height: 100%;
-  background: red !important;
-  border-radius: 6px;
+  background: linear-gradient(135deg, #EFAC52, #E69A3B) !important;
+  border-radius: 0.4rem;
   width: 0% !important;
   transition: width 0.5s ease !important;
   position: absolute;
@@ -169,27 +168,27 @@
 .milestone-dot {
   width: 16px;
   height: 16px;
-  border: 2px solid #dee2e6;
+  border: 2px solid #D4C5A9;
   border-radius: 50%;
-  background: #fff;
+  background: #F9F2E8;
   margin-bottom: 0.5rem;
   transition: all 0.3s ease;
 }
 
 .milestone.active .milestone-dot {
-  background: #2c3e50;
-  border-color: #2c3e50;
+  background: #EFAC52;
+  border-color: #EFAC52;
 }
 
 .milestone-text {
   font-size: 0.9rem;
-  color: #6c757d;
+  color: #8B7355;
   text-align: center;
   white-space: nowrap;
 }
 
 .milestone.active .milestone-text {
-  color: #2c3e50;
+  color: #5B4B41;
   font-weight: 500;
 }
 
@@ -206,9 +205,9 @@
   bottom: 0 !important;
   left: 50% !important;
   transform: translateX(-50%) !important;
-  background: #f8f9fa !important;
-  border: 1px solid #dee2e6 !important;
-  border-radius: 12px 12px 0 0 !important;
+  background: #F9F2E8 !important;
+  border: 1px solid #D4C5A9 !important;
+  border-radius: 0.8rem 0.8rem 0 0 !important;
   padding: 1.5rem 2rem !important;
   display: flex !important;
   flex-direction: row !important;
@@ -216,7 +215,7 @@
   align-items: center !important;
   width: calc(100% - 4rem) !important;
   max-width: 1160px !important;
-  box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.1) !important;
+  box-shadow: 0 -4px 12px rgba(91, 75, 65, 0.15) !important;
   z-index: 100 !important;
 }
 
@@ -236,13 +235,13 @@
 .cart-message {
   font-size: 1.1rem;
   font-weight: 600;
-  color: #2c3e50;
+  color: #5B4B41;
   margin-bottom: 0.25rem;
 }
 
 .cart-details {
   font-size: 1rem;
-  color: #6c757d;
+  color: #8B7355;
 }
 
 .cart-details .original-price {
@@ -251,33 +250,36 @@
 }
 
 .cart-details .discount-price {
-  color: #28a745;
+  color: #EFAC52;
   font-weight: 600;
 }
 
 .select-frequency-btn {
-  background: #f7931e;
-  color: white;
+  background: #EFAC52;
+  color: #5B4B41;
   border: none;
   padding: 1rem 2rem;
-  border-radius: 8px;
+  border-radius: 0.4rem;
   font-size: 1rem;
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
   transition: all 0.3s ease;
   min-width: 160px;
+  box-shadow: 0 2px 6px rgba(91, 75, 65, 0.2);
 }
 
 .select-frequency-btn:hover:not(:disabled) {
-  background: #e8841a;
+  background: #E69A3B;
   transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(91, 75, 65, 0.25);
 }
 
 .select-frequency-btn:disabled {
-  background: #dee2e6;
-  color: #6c757d;
+  background: #E8DCC6;
+  color: #8B7355;
   cursor: not-allowed;
   transform: none;
+  box-shadow: none;
 }
 
 
@@ -293,13 +295,16 @@
 }
 
 .floating-cart-summary .prev-btn {
-  background: #6c757d;
-  color: white;
+  background: #8B7355;
+  color: #F9F2E8;
+  border-radius: 0.4rem;
+  box-shadow: 0 2px 6px rgba(91, 75, 65, 0.2);
 }
 
 .floating-cart-summary .prev-btn:hover {
-  background: #5a6268;
+  background: #6B5A47;
   transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(91, 75, 65, 0.25);
 }
 
 /* Step 3: One Time Offer Styles */
@@ -321,7 +326,7 @@
 .offer-title {
   font-size: 36px !important;
   font-weight: 700 !important;
-  color: #2c3e50 !important;
+  color: #5B4B41 !important;
   margin: 0 0 0.5rem 0 !important;
   display: block !important;
   visibility: visible !important;
@@ -330,7 +335,7 @@
 .offer-subtitle {
   font-size: 16px !important;
   font-weight: 700 !important;
-  color: #6c757d !important;
+  color: #8B7355 !important;
   margin: 0 !important;
   display: block !important;
   visibility: visible !important;
@@ -346,24 +351,25 @@
 }
 
 .offer-product-card {
-  border: 1px solid #dee2e6 !important;
-  border-radius: 12px !important;
+  border: 1px solid #D4C5A9 !important;
+  border-radius: 0.8rem !important;
   overflow: hidden !important;
   transition: all 0.3s ease !important;
   display: block !important;
   visibility: visible !important;
   min-height: 300px !important;
-  background: white !important;
+  background: #F9F2E8 !important;
+  box-shadow: 0 2px 6px rgba(91, 75, 65, 0.1) !important;
 }
 
 .offer-product-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 8px 24px rgba(91, 75, 65, 0.15);
 }
 
 .offer-product-card.selected {
-  border-color: #e8841a;
-  box-shadow: 0 0 0 2px rgba(232, 132, 26, 0.2);
+  border-color: #EFAC52;
+  box-shadow: 0 0 0 2px rgba(239, 172, 82, 0.3);
 }
 
 .offer-product-card .product-image {
@@ -392,24 +398,24 @@
 .offer-product-card .product-title {
   font-size: 1.2rem;
   font-weight: 600;
-  color: #2c3e50;
+  color: #5B4B41;
   margin-bottom: 1rem;
 }
 
 .offer-product-card .variant-select {
   width: 100%;
   padding: 8px 32px 8px 10px;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
+  border: 1px solid #D4C5A9;
+  border-radius: 0.4rem;
   font-size: 13px;
-  color: #374151;
-  background: #ffffff;
+  color: #5B4B41;
+  background: #F9F2E8;
   cursor: pointer;
   transition: border-color 0.15s ease;
   appearance: none;
   -webkit-appearance: none;
   -moz-appearance: none;
-  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%236b7280'%3e%3cpath fill-rule='evenodd' d='M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z' clip-rule='evenodd'/%3e%3c/svg%3e");
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%235B4B41'%3e%3cpath fill-rule='evenodd' d='M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z' clip-rule='evenodd'/%3e%3c/svg%3e");
   background-repeat: no-repeat;
   background-position: right 8px center;
   background-size: 14px 14px;
@@ -417,38 +423,42 @@
 }
 
 .offer-product-card .variant-select:hover {
-  border-color: #9ca3af;
+  border-color: #EFAC52;
 }
 
 .offer-product-card .variant-select:focus {
   outline: none;
-  border-color: #f97316;
+  border-color: #EFAC52;
+  box-shadow: 0 0 0 2px rgba(239, 172, 82, 0.2);
 }
 
 .offer-product-card .add-offer-btn {
   width: 100%;
   padding: 0.75rem 1.5rem;
-  background: #f7931e;
-  color: white;
+  background: #EFAC52;
+  color: #5B4B41;
   border: none;
-  border-radius: 8px;
+  border-radius: 0.4rem;
   font-size: 1rem;
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
   transition: all 0.3s ease;
+  box-shadow: 0 2px 6px rgba(91, 75, 65, 0.2);
 }
 
 .offer-product-card .add-offer-btn:hover {
-  background: #e8841a;
+  background: #E69A3B;
   transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(91, 75, 65, 0.25);
 }
 
 .offer-product-card .add-offer-btn.selected {
-  background: #28a745;
+  background: #5B8A5A;
+  color: #F9F2E8;
 }
 
 .offer-product-card .add-offer-btn.selected:hover {
-  background: #218838;
+  background: #4A7349;
 }
 
 .offer-product-card .offer-pricing {
@@ -460,7 +470,7 @@
 
 .offer-product-card .original-price {
   text-decoration: line-through;
-  color: #6c757d;
+  color: #8B7355;
   font-size: 0.9rem;
 }
 
@@ -479,18 +489,19 @@
   width: 100%;
   max-width: 400px;
   padding: 1rem 1.5rem;
-  border: 1px solid #dee2e6;
-  border-radius: 25px;
+  border: 1px solid #D4C5A9;
+  border-radius: 1.5rem;
   font-size: 1rem;
   text-align: center;
-  background: white;
+  background: #F9F2E8;
+  color: #5B4B41;
   transition: all 0.3s ease;
 }
 
 .offer-email-input:focus {
   outline: none;
-  border-color: #e8841a;
-  box-shadow: 0 0 0 3px rgba(232, 132, 26, 0.1);
+  border-color: #EFAC52;
+  box-shadow: 0 0 0 3px rgba(239, 172, 82, 0.2);
 }
 
 .offer-actions {
@@ -559,12 +570,12 @@
 .frequency-container h2 {
   font-size: 36px;
   font-weight: 700;
-  color: #2c3e50;
+  color: #5B4B41;
   margin-bottom: 0.5rem;
 }
 
 .frequency-container p {
-  color: #6c757d;
+  color: #8B7355;
   margin-bottom: 3rem;
   font-size: 16px;
   font-weight: 700;
@@ -605,30 +616,38 @@
 }
 
 .prev-btn {
-  background: #6c757d;
-  color: white;
+  background: #8B7355;
+  color: #F9F2E8;
+  border-radius: 0.4rem;
+  box-shadow: 0 2px 6px rgba(91, 75, 65, 0.2);
 }
 
 .prev-btn:hover {
-  background: #5a6268;
+  background: #6B5A47;
   transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(91, 75, 65, 0.25);
 }
 
 .next-btn {
-  background: #f7931e;
-  color: white;
+  background: #EFAC52;
+  color: #5B4B41;
+  border-radius: 0.4rem;
+  font-weight: 700;
+  box-shadow: 0 2px 6px rgba(91, 75, 65, 0.2);
 }
 
 .next-btn:hover:not(:disabled) {
-  background: #e8841a;
+  background: #E69A3B;
   transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(91, 75, 65, 0.25);
 }
 
 .next-btn:disabled {
-  background: #dee2e6;
-  color: #6c757d;
+  background: #E8DCC6;
+  color: #8B7355;
   cursor: not-allowed;
   transform: none;
+  box-shadow: none;
 }
 
 /* Step 3: One Time Offer Styles */
@@ -641,12 +660,12 @@
 .offer-container h2 {
   font-size: 2rem;
   font-weight: 600;
-  color: #2c3e50;
+  color: #5B4B41;
   margin-bottom: 0.5rem;
 }
 
 .offer-container p {
-  color: #6c757d;
+  color: #8B7355;
   margin-bottom: 3rem;
   font-size: 1rem;
 }
@@ -659,17 +678,18 @@
 }
 
 .offer-product-card {
-  background: #fff;
-  border: 1px solid #e9ecef;
-  border-radius: 12px;
+  background: #F9F2E8;
+  border: 1px solid #D4C5A9;
+  border-radius: 0.8rem;
   padding: 1.5rem;
   position: relative;
   transition: transform 0.3s ease;
+  box-shadow: 0 2px 6px rgba(91, 75, 65, 0.1);
 }
 
 .offer-product-card:hover {
   transform: translateY(-4px);
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 8px 24px rgba(91, 75, 65, 0.15);
 }
 
 .discount-badge {
@@ -695,32 +715,34 @@
 .offer-product-card h3 {
   font-size: 1.1rem;
   font-weight: 600;
-  color: #2c3e50;
+  color: #5B4B41;
   margin-bottom: 0.5rem;
 }
 
 .offer-product-card p {
-  color: #6c757d;
+  color: #8B7355;
   font-size: 0.9rem;
   margin-bottom: 1.5rem;
 }
 
 .add-to-first-box-btn {
-  background: #f7931e;
-  color: white;
+  background: #EFAC52;
+  color: #5B4B41;
   border: none;
   padding: 0.75rem 1.5rem;
-  border-radius: 8px;
+  border-radius: 0.4rem;
   font-size: 0.9rem;
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
   transition: all 0.3s ease;
   width: 100%;
+  box-shadow: 0 2px 6px rgba(91, 75, 65, 0.2);
 }
 
 .add-to-first-box-btn:hover {
-  background: #e8841a;
+  background: #E69A3B;
   transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(91, 75, 65, 0.25);
 }
 
 /* Email Capture */
@@ -732,21 +754,24 @@
   width: 100%;
   max-width: 400px;
   padding: 1rem;
-  border: 2px solid #e9ecef;
-  border-radius: 8px;
+  border: 2px solid #D4C5A9;
+  border-radius: 0.4rem;
   font-size: 1rem;
   margin-bottom: 1rem;
   transition: border-color 0.3s ease;
+  background: #F9F2E8;
+  color: #5B4B41;
 }
 
 .email-input:focus {
   outline: none;
-  border-color: #f7931e;
+  border-color: #EFAC52;
+  box-shadow: 0 0 0 3px rgba(239, 172, 82, 0.2);
 }
 
 .email-disclaimer {
   font-size: 0.8rem;
-  color: #6c757d;
+  color: #8B7355;
   max-width: 500px;
   margin: 0 auto;
 }
@@ -760,25 +785,26 @@
 }
 
 .add-to-cart-btn {
-  background: #f7931e;
-  color: white;
+  background: #EFAC52;
+  color: #5B4B41;
   border: none;
   padding: 1.25rem 3rem;
-  border-radius: 8px;
+  border-radius: 0.4rem;
   font-size: 1.1rem;
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
   transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(91, 75, 65, 0.2);
 }
 
 .add-to-cart-btn:hover {
-  background: #e8841a;
+  background: #E69A3B;
   transform: translateY(-2px);
-  box-shadow: 0 4px 15px rgba(247, 147, 30, 0.3);
+  box-shadow: 0 6px 20px rgba(239, 172, 82, 0.4);
 }
 
 .skip-offer {
-  color: #6c757d;
+  color: #8B7355;
   text-decoration: underline;
   font-size: 0.9rem;
   cursor: pointer;
@@ -786,7 +812,7 @@
 }
 
 .skip-offer:hover {
-  color: #2c3e50;
+  color: #5B4B41;
 }
 
 /* Loading States */
@@ -798,8 +824,8 @@
 .loading-spinner {
   width: 50px;
   height: 50px;
-  border: 4px solid #f8f9fa;
-  border-top: 4px solid #f7931e;
+  border: 4px solid #E8DCC6;
+  border-top: 4px solid #EFAC52;
   border-radius: 50%;
   animation: spin 1s linear infinite;
   margin: 0 auto 2rem;
@@ -815,12 +841,12 @@
 }
 
 .loading-state h3 {
-  color: #2c3e50;
+  color: #5B4B41;
   margin-bottom: 1rem;
 }
 
 .loading-state p {
-  color: #6c757d;
+  color: #8B7355;
 }
 
 /* Responsive Design */

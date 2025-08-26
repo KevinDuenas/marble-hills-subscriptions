@@ -441,10 +441,6 @@ class ProductManager {
                 <span class="quantity-value">${quantity}</span>
                 <button class="quantity-btn" onclick="window.productManager.updateQuantity(${product.id}, 1)">+</button>
               </div>
-              
-              <button class="remove-btn" onclick="window.productManager.removeProduct(${product.id})">
-                Remove
-              </button>
             </div>
           </div>
         `;
@@ -595,6 +591,7 @@ class ProductManager {
     // Update quantity display
     const quantityDisplay = card.querySelector('.quantity-number');
     const quantityValue = card.querySelector('.quantity-value');
+    const minusButton = card.querySelector('.quantity-btn:first-child');
     
     if (isSelected && product) {
       if (quantityDisplay) quantityDisplay.textContent = product.quantity;
@@ -603,9 +600,27 @@ class ProductManager {
         quantityValue.classList.add('bounce');
         setTimeout(() => quantityValue.classList.remove('bounce'), 300);
       }
+      
+      // Update minus button appearance when quantity is 1 (will remove product)
+      if (minusButton) {
+        if (product.quantity === 1) {
+          minusButton.classList.add('remove-mode');
+          minusButton.title = 'Remove from cart';
+          minusButton.innerHTML = '×'; // Change to X symbol
+        } else {
+          minusButton.classList.remove('remove-mode');
+          minusButton.title = 'Decrease quantity';
+          minusButton.innerHTML = '−'; // Normal minus
+        }
+      }
     } else {
       if (quantityDisplay) quantityDisplay.textContent = '1'; // Default
       if (quantityValue) quantityValue.textContent = '1';
+      if (minusButton) {
+        minusButton.classList.remove('remove-mode');
+        minusButton.title = 'Decrease quantity';
+        minusButton.innerHTML = '−';
+      }
     }
   }
 
