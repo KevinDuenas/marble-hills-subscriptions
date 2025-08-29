@@ -1047,17 +1047,33 @@ class ProductManager {
       const isActive = handle === defaultCategory;
       const badgeCount = data.products.length;
       
-      console.log(`Category ${handle}: isActive = ${isActive}, defaultCategory = ${defaultCategory}`);
+      console.log(`Category ${handle}: isActive = ${isActive}`);
+      console.log(`  - handle type: ${typeof handle}, value: "${handle}"`);
+      console.log(`  - defaultCategory type: ${typeof defaultCategory}, value: "${defaultCategory}"`);
+      console.log(`  - strict equality: ${handle === defaultCategory}`);
+      
+      const activeClass = isActive ? 'active' : '';
+      console.log(`  - activeClass: "${activeClass}"`);
       
       popupHTML += `
-        <button class="category-item ${isActive ? 'active' : ''}" data-collection="${handle}" onclick="window.productManager.selectCategoryFromPopup('${handle}')">
+        <button class="category-item ${activeClass}" data-collection="${handle}" onclick="window.productManager.selectCategoryFromPopup('${handle}')">
           ${data.title}
           <span class="category-badge" style="display: none;">${badgeCount}</span>
         </button>
       `;
     });
 
+    console.log('Final popupHTML:', popupHTML);
     popupList.innerHTML = popupHTML;
+    
+    // Verify the HTML was set correctly
+    setTimeout(() => {
+      const activeItems = document.querySelectorAll('.categories-popup-list .category-item.active');
+      console.log('Active items in popup after setting HTML:', activeItems.length);
+      activeItems.forEach(item => {
+        console.log('Active item:', item.textContent.trim(), 'data-collection:', item.dataset.collection);
+      });
+    }, 100);
     
     // Update button text with current category
     if (selectedCategoryDisplay && this.productsByCollection[defaultCategory]) {
@@ -1067,6 +1083,19 @@ class ProductManager {
     
     // Store current selected category for mobile
     this.currentMobileCategory = defaultCategory;
+    
+    // Force update active state after DOM insertion
+    setTimeout(() => {
+      const popupItems = document.querySelectorAll('.categories-popup-list .category-item');
+      console.log('Forcing active state update for:', defaultCategory);
+      popupItems.forEach(item => {
+        item.classList.remove('active');
+        if (item.dataset.collection === defaultCategory) {
+          item.classList.add('active');
+          console.log('✅ Forced active class on:', item.textContent.trim());
+        }
+      });
+    }, 50);
     
     // Initialize popup handlers
     this.initializeMobilePopupHandlers();
