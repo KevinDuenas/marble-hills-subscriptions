@@ -3,6 +3,18 @@ class OneTimeOfferManager {
   constructor() {
     this.offerProducts = [];
     this.selectedOffers = [];
+    
+    // Initialize email validation when DOM is ready
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', () => {
+        this.initializeEmailValidation();
+        this.updateAddToCartButtonState(); // Set initial state
+      });
+    } else {
+      // DOM already loaded
+      this.initializeEmailValidation();
+      this.updateAddToCartButtonState(); // Set initial state
+    }
   }
 
   async loadOfferProducts() {
@@ -15,14 +27,31 @@ class OneTimeOfferManager {
 
       if (data.products) {
         // Filter products that are tagged with "sb-one-time-offer"
-        this.offerProducts = data.products.filter(product => 
+        let filteredProducts = data.products.filter(product => 
           product.tags && product.tags.includes('sb-one-time-offer')
         );
 
-        // Limit to maximum 3 products
-        this.offerProducts = this.offerProducts.slice(0, 3);
+        // Sort by priority (priority-1 first, then priority-2, etc., then no priority)
+        filteredProducts.sort((a, b) => {
+          const priorityA = this.getProductPriority(a);
+          const priorityB = this.getProductPriority(b);
+          return priorityA - priorityB; // Lower number = higher priority
+        });
+
+        // Limit to maximum 3 products, minimum 1 if available
+        this.offerProducts = filteredProducts.slice(0, 3);
 
         console.log(`Found ${this.offerProducts.length} one-time offer products`);
+        
+        // Log the tag system details
+        this.offerProducts.forEach((product, index) => {
+          const priority = this.getProductPriority(product);
+          const discount = this.getProductDiscount(product);
+          console.log(`Product ${index + 1}: "${product.title}"`);
+          console.log(`  - Priority: ${priority} ${priority === 99 ? '(default)' : priority === 999 ? '(no tags)' : '(tagged)'}`);
+          console.log(`  - Discount: ${discount}%`);
+          console.log(`  - Tags: [${product.tags?.join(', ') || 'none'}]`);
+        });
         
         if (this.offerProducts.length > 0) {
           this.displayOfferProducts();
@@ -30,11 +59,57 @@ class OneTimeOfferManager {
           console.log("No one-time offer products found, showing demo offers");
           this.displayDemoOffers();
         }
+        
+        // Re-initialize validation after loading products
+        setTimeout(() => {
+          this.initializeEmailValidation();
+          this.updateAddToCartButtonState();
+        }, 100);
       }
     } catch (error) {
       console.error("Error loading offer products:", error);
       this.displayDemoOffers();
+      
+      // Re-initialize validation after displaying demo offers
+      setTimeout(() => {
+        this.initializeEmailValidation();
+        this.updateAddToCartButtonState();
+      }, 100);
     }
+  }
+
+  // Extract priority from product tags (sb-oto-priority-1, sb-oto-priority-2, etc.)
+  getProductPriority(product) {
+    if (!product.tags) return 999; // No tags = lowest priority
+    
+    const priorityTag = product.tags.find(tag => tag.startsWith('sb-oto-priority-'));
+    if (priorityTag) {
+      const priorityNumber = parseInt(priorityTag.split('-').pop());
+      return isNaN(priorityNumber) ? 999 : priorityNumber;
+    }
+    
+    return 99; // Default priority (lower than no priority tag)
+  }
+
+  // Extract discount percentage from product tags (sb-oto-discount-10, sb-oto-discount-15, etc.)
+  getProductDiscount(product) {
+    if (!product.tags) return 0;
+    
+    const discountTag = product.tags.find(tag => tag.startsWith('sb-oto-discount-'));
+    if (discountTag) {
+      const discountNumber = parseInt(discountTag.split('-').pop());
+      return isNaN(discountNumber) ? 0 : discountNumber;
+    }
+    
+    return 0; // No discount
+  }
+
+  // Calculate discounted price
+  calculateDiscountedPrice(originalPrice, discountPercentage) {
+    if (discountPercentage === 0) return originalPrice;
+    
+    const discount = (originalPrice * discountPercentage) / 100;
+    return originalPrice - discount;
   }
 
   displayOfferProducts() {
@@ -44,11 +119,15 @@ class OneTimeOfferManager {
     const offerCards = this.offerProducts.map(product => {
       const isSelected = this.selectedOffers.some(offer => offer.id === product.id);
       const imageSrc = (product.images && product.images[0]?.src) || "";
-      const price = product.variants[0] ? parseFloat(product.variants[0].price) : 0;
-      const formattedPrice = `$${price.toFixed(2)}`;
+      const originalPrice = product.variants[0] ? parseFloat(product.variants[0].price) : 0;
+      const discountPercentage = this.getProductDiscount(product);
+      const discountedPrice = this.calculateDiscountedPrice(originalPrice, discountPercentage);
+      const hasDiscount = discountPercentage > 0;
       
       return `
         <div class="product-card offer-product-card ${isSelected ? 'selected' : ''}" data-product-id="${product.id}">
+          ${hasDiscount ? `<div class="discount-badge">${discountPercentage}% OFF</div>` : ''}
+          
           <div class="product-image">
             ${imageSrc ? `<img src="${imageSrc}" alt="${product.title}">` : '<div class="no-image">No image</div>'}
           </div>
@@ -56,16 +135,27 @@ class OneTimeOfferManager {
           <div class="product-info">
             <div class="product-info-row">
               <div class="product-title">${product.title}</div>
-              <div class="product-price">${formattedPrice}</div>
+              <div class="product-price-container">
+                ${hasDiscount ? `<div class="original-price">$${originalPrice.toFixed(2)}</div>` : ''}
+                <div class="offer-price">$${discountedPrice.toFixed(2)}</div>
+              </div>
             </div>
             
             <div class="variant-selector">
               <select data-product-id="${product.id}">
-                ${product.variants.map(variant => `
-                  <option value="${variant.id}" data-price="${variant.price}">
-                    ${variant.title} - $${parseFloat(variant.price).toFixed(2)}
-                  </option>
-                `).join('')}
+                ${product.variants.map(variant => {
+                  const variantOriginalPrice = parseFloat(variant.price);
+                  const variantDiscountedPrice = this.calculateDiscountedPrice(variantOriginalPrice, discountPercentage);
+                  const priceDisplay = hasDiscount ? 
+                    `${variant.title} - $${variantDiscountedPrice.toFixed(2)} (was $${variantOriginalPrice.toFixed(2)})` :
+                    `${variant.title} - $${variantOriginalPrice.toFixed(2)}`;
+                  
+                  return `
+                    <option value="${variant.id}" data-price="${variant.price}" data-discounted-price="${variantDiscountedPrice}">
+                      ${priceDisplay}
+                    </option>
+                  `;
+                }).join('')}
               </select>
             </div>
             
@@ -81,6 +171,9 @@ class OneTimeOfferManager {
     }).join('');
 
     offerProductsContainer.innerHTML = offerCards;
+    
+    // Update button state after displaying products
+    this.updateAddToCartButtonState();
   }
 
   displayDemoOffers() {
@@ -150,6 +243,9 @@ class OneTimeOfferManager {
     console.log("Demo offers HTML generated:", offerCards);
     offerProductsContainer.innerHTML = offerCards;
     console.log("Demo offers HTML set to container");
+    
+    // Update button state after displaying demo products
+    this.updateAddToCartButtonState();
   }
 
   toggleOffer(productId) {
@@ -162,7 +258,10 @@ class OneTimeOfferManager {
       // Remove offer
       this.selectedOffers.splice(existingOfferIndex, 1);
     } else {
-      // Add offer
+      // SINGLE SELECTION: Remove any existing offers first
+      this.selectedOffers = [];
+      
+      // Add new offer
       this.selectedOffers.push({
         id: productId,
         title: product.title,
@@ -185,6 +284,9 @@ class OneTimeOfferManager {
       // Remove offer
       this.selectedOffers.splice(existingOfferIndex, 1);
     } else {
+      // SINGLE SELECTION: Remove any existing offers first
+      this.selectedOffers = [];
+      
       // Add demo offer
       const priceInCents = parseFloat(price.replace('$', '')) * 100;
       this.selectedOffers.push({
@@ -203,17 +305,86 @@ class OneTimeOfferManager {
   }
 
   updateOfferUI(productId) {
-    const card = document.querySelector(`[data-product-id="${productId}"]`);
-    if (!card) return;
+    // Update ALL offer cards since we only allow single selection
+    const allCards = document.querySelectorAll('.offer-product-card');
+    
+    allCards.forEach(card => {
+      const cardProductId = card.dataset.productId;
+      const isSelected = this.selectedOffers.some(offer => offer.id == cardProductId);
+      const button = card.querySelector('.add-offer-btn') || card.querySelector('.add-to-first-box-btn');
+      
+      card.classList.toggle('selected', isSelected);
+      
+      if (button) {
+        button.classList.toggle('selected', isSelected);
+        button.textContent = isSelected ? 'Added ✓' : 'Add to First Box';
+      }
+    });
+    
+    // Update the final Add to Cart button state
+    this.updateAddToCartButtonState();
+  }
 
-    const isSelected = this.selectedOffers.some(offer => offer.id === productId);
-    const button = card.querySelector('.add-offer-btn') || card.querySelector('.add-to-first-box-btn');
+  updateAddToCartButtonState() {
+    const addToCartBtn = document.getElementById('final-add-to-cart-btn');
+    const skipOfferBtn = document.getElementById('skip-offer-btn');
+    const emailInput = document.getElementById('customer-email');
     
-    card.classList.toggle('selected', isSelected);
+    if (!addToCartBtn) return;
     
-    if (button) {
-      button.classList.toggle('selected', isSelected);
-      button.textContent = isSelected ? 'Added ✓' : 'Add to First Box';
+    // Check if email is valid
+    const emailValue = emailInput ? emailInput.value.trim() : '';
+    const isEmailValid = this.isValidEmail(emailValue);
+    
+    // Check if at least one offer is selected
+    const hasSelectedOffer = this.selectedOffers.length > 0;
+    
+    // Enable button only if BOTH conditions are met: valid email AND selected offer
+    const shouldEnable = isEmailValid && hasSelectedOffer;
+    
+    addToCartBtn.disabled = !shouldEnable;
+    
+    // Update button appearance
+    if (shouldEnable) {
+      addToCartBtn.style.opacity = '1';
+      addToCartBtn.style.cursor = 'pointer';
+    } else {
+      addToCartBtn.style.opacity = '0.6';
+      addToCartBtn.style.cursor = 'not-allowed';
+    }
+    
+    console.log('Add to Cart button state:', { 
+      hasSelectedOffer, 
+      isEmailValid, 
+      shouldEnable,
+      emailValue 
+    });
+  }
+
+  isValidEmail(email) {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  }
+
+  // Initialize email validation listener
+  initializeEmailValidation() {
+    const emailInput = document.getElementById('customer-email');
+    
+    if (emailInput && !emailInput.hasAttribute('data-validation-initialized')) {
+      // Mark as initialized to prevent duplicate listeners
+      emailInput.setAttribute('data-validation-initialized', 'true');
+      
+      // Update button state on email input
+      emailInput.addEventListener('input', () => {
+        this.updateAddToCartButtonState();
+      });
+      
+      // Update button state on email blur (when user leaves field)
+      emailInput.addEventListener('blur', () => {
+        this.updateAddToCartButtonState();
+      });
+      
+      console.log('Email validation initialized');
     }
   }
 

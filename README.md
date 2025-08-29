@@ -359,6 +359,59 @@ This template uses [Remix](https://remix.run). The following Shopify tools are a
 - [Webhooks](https://github.com/Shopify/shopify-app-js/tree/main/packages/shopify-app-remix#authenticating-webhook-requests): Callbacks sent by Shopify when certain events occur
 - [Polaris](https://polaris.shopify.com/): Design system that enables apps to create Shopify-like experiences
 
+## One-Time Offer Tag System
+
+This app implements a comprehensive tag-based system for managing one-time offers in the subscription flow. All products must use the **sb-** prefix to avoid conflicts with other store tags.
+
+### Tag Format Rules
+
+#### Basic Eligibility
+- `sb-one-time-offer` - Required tag to mark products as eligible for one-time offers
+
+#### Discount Tags
+- Format: `sb-oto-discount-[percentage]`
+- Examples:
+  - `sb-oto-discount-10` = 10% discount
+  - `sb-oto-discount-20` = 20% discount  
+  - `sb-oto-discount-25` = 25% discount
+- If no discount tag is present, product shows at regular price
+
+#### Priority Tags
+- Format: `sb-oto-priority-[number]`
+- Examples:
+  - `sb-oto-priority-1` = Highest priority (shows first)
+  - `sb-oto-priority-2` = Second priority
+  - `sb-oto-priority-3` = Third priority
+- Lower numbers = higher priority
+- Products without priority tags get default priority (99)
+- Products with no tags get lowest priority (999)
+
+### Display Rules
+- **Minimum**: 1 product (if available)
+- **Maximum**: 3 products
+- Products are sorted by priority, then by title
+- Only products with `sb-one-time-offer` tag are eligible
+- Discounts are calculated and displayed automatically
+- Visual discount badges show percentage off
+
+### Example Product Tags
+```
+Product A tags: ["sb-one-time-offer", "sb-oto-discount-20", "sb-oto-priority-1"]
+Result: 20% off, shows first
+
+Product B tags: ["sb-one-time-offer", "sb-oto-priority-2"] 
+Result: Regular price, shows second
+
+Product C tags: ["sb-one-time-offer", "sb-oto-discount-15"]
+Result: 15% off, shows third (default priority)
+```
+
+### Implementation Notes
+- Single selection logic: choosing one offer deselects all others
+- Email validation required before "Add to Cart" button is enabled
+- If no eligible products exist, Step 3 is automatically skipped
+- Fallback to demo offers if API fails to load products
+
 ## Resources
 
 - [Remix Docs](https://remix.run/docs/en/v1)

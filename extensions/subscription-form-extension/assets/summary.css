@@ -1,4 +1,61 @@
-/* Offer Pricing Styles */\n.offer-pricing {\n  margin: 1rem 0;\n  text-align: center;\n}\n\n.original-price {\n  text-decoration: line-through;\n  color: #6c757d;\n  margin-right: 0.5rem;\n  font-size: 0.9rem;\n}\n\n.offer-price {\n  color: #28a745;\n  font-weight: 700;\n  font-size: 1.1rem;\n}\n\n.offer-product-card.selected {\n  border-color: #28a745 !important;\n  background: #f8fff8 !important;\n}\n\n.add-to-first-box-btn.selected {\n  background: #28a745 !important;\n}\n\n/* Subscription Summary */
+/* Offer Pricing Styles */
+.offer-pricing {
+  margin: 1rem 0;
+  text-align: center;
+}
+
+/* Discount Badge */
+.discount-badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: #E74C3C;
+  color: white;
+  padding: 0.25rem 0.5rem;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  z-index: 2;
+  box-shadow: 0 2px 4px rgba(231, 76, 60, 0.3);
+}
+
+/* Product Price Container */
+.product-price-container {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.original-price {
+  text-decoration: line-through;
+  color: #8B7355;
+  font-size: 0.8rem;
+  margin-bottom: 0.125rem;
+  line-height: 1;
+}
+
+.offer-price {
+  color: #EFAC52;
+  font-weight: 700;
+  font-size: 0.95rem;
+  line-height: 1;
+}
+
+/* Offer product cards styling */
+.offer-product-card {
+  position: relative; /* For discount badge positioning */
+}
+
+.offer-product-card.selected {
+  border-color: #EFAC52 !important;
+  background: #F2EBD3 !important;
+}
+
+.add-to-first-box-btn.selected,
+.add-offer-btn.selected {
+  background: #EFAC52 !important;
+  color: #5B4B41 !important;
+}\n\n/* Subscription Summary */
 .subscription-summary-final {
   background: #f8f9fa;
   border-radius: 12px;

@@ -214,6 +214,12 @@ class MainSubscriptionManager {
   goToStep(stepNumber) {
     console.log(`goToStep called with: ${stepNumber}, current step: ${this.currentStep}`);
     
+    // Special handling for Step 3: check if one-time offers exist
+    if (stepNumber === 3) {
+      this.checkOneTimeOffersAndProceed();
+      return;
+    }
+    
     // Only validate when going forward, allow going back without validation
     if (stepNumber < this.currentStep || this.validateCurrentStep()) {
       console.log(`Validation passed, showing step ${stepNumber}`);
@@ -222,6 +228,50 @@ class MainSubscriptionManager {
       console.log('Validation failed, cannot proceed to step:', stepNumber);
       console.log('Current step validation result:', this.validateCurrentStep());
     }
+  }
+
+  async checkOneTimeOffersAndProceed() {
+    console.log("Checking for one-time offer products...");
+    
+    try {
+      // Load products tagged with "sb-one-time-offer"
+      const response = await fetch("/products.json?limit=50");
+      const data = await response.json();
+
+      let hasOfferProducts = false;
+      if (data.products) {
+        // Filter products that are tagged with "sb-one-time-offer"
+        const offerProducts = data.products.filter(product => 
+          product.tags && product.tags.includes('sb-one-time-offer')
+        );
+        
+        hasOfferProducts = offerProducts.length > 0;
+        console.log(`Found ${offerProducts.length} one-time offer products`);
+      }
+
+      if (hasOfferProducts) {
+        // Show Step 3 if offers exist
+        console.log("One-time offers exist, showing Step 3");
+        this.showStep(3);
+      } else {
+        // Skip Step 3 and go directly to checkout
+        console.log("No one-time offers found, skipping to checkout");
+        this.skipOffersAndCheckout();
+      }
+    } catch (error) {
+      console.error("Error checking for one-time offers:", error);
+      // On error, skip to checkout to avoid blocking the user
+      console.log("Error occurred, skipping to checkout");
+      this.skipOffersAndCheckout();
+    }
+  }
+
+  skipOffersAndCheckout() {
+    console.log("Skipping offers and proceeding to checkout");
+    // Clear any selected offers
+    this.subscriptionData.oneTimeOffers = [];
+    // Proceed directly to final cart creation
+    this.handleFinalAddToCart(true); // true = skip offers
   }
 
   validateCurrentStep() {
