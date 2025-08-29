@@ -410,7 +410,9 @@
 @media (max-width: 768px) {
   .categories-sidebar {
     width: 100%;
-    margin-bottom: 1rem;
+    margin-bottom: 1.5rem;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
   }
   
   .category-item {
@@ -419,23 +421,80 @@
     margin-bottom: 0.5rem;
     padding: 0.5rem 1rem;
     white-space: nowrap;
+    border-radius: 20px; /* Make them more pill-like */
+    border: 1px solid #D4C5A9;
+    background: #F9F2E8;
+    transition: all 0.3s ease;
+  }
+
+  .category-item.active {
+    background: #EFAC52;
+    color: #5B4B41;
+    border-color: #EFAC52;
+    font-weight: 700;
+  }
+
+  .category-item:hover {
+    background: #F2EBD3;
+    border-color: #EFAC52;
   }
   
   .products-grid-container {
     max-height: none;
     padding: 0;
-    overflow-y: visible; /* Allow dropdown to escape container bounds */
+    overflow-x: auto; /* Horizontal scrolling */
+    overflow-y: visible;
+    /* Smooth scrolling */
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
   }
   
   .products-grid {
-    grid-template-columns: 1fr;
+    display: flex; /* Change from grid to flex */
     gap: 1rem;
+    /* Center first card - calculate: (viewport_width - card_width) / 2 */
+    padding: 0 calc(50vw - 140px) 0 calc(50vw - 140px); /* 140px = half of card width (280px/2) */
+    /* Allow horizontal scrolling */
+    overflow-x: auto;
+    /* Ensure cards don't shrink */
+    flex-wrap: nowrap;
+    /* Smooth scrolling */
+    scroll-snap-type: x mandatory;
+  }
+
+  /* Product cards in carousel */
+  .product-card {
+    flex: 0 0 280px; /* Fixed width, no shrink/grow */
+    max-width: 280px;
+    height: auto;
+    /* Ensure cards maintain structure */
+    display: flex;
+    flex-direction: column;
+    /* Snap each card to center when scrolling */
+    scroll-snap-align: center;
   }
 
   /* Minimal fix for mobile select positioning */
   .variant-selector select {
     font-size: 16px !important; /* Prevent zoom on iOS */
   }
+
+  /* Hide scrollbar or make it more subtle */
+  .products-grid::-webkit-scrollbar {
+    height: 0px; /* Hide scrollbar */
+    /* Alternative: height: 3px; and add margin-top: 10px; */
+  }
+
+  .products-grid::-webkit-scrollbar-track {
+    background: transparent;
+    margin-top: 10px;
+  }
+
+  .products-grid::-webkit-scrollbar-thumb {
+    background: rgba(239, 172, 82, 0.3);
+    border-radius: 2px;
+  }
+
 
 }
 
