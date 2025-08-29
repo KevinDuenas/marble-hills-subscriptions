@@ -215,7 +215,7 @@
 
 /* Quantity Stepper (shown after adding) - Integrated Design */
 .quantity-stepper {
-  display: none;
+  display: none !important; /* Force hide by default */
   align-items: center;
   background: #EFAC52;
   border-radius: 1.5rem;
@@ -223,14 +223,15 @@
   height: 44px;
   box-shadow: 0 2px 8px rgba(91, 75, 65, 0.2);
   min-width: 120px;
+  margin-bottom: 1rem;
 }
 
 .product-card.selected .quantity-stepper {
-  display: flex;
+  display: flex !important; /* Force show when selected */
 }
 
 .product-card.selected .add-to-cart-btn {
-  display: none;
+  display: none !important; /* Force hide when selected */
 }
 
 .quantity-btn {
@@ -274,6 +275,66 @@
 }
 
 /* Remove button styles removed - now using minus button when quantity = 1 */
+
+/* Inventory Status Indicators */
+.inventory-status, .inventory-status-placeholder {
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-align: center;
+  margin: 0.5rem 0;
+}
+
+.inventory-status.out-of-stock {
+  background: #C85A54;
+  color: #F9F2E8;
+}
+
+.inventory-status.low-stock {
+  background: #F4A261;
+  color: #5B4B41;
+}
+
+.inventory-status-placeholder {
+  background: #E8DCC6;
+  color: #8B7355;
+  font-style: italic;
+  animation: pulse 1.5s ease-in-out infinite alternate;
+}
+
+@keyframes pulse {
+  from {
+    opacity: 0.7;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Inventory Warning */
+.inventory-warning {
+  background: #C85A54;
+  color: #F9F2E8;
+  padding: 0.5rem;
+  border-radius: 0.4rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-align: center;
+  margin-top: 0.5rem;
+  animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
 
 /* Loading Products State */
 .loading-products {

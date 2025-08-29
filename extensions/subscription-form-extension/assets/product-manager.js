@@ -397,6 +397,17 @@ class ProductManager {
                                (this.preSelectedVariants?.[product.id] || product.variants[0]);
         const imageSrc = (product.images && product.images[0]?.src) || "";
         const price = selectedVariant ? `$${parseFloat(selectedVariant.price).toFixed(2)}` : "$0.00";
+        
+        // Placeholder for inventory indicator - will be updated asynchronously
+        let inventoryIndicator = '<div class="inventory-status-placeholder" data-product-id="' + product.id + '">Checking availability...</div>';
+        
+        // Check inventory asynchronously and update UI
+        if (selectedVariant) {
+          this.getAvailableInventory(selectedVariant, product.id).then(availableInventory => {
+            console.log(`Product ${product.title} - Available inventory:`, availableInventory);
+            this.updateInventoryStatus(product.id, availableInventory, product.title);
+          });
+        }
 
         // Generate variant options - check if variants exist
         const variantOptions = (product.variants && product.variants.length > 0) ? 
@@ -427,20 +438,19 @@ class ProductManager {
               </select>
             </div>
             
-            <div class="quantity-display-container">
-              Quantity: <span class="quantity-number">${quantity}</span>
+            ${inventoryIndicator}
+            
+            
+            <div class="quantity-stepper">
+              <button class="quantity-btn" onclick="window.productManager.updateQuantity(${product.id}, -1)">−</button>
+              <span class="quantity-value">${quantity}</span>
+              <button class="quantity-btn" onclick="window.productManager.updateQuantity(${product.id}, 1)">+</button>
             </div>
             
             <div class="product-controls">
               <button class="add-to-cart-btn" onclick="window.productManager.addProduct(${product.id})">
                 Add to Cart
               </button>
-              
-              <div class="quantity-stepper">
-                <button class="quantity-btn" onclick="window.productManager.updateQuantity(${product.id}, -1)">−</button>
-                <span class="quantity-value">${quantity}</span>
-                <button class="quantity-btn" onclick="window.productManager.updateQuantity(${product.id}, 1)">+</button>
-              </div>
             </div>
           </div>
         `;
@@ -479,29 +489,39 @@ class ProductManager {
         return;
       }
       
-      this.selectedProducts.push({
-        id: productId,
-        title: product.title,
-        image: (product.images && product.images[0]?.src) || "",
-        price: selectedVariant.price,
-        selectedVariant: selectedVariant,
-        quantity: 1,
-        type: "individual"
+      // Check inventory before adding (async)
+      this.getAvailableInventory(selectedVariant, productId).then(availableInventory => {
+        if (availableInventory !== null && availableInventory <= 0) {
+          this.showInventoryWarning(productId, availableInventory);
+          return; // Don't add out of stock items
+        }
+        
+        // Proceed with adding the product
+        this.selectedProducts.push({
+          id: productId,
+          title: product.title,
+          image: (product.images && product.images[0]?.src) || "",
+          price: selectedVariant.price,
+          selectedVariant: selectedVariant,
+          quantity: 1,
+          type: "individual"
+        });
+
+        // Clear pre-selected variant since product is now added
+        if (this.preSelectedVariants?.[productId]) {
+          delete this.preSelectedVariants[productId];
+        }
+
+        this.updateProductUI(productId);
+        this.updateProgressBar();
+        this.updateFloatingCart();
+        
+        // Notify main manager
+        if (window.mainSubscriptionManager) {
+          window.mainSubscriptionManager.updateSelectedProducts(this.selectedProducts);
+        }
       });
-
-      // Clear pre-selected variant since product is now added
-      if (this.preSelectedVariants?.[productId]) {
-        delete this.preSelectedVariants[productId];
-      }
-
-      this.updateProductUI(productId);
-      this.updateProgressBar();
-      this.updateFloatingCart();
-      
-      // Notify main manager
-      if (window.mainSubscriptionManager) {
-        window.mainSubscriptionManager.updateSelectedProducts(this.selectedProducts);
-      }
+      return; // Exit early since we're handling async
     }
   }
 
@@ -531,23 +551,274 @@ class ProductManager {
   }
 
   updateQuantity(productId, change) {
+    console.log(`updateQuantity called: productId=${productId}, change=${change}`);
     const product = this.selectedProducts.find(p => p.id === productId);
 
     if (product) {
-      product.quantity += change;
+      console.log('Current product:', product);
+      const newQuantity = product.quantity + change;
+      console.log(`Current quantity: ${product.quantity}, New quantity: ${newQuantity}`);
 
-      if (product.quantity <= 0) {
+      if (newQuantity <= 0) {
+        console.log('Removing product due to quantity <= 0');
         this.removeProduct(productId);
       } else {
-        this.updateProductUI(productId);
-        this.updateProgressBar();
-        this.updateFloatingCart();
-        
-        // Notify main manager
-        if (window.mainSubscriptionManager) {
-          window.mainSubscriptionManager.updateSelectedProducts(this.selectedProducts);
+        // Check inventory availability before updating (async)
+        this.getAvailableInventory(product.selectedVariant, productId).then(availableInventory => {
+          console.log(`Available inventory: ${availableInventory}`);
+          
+          if (availableInventory !== null && newQuantity > availableInventory) {
+            console.log(`Inventory limit reached! Requested: ${newQuantity}, Available: ${availableInventory}`);
+            // Show inventory warning
+            this.showInventoryWarning(productId, availableInventory);
+            return; // Don't update quantity
+          }
+          
+          console.log('Updating quantity to:', newQuantity);
+          product.quantity = newQuantity;
+          this.updateProductUI(productId);
+          this.updateProgressBar();
+          this.updateFloatingCart();
+          
+          // Notify main manager
+          if (window.mainSubscriptionManager) {
+            window.mainSubscriptionManager.updateSelectedProducts(this.selectedProducts);
+          }
+        });
+        return; // Exit early since we're handling async
+      }
+    } else {
+      console.log('Product not found in selectedProducts');
+    }
+  }
+
+  // Get product with full inventory data
+  async getProductWithInventory(productId) {
+    try {
+      const product = this.findProductById(productId);
+      if (!product) return null;
+      
+      // Try to get product handle from the product object or construct it
+      const handle = product.handle || product.title.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-');
+      const response = await fetch(`/products/${handle}.js`);
+      
+      if (response.ok) {
+        const fullProduct = await response.json();
+        console.log('Full product data with inventory:', fullProduct);
+        return fullProduct;
+      }
+    } catch (error) {
+      console.log('Could not fetch full product data:', error);
+    }
+    return null;
+  }
+
+  // Get available inventory for a variant
+  async getAvailableInventory(variant, productId = null) {
+    console.log('Checking inventory for variant:', variant);
+    console.log('Variant available field:', variant.available);
+    
+    // First check the simple 'available' field from Shopify
+    if (variant.hasOwnProperty('available') && !variant.available) {
+      console.log('Variant marked as unavailable (available: false)');
+      return 0; // Out of stock
+    }
+    
+    // If we have inventory management fields, use them
+    if (variant.hasOwnProperty('inventory_management')) {
+      console.log('Variant inventory_management:', variant.inventory_management);
+      console.log('Variant inventory_policy:', variant.inventory_policy);
+      console.log('Variant inventory_quantity:', variant.inventory_quantity);
+      
+      // Return null if inventory tracking is disabled
+      if (!variant.inventory_management || variant.inventory_policy === 'continue') {
+        console.log('Inventory tracking disabled - returning null (unlimited)');
+        return null; // Unlimited inventory
+      }
+      
+      // Return available quantity
+      const quantity = variant.inventory_quantity || 0;
+      console.log('Available inventory quantity:', quantity);
+      return quantity;
+    }
+    
+    // If no inventory management data and product is marked as available, assume unlimited
+    if (variant.available !== false) {
+      console.log('No inventory data but variant appears available - assuming unlimited');
+      return null; // Unlimited
+    }
+    
+    console.log('No inventory data available, assuming unlimited');
+    return null; // Default to unlimited if we can't determine
+  }
+
+  // Update inventory status in the UI
+  updateInventoryStatus(productId, availableInventory, productTitle) {
+    const placeholder = document.querySelector(`.inventory-status-placeholder[data-product-id="${productId}"]`);
+    const addButton = document.querySelector(`.product-card[data-product-id="${productId}"] .add-to-cart-btn`);
+    const quantityStepper = document.querySelector(`.product-card[data-product-id="${productId}"] .quantity-stepper`);
+    
+    if (placeholder) {
+      let statusHtml = '';
+      let buttonDisabled = false;
+      let buttonText = 'Add to Cart';
+      let hideQuantityElements = false;
+      
+      if (availableInventory !== null) {
+        if (availableInventory <= 0) {
+          // Don't show the red out of stock badge - only update button and hide quantity elements
+          placeholder.remove(); // Remove placeholder without replacement
+          buttonDisabled = true;
+          buttonText = 'Out of Stock';
+          hideQuantityElements = true;
+          console.log(`Product ${productTitle} is out of stock`);
+        } else if (availableInventory <= 5) {
+          statusHtml = `<div class="inventory-status low-stock">Only ${availableInventory} left</div>`;
+          console.log(`Product ${productTitle} has low stock: ${availableInventory}`);
+        } else {
+          // Remove placeholder if stock is normal
+          placeholder.remove();
+        }
+      } else {
+        // Remove placeholder if inventory is unlimited
+        placeholder.remove();
+      }
+      
+      if (statusHtml) {
+        placeholder.outerHTML = statusHtml;
+      } else if (availableInventory <= 0) {
+        placeholder.remove(); // Just remove placeholder for out of stock
+      }
+      
+      // Update button state
+      if (addButton) {
+        addButton.disabled = buttonDisabled;
+        addButton.textContent = buttonText;
+        if (buttonDisabled) {
+          addButton.style.cssText = 'background: #E8DCC6 !important; color: #8B7355 !important; cursor: not-allowed !important;';
+        } else {
+          addButton.style.cssText = '';
         }
       }
+      
+      // For quantity stepper: only add inline style when out of stock to override CSS
+      if (quantityStepper && hideQuantityElements) {
+        quantityStepper.style.cssText = 'display: none !important;';
+      } else if (quantityStepper) {
+        // Remove any inline display style to let CSS take control
+        quantityStepper.style.display = '';
+      }
+    }
+  }
+
+  // Show checking status immediately when variant changes
+  showInventoryChecking(productId) {
+    const card = document.querySelector(`[data-product-id="${productId}"]`);
+    if (!card) return;
+    
+    // Remove any existing inventory status
+    const existingStatus = card.querySelector('.inventory-status, .inventory-status-placeholder');
+    if (existingStatus) {
+      existingStatus.remove();
+    }
+    
+    // Add checking placeholder after variant selector
+    const variantSelector = card.querySelector('.variant-selector');
+    if (variantSelector) {
+      const placeholder = document.createElement('div');
+      placeholder.className = 'inventory-status-placeholder';
+      placeholder.setAttribute('data-product-id', productId);
+      placeholder.textContent = 'Checking availability...';
+      variantSelector.insertAdjacentElement('afterend', placeholder);
+    }
+  }
+
+  // Show inventory warning to user
+  showInventoryWarning(productId, availableInventory) {
+    const card = document.querySelector(`[data-product-id="${productId}"]`);
+    if (!card) return;
+    
+    // Create or update warning message
+    let warning = card.querySelector('.inventory-warning');
+    if (!warning) {
+      warning = document.createElement('div');
+      warning.className = 'inventory-warning';
+      const productControls = card.querySelector('.product-controls');
+      if (productControls) {
+        productControls.appendChild(warning);
+      }
+    }
+    
+    const message = availableInventory <= 0 
+      ? 'Out of stock' 
+      : `Only ${availableInventory} available`;
+      
+    warning.textContent = message;
+    
+    // Auto-hide after 3 seconds
+    setTimeout(() => {
+      if (warning && warning.parentNode) {
+        warning.remove();
+      }
+    }, 3000);
+  }
+
+  // Handle variant selection change
+  updateVariant(productId, variantId) {
+    const product = this.findProductById(productId);
+    if (!product || !product.variants) return;
+    
+    const newVariant = product.variants.find(v => v.id.toString() === variantId.toString());
+    if (!newVariant) return;
+    
+    // If product is selected, update the selected variant and check inventory
+    const selectedProduct = this.selectedProducts.find(p => p.id === productId);
+    if (selectedProduct) {
+      const currentQuantity = selectedProduct.quantity;
+      
+      // Show checking status immediately
+      this.showInventoryChecking(productId);
+      
+      // Check inventory asynchronously
+      this.getAvailableInventory(newVariant, productId).then(availableInventory => {
+        // Check if current quantity exceeds new variant's inventory
+        if (availableInventory !== null && currentQuantity > availableInventory) {
+          // Adjust quantity to available inventory or remove if none available
+          if (availableInventory <= 0) {
+            this.removeProduct(productId);
+            this.showInventoryWarning(productId, availableInventory);
+            return;
+          } else {
+            selectedProduct.quantity = availableInventory;
+            this.showInventoryWarning(productId, availableInventory);
+          }
+        }
+        
+        // Update the selected variant and price
+        selectedProduct.selectedVariant = newVariant;
+        selectedProduct.price = newVariant.price;
+        
+        this.updateProductUI(productId);
+        this.updateFloatingCart();
+        
+        // Update inventory status in UI
+        this.updateInventoryStatus(productId, availableInventory, product.title);
+      });
+    } else {
+      // Store variant selection for when product is added
+      if (!this.preSelectedVariants) {
+        this.preSelectedVariants = {};
+      }
+      this.preSelectedVariants[productId] = newVariant;
+      
+      // Show checking status immediately
+      this.showInventoryChecking(productId);
+      
+      // Update inventory status for the new variant selection
+      const product = this.findProductById(productId);
+      this.getAvailableInventory(newVariant, productId).then(availableInventory => {
+        this.updateInventoryStatus(productId, availableInventory, product.title);
+      });
     }
   }
 
@@ -588,13 +859,11 @@ class ProductManager {
       priceDisplay.textContent = formattedPrice;
     }
     
-    // Update quantity display
-    const quantityDisplay = card.querySelector('.quantity-number');
+    // Update quantity display in stepper only
     const quantityValue = card.querySelector('.quantity-value');
     const minusButton = card.querySelector('.quantity-btn:first-child');
     
     if (isSelected && product) {
-      if (quantityDisplay) quantityDisplay.textContent = product.quantity;
       if (quantityValue) {
         quantityValue.textContent = product.quantity;
         quantityValue.classList.add('bounce');
@@ -614,7 +883,6 @@ class ProductManager {
         }
       }
     } else {
-      if (quantityDisplay) quantityDisplay.textContent = '1'; // Default
       if (quantityValue) quantityValue.textContent = '1';
       if (minusButton) {
         minusButton.classList.remove('remove-mode');
