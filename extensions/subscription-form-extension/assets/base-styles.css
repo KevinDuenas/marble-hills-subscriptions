@@ -874,9 +874,41 @@
   .floating-cart-summary {
     width: calc(100% - 2rem);
     padding: 1rem;
-    flex-direction: column;
+    flex-direction: row !important; /* Keep horizontal layout */
     gap: 1rem;
-    text-align: center;
+    align-items: center !important;
+    min-height: auto !important;
+  }
+
+  .floating-cart-summary .cart-summary-left {
+    flex: 1 !important; /* 50% space */
+    text-align: left !important;
+  }
+
+  .floating-cart-summary .cart-summary-right {
+    flex: 1 !important; /* 50% space */
+    flex-direction: column !important; /* Stack vertically: Previous first, Next second */
+    gap: 0.4rem !important;
+  }
+
+  .floating-cart-summary .nav-btn,
+  .floating-cart-summary .select-frequency-btn {
+    width: 100% !important;
+    padding: 0.6rem 1rem !important; /* Smaller padding to reduce height */
+    font-size: 0.85rem !important;
+    min-height: auto !important;
+    min-width: auto !important; /* Remove min-width constraints */
+  }
+
+  .floating-cart-summary .cart-message {
+    font-size: 0.95rem !important; /* Slightly smaller text */
+    line-height: 1.3 !important;
+    margin: 0 !important;
+  }
+
+  .floating-cart-summary .cart-details {
+    font-size: 0.8rem !important; /* Smaller cart details text */
+    line-height: 1.2 !important;
   }
 
   .offer-products {
