@@ -39,6 +39,14 @@
 
     <!-- Products Container -->
     <div class="products-main-container">
+      <!-- Mobile Categories Button -->
+      <div class="mobile-categories-button">
+        <button id="categories-toggle" class="categories-btn">
+          Categories
+          <span class="selected-category-name" id="selected-category-display">Best Sellers</span>
+        </button>
+      </div>
+
       <!-- Categories Sidebar -->
       <div class="categories-sidebar">
         <!-- Categories loaded dynamically -->
@@ -53,6 +61,22 @@
         </div>
       </div>
     </div>
+
+    <!-- Mobile Categories Popup -->
+    <div class="categories-popup" id="categories-popup">
+      <div class="categories-popup-content">
+        <div class="categories-popup-header">
+          <h3>Categories</h3>
+          <button class="popup-close" id="categories-close">&times;</button>
+        </div>
+        <div class="categories-popup-list">
+          <!-- Categories will be loaded here dynamically -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Popup Overlay -->
+    <div class="popup-overlay" id="popup-overlay"></div>
 
     <!-- Floating Bottom Cart Summary -->
     <div class="floating-cart-summary">

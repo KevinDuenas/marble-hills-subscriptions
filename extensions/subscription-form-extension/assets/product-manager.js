@@ -370,6 +370,9 @@ class ProductManager {
 
     sidebar.innerHTML = categoriesHTML;
     this.initializeCategoryHandlers();
+    
+    // Also create mobile popup categories
+    this.createMobileCategoriesPopup(categoriesWithProducts, defaultCategory);
   }
 
   displayProducts(products) {
@@ -1022,6 +1025,158 @@ class ProductManager {
         const collection = item.dataset.collection;
         if (this.productsByCollection[collection]) {
           this.displayProducts(this.productsByCollection[collection].products);
+        }
+      });
+    });
+  }
+
+  // Mobile Categories Popup Functions
+  createMobileCategoriesPopup(categoriesWithProducts, defaultCategory) {
+    const popupList = document.querySelector('.categories-popup-list');
+    const categoriesButton = document.getElementById('categories-toggle');
+    const selectedCategoryDisplay = document.getElementById('selected-category-display');
+    
+    if (!popupList) return;
+
+    console.log('Creating mobile popup with default category:', defaultCategory);
+    console.log('Categories with products:', categoriesWithProducts);
+
+    let popupHTML = "";
+    
+    categoriesWithProducts.forEach(([handle, data]) => {
+      const isActive = handle === defaultCategory;
+      const badgeCount = data.products.length;
+      
+      console.log(`Category ${handle}: isActive = ${isActive}, defaultCategory = ${defaultCategory}`);
+      
+      popupHTML += `
+        <button class="category-item ${isActive ? 'active' : ''}" data-collection="${handle}" onclick="window.productManager.selectCategoryFromPopup('${handle}')">
+          ${data.title}
+          <span class="category-badge" style="display: none;">${badgeCount}</span>
+        </button>
+      `;
+    });
+
+    popupList.innerHTML = popupHTML;
+    
+    // Update button text with current category
+    if (selectedCategoryDisplay && this.productsByCollection[defaultCategory]) {
+      selectedCategoryDisplay.textContent = this.productsByCollection[defaultCategory].title;
+      console.log('Updated mobile button text to:', this.productsByCollection[defaultCategory].title);
+    }
+    
+    // Store current selected category for mobile
+    this.currentMobileCategory = defaultCategory;
+    
+    // Initialize popup handlers
+    this.initializeMobilePopupHandlers();
+  }
+
+  initializeMobilePopupHandlers() {
+    const categoriesToggle = document.getElementById('categories-toggle');
+    const categoriesClose = document.getElementById('categories-close');
+    const popup = document.getElementById('categories-popup');
+    const overlay = document.getElementById('popup-overlay');
+
+    if (categoriesToggle) {
+      categoriesToggle.addEventListener('click', () => {
+        this.openCategoriesPopup();
+      });
+    }
+
+    if (categoriesClose) {
+      categoriesClose.addEventListener('click', () => {
+        this.closeCategoriesPopup();
+      });
+    }
+
+    if (overlay) {
+      overlay.addEventListener('click', () => {
+        this.closeCategoriesPopup();
+      });
+    }
+  }
+
+  openCategoriesPopup() {
+    const popup = document.getElementById('categories-popup');
+    const overlay = document.getElementById('popup-overlay');
+    
+    if (popup && overlay) {
+      overlay.classList.add('active');
+      popup.classList.add('active');
+      document.body.style.overflow = 'hidden'; // Prevent background scroll
+    }
+  }
+
+  closeCategoriesPopup() {
+    const popup = document.getElementById('categories-popup');
+    const overlay = document.getElementById('popup-overlay');
+    
+    if (popup && overlay) {
+      popup.classList.remove('active');
+      overlay.classList.remove('active');
+      document.body.style.overflow = ''; // Restore scroll
+    }
+  }
+
+  selectCategoryFromPopup(categoryHandle) {
+    console.log('Selecting category from popup:', categoryHandle);
+    
+    // Update products display
+    if (this.productsByCollection[categoryHandle]) {
+      this.displayProducts(this.productsByCollection[categoryHandle].products);
+      this.selectCategoryInSidebar(categoryHandle);
+      
+      // Update mobile button text
+      const selectedCategoryDisplay = document.getElementById('selected-category-display');
+      if (selectedCategoryDisplay) {
+        selectedCategoryDisplay.textContent = this.productsByCollection[categoryHandle].title;
+      }
+      
+      // Update active states in popup
+      const popupItems = document.querySelectorAll('.categories-popup-list .category-item');
+      popupItems.forEach(item => {
+        item.classList.remove('active');
+        if (item.dataset.collection === categoryHandle) {
+          item.classList.add('active');
+        }
+      });
+      
+      // Store current selected category
+      this.currentMobileCategory = categoryHandle;
+      
+      // Close popup
+      this.closeCategoriesPopup();
+    }
+  }
+
+  // Also update desktop category selection to sync with mobile
+  initializeCategoryHandlers() {
+    const categoryItems = document.querySelectorAll('.categories-sidebar .category-item');
+    categoryItems.forEach(item => {
+      item.addEventListener('click', () => {
+        console.log('Desktop category clicked:', item.dataset.collection);
+        
+        const collection = item.dataset.collection;
+        if (this.productsByCollection[collection]) {
+          this.displayProducts(this.productsByCollection[collection].products);
+          
+          // Update mobile button text when desktop category changes
+          const selectedCategoryDisplay = document.getElementById('selected-category-display');
+          if (selectedCategoryDisplay && this.productsByCollection[collection]) {
+            selectedCategoryDisplay.textContent = this.productsByCollection[collection].title;
+          }
+          
+          // Update mobile popup active states
+          const popupItems = document.querySelectorAll('.categories-popup-list .category-item');
+          popupItems.forEach(popupItem => {
+            popupItem.classList.remove('active');
+            if (popupItem.dataset.collection === collection) {
+              popupItem.classList.add('active');
+            }
+          });
+          
+          this.currentMobileCategory = collection;
         }
       });
     });
