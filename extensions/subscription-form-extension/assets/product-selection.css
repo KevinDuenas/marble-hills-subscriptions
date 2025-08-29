@@ -130,6 +130,7 @@
 .variant-selector {
   margin-bottom: 1rem;
   position: relative;
+  z-index: 1;
 }
 
 .variant-selector select {
@@ -423,13 +424,21 @@
   .products-grid-container {
     max-height: none;
     padding: 0;
+    overflow-y: visible; /* Allow dropdown to escape container bounds */
   }
   
   .products-grid {
     grid-template-columns: 1fr;
     gap: 1rem;
   }
+
+  /* Minimal fix for mobile select positioning */
+  .variant-selector select {
+    font-size: 16px !important; /* Prevent zoom on iOS */
+  }
+
 }
+
 
 /* Scrollbar Styling */
 .products-grid-container::-webkit-scrollbar {
