@@ -49,6 +49,11 @@ class CartManager {
 
   async createSubscription(subscriptionData) {
     try {
+      // Disable cart protection during subscription creation
+      if (window.cartProtection) {
+        window.cartProtection.isProtectionActive = false;
+      }
+      
       const selectedProducts = subscriptionData.selectedProducts || [];
       const oneTimeOffers = subscriptionData.oneTimeOffers || [];
       
@@ -89,12 +94,18 @@ class CartManager {
       const draftOrderResponse = await this.createDraftOrder(allCartItems, subscriptionData);
 
       if (draftOrderResponse.success) {
-        // Redirect to Draft Order checkout
+        // Successfully created subscription, redirect
         window.location.href = draftOrderResponse.checkout_url;
       } else {
         throw new Error(draftOrderResponse.error || "Failed to create checkout");
       }
     } catch (error) {
+      // Re-enable cart protection on error
+      if (window.cartProtection) {
+        setTimeout(() => {
+          window.cartProtection.checkSubscriptionCart();
+        }, 100);
+      }
       throw error;
     }
   }

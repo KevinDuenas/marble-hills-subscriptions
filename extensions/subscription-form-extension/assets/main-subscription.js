@@ -462,22 +462,24 @@ class MainSubscriptionManager {
         });
       }
 
-      console.log('Final subscription data:', this.subscriptionData);
-
-      // Show loading state
-      this.showLoadingState();
-
       // Create subscription through cart manager
       if (window.cartManager) {
         await window.cartManager.createSubscription(this.subscriptionData);
       } else {
-        throw new Error('Cart manager not available');
+        // Wait a bit and retry - sometimes CartManager loads after MainSubscriptionManager
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        if (window.cartManager) {
+          await window.cartManager.createSubscription(this.subscriptionData);
+        } else {
+          throw new Error('Cart manager not available');
+        }
       }
 
     } catch (error) {
       console.error('Error creating subscription:', error);
-      alert('There was an error creating your subscription. Please try again.');
-      this.hideLoadingState();
+      console.log('Current step when error occurred:', this.currentStep);
+      console.log('Staying on current step, not returning to step 1');
     }
   }
 

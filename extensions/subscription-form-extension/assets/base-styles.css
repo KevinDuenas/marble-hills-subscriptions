@@ -526,10 +526,10 @@
   background: #f7931e;
   color: white;
   border: none;
-  padding: 1rem 3rem;
+  padding: 1.25rem 4rem;
   border-radius: 8px;
-  font-size: 1.1rem;
-  font-weight: 600;
+  font-size: 1.3rem;
+  font-weight: 700;
   cursor: pointer;
   transition: all 0.3s ease;
 }

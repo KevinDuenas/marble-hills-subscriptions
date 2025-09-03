@@ -163,10 +163,13 @@ class CartProtection {
       });
       
       if (response.ok) {
-        // Force page refresh to update cart UI
-        setTimeout(() => {
-          window.location.reload();
-        }, 1000);
+        // Don't reload if protection is disabled (during subscription creation)
+        if (this.isProtectionActive) {
+          // Force page refresh to update cart UI
+          setTimeout(() => {
+            window.location.reload();
+          }, 1000);
+        }
         
         // Return a successful response to prevent the original modification
         return new Response(JSON.stringify({ 
