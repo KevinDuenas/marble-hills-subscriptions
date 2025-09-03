@@ -12,8 +12,6 @@ class ProductManager {
   }
 
   async loadAllProducts() {
-    console.log("Loading all subscription products...");
-
     const productsGrid = document.querySelector(".products-grid");
     if (productsGrid) {
       productsGrid.innerHTML = '<div class="loading-products"><p>Loading products...</p></div>';
@@ -24,7 +22,7 @@ class ProductManager {
       this.updateProgressBar();
       this.updateFloatingCart();
     } catch (error) {
-      console.error("Error loading products:", error);
+      console.error("Product Manager Error: Failed to load products:", error);
       if (productsGrid) {
         productsGrid.innerHTML = '<div class="loading-products"><p>Error loading products. Please try again.</p></div>';
       }
@@ -33,12 +31,10 @@ class ProductManager {
 
   // Load all products from "subscriptions" collection with metafield filtering
   async loadSubscriptionProducts() {
-    console.log("Loading subscription products...");
 
     try {
       // Fetch products (tags are included by default)
       const apiUrl = "/collections/subscriptions/products.json";
-      console.log("Fetching from:", apiUrl);
       const response = await fetch(apiUrl);
       
       if (!response.ok) {
@@ -46,13 +42,11 @@ class ProductManager {
       }
       
       const data = await response.json();
-      console.log("API response:", data);
 
       if (data.products && data.products.length > 0) {
         // Filter products that have subscription metafield
         const filteredProducts = this.filterSubscriptionProducts(data.products);
         this.allProducts = filteredProducts;
-        console.log(`Found ${this.allProducts.length} subscription-eligible products (filtered from ${data.products.length} total)`);
 
         if (this.allProducts.length > 0) {
           // Group products by categories using metafields
@@ -65,41 +59,35 @@ class ProductManager {
             this.selectCategoryInSidebar(priorityCategory);
           }
         } else {
-          console.log("No subscription-eligible products found, trying fallback");
           throw new Error("No subscription-eligible products found");
         }
       } else {
-        console.log("No products in subscriptions collection, trying fallback");
         throw new Error("No products found in subscriptions collection");
       }
     } catch (error) {
-      console.error("Error loading subscription products:", error);
-      console.log("Trying fallback to general products...");
+      console.error("Product Manager Error: Failed to load subscription products:", error);
       
       // Fallback to general products (tags included by default)
       try {
         const fallbackUrl = "/products.json?limit=50";
-        console.log("Trying fallback URL:", fallbackUrl);
         const generalResponse = await fetch(fallbackUrl);
         
         if (!generalResponse.ok) {
           throw new Error(`Fallback HTTP error! status: ${generalResponse.status}`);
         }
         const generalData = await generalResponse.json();
-        console.log("Fallback API response:", generalData);
 
         if (generalData.products && generalData.products.length > 0) {
           // Also filter fallback products
           const filteredFallback = this.filterSubscriptionProducts(generalData.products);
           this.allProducts = filteredFallback;
-          console.log(`Using ${this.allProducts.length} filtered general products as fallback (from ${generalData.products.length} total)`);
           this.createProductCategories(this.allProducts);
           this.displayProducts(this.allProducts);
         } else {
           throw new Error("No products found in general products either");
         }
       } catch (fallbackError) {
-        console.error("Fallback also failed:", fallbackError);
+        console.error("Product Manager Error: Fallback also failed:", fallbackError);
         this.displayErrorMessage("Unable to load products. Please refresh the page.");
       }
     }
@@ -122,29 +110,18 @@ class ProductManager {
 
   // Filter products that are eligible for subscriptions based on metafields
   filterSubscriptionProducts(products) {
-    console.log("Filtering products by subscription metafields...");
-    
     const filteredProducts = products.filter(product => {
       // Check if product has subscription eligibility metafield
       const isSubscriptionEligible = this.hasSubscriptionMetafield(product);
       
-      if (isSubscriptionEligible) {
-        console.log(`✓ Product ${product.title} is subscription eligible`);
-      } else {
-        console.log(`✗ Product ${product.title} is NOT subscription eligible`);
-      }
-      
       return isSubscriptionEligible;
     });
 
-    console.log(`Filtered ${filteredProducts.length} subscription products from ${products.length} total products`);
     return filteredProducts;
   }
 
   // Check if product has subscription eligibility based on tags
   hasSubscriptionMetafield(product) {
-    console.log(`\n--- Checking eligibility for product: ${product.title} ---`);
-    console.log('Product tags:', product.tags);
     
     // Primary method: Check for subscription tags
     if (product.tags && Array.isArray(product.tags)) {
@@ -164,25 +141,17 @@ class ProductManager {
       );
       
       if (hasEligibilityTag) {
-        console.log(`✅ Product ${product.title} is subscription eligible (found tag)`);
         return true;
       } else {
-        console.log(`❌ Product ${product.title} - No subscription eligibility tag found`);
-        console.log('Expected tags:', subscriptionTags);
-        console.log('Product tags:', lowerTags);
         return false;
       }
     } else {
-      console.log(`❌ Product ${product.title} has no tags`);
       return false;
     }
   }
 
   // Create categories dynamically from sb-category- tags
   createProductCategories(products) {
-    console.log(`\n=== createProductCategories called ===`);
-    console.log('Input products:', products);
-    console.log('Input products count:', products.length);
     
     // Start with Best Sellers category
     const categories = {
@@ -192,7 +161,6 @@ class ProductManager {
     products.forEach((product) => {
       // Get all categories this product belongs to
       const productCategories = this.getProductCategories(product);
-      console.log(`Product "${product.title}" categories:`, productCategories);
 
       // Add to each category (create if doesn't exist)
       productCategories.forEach(categoryKey => {
@@ -200,33 +168,18 @@ class ProductManager {
           // Create new category dynamically
           const categoryTitle = this.formatCategoryTitle(categoryKey);
           categories[categoryKey] = { title: categoryTitle, products: [] };
-          console.log(`✅ Created new category: ${categoryKey} (${categoryTitle})`);
         }
         
         categories[categoryKey].products.push(product);
-        console.log(`✅ Added to category "${categoryKey}". New count: ${categories[categoryKey].products.length}`);
       });
 
       // Also check if product should be in Best Sellers
       if (this.isProductBestSeller(product)) {
         categories["best-sellers"].products.push(product);
-        console.log(`✅ Also added to Best Sellers. New count: ${categories["best-sellers"].products.length}`);
       }
     });
 
-    console.log('Final categories structure:');
-    Object.entries(categories).forEach(([key, category]) => {
-      console.log(`- ${key}: ${category.products.length} products`);
-    });
-
     this.productsByCollection = categories;
-    
-    // Show which category we're trying to display
-    const firstCategory = Object.keys(this.productsByCollection)[0];
-    console.log('First category to display:', firstCategory);
-    if (firstCategory && this.productsByCollection[firstCategory]) {
-      console.log('Products in first category:', this.productsByCollection[firstCategory].products.length);
-    }
     
     this.updateCategoriesSidebar();
   }
@@ -252,12 +205,10 @@ class ProductManager {
 
   // Get the default category to display (Best Sellers first, then first non-empty)
   getDefaultCategory() {
-    console.log(`\n=== getDefaultCategory called ===`);
     
     // Priority 1: Best Sellers if it has products
     if (this.productsByCollection["best-sellers"] && 
         this.productsByCollection["best-sellers"].products.length > 0) {
-      console.log('Using Best Sellers as default (has products)');
       return "best-sellers";
     }
     
@@ -267,18 +218,14 @@ class ProductManager {
     );
     
     if (categoryWithProducts) {
-      console.log(`Using ${categoryWithProducts} as default (first with products)`);
       return categoryWithProducts;
     }
     
-    console.log('No categories with products found');
     return null;
   }
 
   // Select category in sidebar visually
   selectCategoryInSidebar(categoryKey) {
-    console.log(`Selecting category in sidebar: ${categoryKey}`);
-    
     // Remove active class from all categories
     const allCategoryItems = document.querySelectorAll('.category-item');
     allCategoryItems.forEach(item => {
@@ -289,16 +236,11 @@ class ProductManager {
     const selectedCategory = document.querySelector(`[data-collection="${categoryKey}"]`);
     if (selectedCategory) {
       selectedCategory.classList.add('active');
-      console.log(`✅ Category ${categoryKey} marked as active`);
-    } else {
-      console.log(`❌ Category element not found for: ${categoryKey}`);
     }
   }
 
   // Get all categories this product belongs to from sb-category- tags
   getProductCategories(product) {
-    console.log(`Getting categories for product: ${product.title}`);
-    console.log('Product tags:', product.tags);
     
     const categories = [];
     
@@ -310,7 +252,6 @@ class ProductManager {
           const categoryName = tag.substring('sb-category-'.length);
           if (categoryName) {
             categories.push(categoryName);
-            console.log(`Found category tag: ${tag} -> category: ${categoryName}`);
           }
         }
       });
@@ -318,7 +259,6 @@ class ProductManager {
     
     // If no sb-category- tags found, put in best-sellers
     if (categories.length === 0) {
-      console.log("No sb-category- tags found, using best-sellers");
       categories.push("best-sellers");
     }
     
@@ -341,7 +281,6 @@ class ProductManager {
 
     let categoriesHTML = "";
     const defaultCategory = this.getDefaultCategory();
-    console.log('Default category for sidebar:', defaultCategory);
 
     // Get categories with products, prioritizing order
     const categoriesWithProducts = [];
@@ -376,15 +315,9 @@ class ProductManager {
   }
 
   displayProducts(products) {
-    console.log(`\n=== displayProducts called ===`);
-    console.log('Products to display:', products);
-    console.log('Products count:', products ? products.length : 0);
-    
     const productsGrid = document.querySelector(".products-grid");
-    console.log('Products grid element found:', !!productsGrid);
 
     if (!products || products.length === 0) {
-      console.log('❌ No products to display');
       if (productsGrid) {
         productsGrid.innerHTML = '<div class="no-products"><h3>No products found</h3><p>No products available in this category.</p></div>';
       }
@@ -407,7 +340,6 @@ class ProductManager {
         // Check inventory asynchronously and update UI
         if (selectedVariant) {
           this.getAvailableInventory(selectedVariant, product.id).then(availableInventory => {
-            console.log(`Product ${product.title} - Available inventory:`, availableInventory);
             this.updateInventoryStatus(product.id, availableInventory, product.title);
           });
         }
@@ -460,15 +392,8 @@ class ProductManager {
       })
       .join('');
 
-    console.log('Generated product cards HTML length:', productCards.length);
-    console.log('First 200 chars of HTML:', productCards.substring(0, 200));
-
     if (productsGrid) {
       productsGrid.innerHTML = productCards;
-      console.log('✅ HTML assigned to products grid');
-      console.log('Products grid children count after assignment:', productsGrid.children.length);
-    } else {
-      console.log('❌ Products grid element not found for HTML assignment');
     }
     
     this.updateProgressBar();
@@ -488,7 +413,7 @@ class ProductManager {
                              ((product.variants && product.variants.length > 0) ? product.variants[0] : null);
       
       if (!selectedVariant) {
-        console.error(`No variants found for product ${productId}`);
+        console.error(`Product Manager Error: No variants found for product ${productId}`);
         return;
       }
       
@@ -554,30 +479,22 @@ class ProductManager {
   }
 
   updateQuantity(productId, change) {
-    console.log(`updateQuantity called: productId=${productId}, change=${change}`);
     const product = this.selectedProducts.find(p => p.id === productId);
 
     if (product) {
-      console.log('Current product:', product);
       const newQuantity = product.quantity + change;
-      console.log(`Current quantity: ${product.quantity}, New quantity: ${newQuantity}`);
 
       if (newQuantity <= 0) {
-        console.log('Removing product due to quantity <= 0');
         this.removeProduct(productId);
       } else {
         // Check inventory availability before updating (async)
         this.getAvailableInventory(product.selectedVariant, productId).then(availableInventory => {
-          console.log(`Available inventory: ${availableInventory}`);
-          
           if (availableInventory !== null && newQuantity > availableInventory) {
-            console.log(`Inventory limit reached! Requested: ${newQuantity}, Available: ${availableInventory}`);
             // Show inventory warning
             this.showInventoryWarning(productId, availableInventory);
             return; // Don't update quantity
           }
           
-          console.log('Updating quantity to:', newQuantity);
           product.quantity = newQuantity;
           this.updateProductUI(productId);
           this.updateProgressBar();
@@ -590,8 +507,6 @@ class ProductManager {
         });
         return; // Exit early since we're handling async
       }
-    } else {
-      console.log('Product not found in selectedProducts');
     }
   }
 
@@ -607,51 +522,39 @@ class ProductManager {
       
       if (response.ok) {
         const fullProduct = await response.json();
-        console.log('Full product data with inventory:', fullProduct);
         return fullProduct;
       }
     } catch (error) {
-      console.log('Could not fetch full product data:', error);
+      // Silently fail for product data fetch
     }
     return null;
   }
 
   // Get available inventory for a variant
   async getAvailableInventory(variant, productId = null) {
-    console.log('Checking inventory for variant:', variant);
-    console.log('Variant available field:', variant.available);
     
     // First check the simple 'available' field from Shopify
     if (variant.hasOwnProperty('available') && !variant.available) {
-      console.log('Variant marked as unavailable (available: false)');
       return 0; // Out of stock
     }
     
     // If we have inventory management fields, use them
     if (variant.hasOwnProperty('inventory_management')) {
-      console.log('Variant inventory_management:', variant.inventory_management);
-      console.log('Variant inventory_policy:', variant.inventory_policy);
-      console.log('Variant inventory_quantity:', variant.inventory_quantity);
-      
       // Return null if inventory tracking is disabled
       if (!variant.inventory_management || variant.inventory_policy === 'continue') {
-        console.log('Inventory tracking disabled - returning null (unlimited)');
         return null; // Unlimited inventory
       }
       
       // Return available quantity
       const quantity = variant.inventory_quantity || 0;
-      console.log('Available inventory quantity:', quantity);
       return quantity;
     }
     
     // If no inventory management data and product is marked as available, assume unlimited
     if (variant.available !== false) {
-      console.log('No inventory data but variant appears available - assuming unlimited');
       return null; // Unlimited
     }
     
-    console.log('No inventory data available, assuming unlimited');
     return null; // Default to unlimited if we can't determine
   }
 
@@ -674,10 +577,8 @@ class ProductManager {
           buttonDisabled = true;
           buttonText = 'Out of Stock';
           hideQuantityElements = true;
-          console.log(`Product ${productTitle} is out of stock`);
         } else if (availableInventory <= 5) {
           statusHtml = `<div class="inventory-status low-stock">Only ${availableInventory} left</div>`;
-          console.log(`Product ${productTitle} has low stock: ${availableInventory}`);
         } else {
           // Remove placeholder if stock is normal
           placeholder.remove();
@@ -910,14 +811,11 @@ class ProductManager {
   }
 
   updateProgressBar() {
-    console.log('updateProgressBar called');
     const progressFill = document.querySelector('.progress-fill');
     const milestones = document.querySelectorAll('.milestone');
     const progressText = document.querySelector('.progress-text');
 
     const totalCount = this.selectedProducts.reduce((sum, product) => sum + product.quantity, 0);
-    console.log('Total count for progress bar:', totalCount);
-    console.log('Progress bar elements found:', { progressFill: !!progressFill, milestones: milestones.length, progressText: !!progressText });
     
     // Update progress bar fill
     // 50% at 6 items (5% discount in middle), 100% at 10 items (10% discount at end)
@@ -932,8 +830,6 @@ class ProductManager {
       percentage = (totalCount / 6) * 50;
     }
     
-    console.log('Progress percentage:', percentage);
-    
     if (progressFill) {
       // Force styles directly
       progressFill.style.cssText = `
@@ -947,10 +843,8 @@ class ProductManager {
         display: block !important;
         z-index: 10 !important;
       `;
-      console.log('Progress bar updated to:', percentage + '%');
-      console.log('Progress fill computed style width:', window.getComputedStyle(progressFill).width);
     } else {
-      console.error('Progress fill element not found');
+      console.error('Product Manager Error: Progress fill element not found');
     }
 
     // Update milestones
@@ -1052,22 +946,13 @@ class ProductManager {
     
     if (!popupList) return;
 
-    console.log('Creating mobile popup with default category:', defaultCategory);
-    console.log('Categories with products:', categoriesWithProducts);
-
     let popupHTML = "";
     
     categoriesWithProducts.forEach(([handle, data]) => {
       const isActive = handle === defaultCategory;
       const badgeCount = data.products.length;
       
-      console.log(`Category ${handle}: isActive = ${isActive}`);
-      console.log(`  - handle type: ${typeof handle}, value: "${handle}"`);
-      console.log(`  - defaultCategory type: ${typeof defaultCategory}, value: "${defaultCategory}"`);
-      console.log(`  - strict equality: ${handle === defaultCategory}`);
-      
       const activeClass = isActive ? 'active' : '';
-      console.log(`  - activeClass: "${activeClass}"`);
       
       popupHTML += `
         <button class="category-item ${activeClass}" data-collection="${handle}" onclick="window.productManager.selectCategoryFromPopup('${handle}')">
@@ -1077,22 +962,11 @@ class ProductManager {
       `;
     });
 
-    console.log('Final popupHTML:', popupHTML);
     popupList.innerHTML = popupHTML;
-    
-    // Verify the HTML was set correctly
-    setTimeout(() => {
-      const activeItems = document.querySelectorAll('.categories-popup-list .category-item.active');
-      console.log('Active items in popup after setting HTML:', activeItems.length);
-      activeItems.forEach(item => {
-        console.log('Active item:', item.textContent.trim(), 'data-collection:', item.dataset.collection);
-      });
-    }, 100);
     
     // Update button text with current category
     if (selectedCategoryDisplay && this.productsByCollection[defaultCategory]) {
       selectedCategoryDisplay.textContent = this.productsByCollection[defaultCategory].title;
-      console.log('Updated mobile button text to:', this.productsByCollection[defaultCategory].title);
     }
     
     // Store current selected category for mobile
@@ -1101,12 +975,10 @@ class ProductManager {
     // Force update active state after DOM insertion
     setTimeout(() => {
       const popupItems = document.querySelectorAll('.categories-popup-list .category-item');
-      console.log('Forcing active state update for:', defaultCategory);
       popupItems.forEach(item => {
         item.classList.remove('active');
         if (item.dataset.collection === defaultCategory) {
           item.classList.add('active');
-          console.log('✅ Forced active class on:', item.textContent.trim());
         }
       });
     }, 50);
@@ -1163,7 +1035,6 @@ class ProductManager {
   }
 
   selectCategoryFromPopup(categoryHandle) {
-    console.log('Selecting category from popup:', categoryHandle);
     
     // Update products display
     if (this.productsByCollection[categoryHandle]) {
@@ -1198,7 +1069,6 @@ class ProductManager {
     const categoryItems = document.querySelectorAll('.categories-sidebar .category-item');
     categoryItems.forEach(item => {
       item.addEventListener('click', () => {
-        console.log('Desktop category clicked:', item.dataset.collection);
         
         const collection = item.dataset.collection;
         if (this.productsByCollection[collection]) {

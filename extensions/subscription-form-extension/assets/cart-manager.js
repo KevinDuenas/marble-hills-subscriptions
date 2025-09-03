@@ -178,6 +178,7 @@ class CartManager {
       return bundleItem;
       
     } catch (error) {
+      console.error("Cart Manager Error:", error);
       return null;
     }
   }
@@ -215,6 +216,7 @@ class CartManager {
 
       return cartItem;
     } catch (error) {
+      console.error("Cart Manager Error:", error);
       return null;
     }
   }
@@ -251,6 +253,7 @@ class CartManager {
         },
       };
     } catch (error) {
+      console.error("Cart Manager Error:", error);
       return null;
     }
   }
@@ -288,6 +291,7 @@ class CartManager {
       }
       return null;
     } catch (error) {
+      console.error("Cart Manager Error:", error);
       return null;
     }
   }
@@ -303,6 +307,7 @@ class CartManager {
 
       return null;
     } catch (error) {
+      console.error("Cart Manager Error:", error);
       return null;
     }
   }
@@ -319,6 +324,7 @@ class CartManager {
 
       return null;
     } catch (error) {
+      console.error("Cart Manager Error:", error);
       return null;
     }
   }
@@ -336,6 +342,7 @@ class CartManager {
       }
       
     } catch (error) {
+      console.error("Cart Manager Error:", error);
       return {
         success: false,
         error: "Network error creating checkout"
@@ -484,7 +491,7 @@ class CartManager {
       }
 
     } catch (error) {
-      
+      console.error("Cart Manager Error:", error);
       // Fallback to regular cart but add note about discount
       return await this.createRegularSubscriptionWithDiscountNote(cartItems, subscriptionData);
     }
@@ -641,7 +648,7 @@ class CartManager {
 
       return { success: true, cart: cartData };
     } catch (error) {
-      
+      console.error("Cart Manager Error:", error);
       // Re-enable protection even on error
       if (window.cartProtection) {
         window.cartProtection.isProtectionActive = false;

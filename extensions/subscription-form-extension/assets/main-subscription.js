@@ -14,16 +14,13 @@ class MainSubscriptionManager {
   }
 
   init() {
-    console.log("Initializing Main Subscription Manager");
     this.initializeNavigation();
     this.showStep(1);
   }
 
   showStep(stepNumber) {
-    console.log(`Showing step: ${stepNumber}`);
-    
     if (stepNumber < 1 || stepNumber > this.maxSteps) {
-      console.error(`Invalid step number: ${stepNumber}`);
+      console.error('Subscription Error: Invalid step number:', stepNumber);
       return;
     }
 
@@ -36,10 +33,8 @@ class MainSubscriptionManager {
 
     // Show current step
     const currentStepElement = document.querySelector(`.form-step[data-step="${stepNumber}"]`);
-    console.log(`Step ${stepNumber} element found:`, currentStepElement);
     if (currentStepElement) {
       currentStepElement.classList.add('active');
-      console.log(`Step ${stepNumber} classes after activation:`, currentStepElement.className);
       
       // Show/hide floating carts based on step - both use same class now
       const floatingCartStep1 = document.querySelector('.floating-cart-summary:not(#floating-cart-step2)');
@@ -78,10 +73,8 @@ class MainSubscriptionManager {
 
   initializeProductStep() {
     if (window.productManager) {
-      console.log("ProductManager found, loading products");
       window.productManager.loadAllProducts();
     } else {
-      console.log("ProductManager not ready, waiting...");
       // Wait for ProductManager to initialize
       setTimeout(() => {
         this.initializeProductStep();
@@ -93,13 +86,11 @@ class MainSubscriptionManager {
     // Add delay to ensure Step 3 DOM is ready
     setTimeout(() => {
       if (window.oneTimeOfferManager) {
-        console.log("OneTimeOfferManager found, loading offers");
         window.oneTimeOfferManager.loadOfferProducts();
         
         // Initialize Step 3 navigation
         this.initializeStep3Navigation();
       } else {
-        console.log("OneTimeOfferManager not ready, waiting...");
         // Wait for OneTimeOfferManager to initialize
         setTimeout(() => {
           this.initializeOfferStep();
@@ -212,55 +203,25 @@ class MainSubscriptionManager {
   }
 
   goToStep(stepNumber) {
-    console.log(`🚀 goToStep called with: ${stepNumber}, current step: ${this.currentStep}`);
-    
     // Special handling for Step 3: check if one-time offers exist
     if (stepNumber === 3) {
-      console.log(`🔍 Step 3 requested - checking for one-time offers before proceeding`);
       this.checkOneTimeOffersAndProceed();
       return;
     }
     
     // Only validate when going forward, allow going back without validation
     if (stepNumber < this.currentStep || this.validateCurrentStep()) {
-      console.log(`Validation passed, showing step ${stepNumber}`);
       this.showStep(stepNumber);
-    } else {
-      console.log('Validation failed, cannot proceed to step:', stepNumber);
-      console.log('Current step validation result:', this.validateCurrentStep());
     }
   }
 
   async checkOneTimeOffersAndProceed() {
-    console.log("Checking for one-time offer products...");
-    
     try {
-      // Load products tagged with "sb-one-time-offer"
       const response = await fetch("/products.json?limit=50");
       const data = await response.json();
-      
-      console.log("Products API response:", data);
-      console.log("Number of products loaded:", data.products ? data.products.length : 0);
 
       let hasOfferProducts = false;
       if (data.products) {
-        // Debug: Log all products and their tags
-        data.products.forEach((product, index) => {
-          console.log(`Product ${index + 1}: "${product.title}"`);
-          console.log(`  - Tags type: ${typeof product.tags}`);
-          console.log(`  - Tags raw: `, product.tags);
-          
-          // Handle tags as string or array
-          let tagsArray = [];
-          if (typeof product.tags === 'string') {
-            tagsArray = product.tags.split(',').map(tag => tag.trim());
-          } else if (Array.isArray(product.tags)) {
-            tagsArray = product.tags;
-          }
-          
-          console.log(`  - Tags array: [${tagsArray.join(', ') || 'none'}]`);
-          console.log(`  - Has sb-one-time-offer tag: ${tagsArray.includes('sb-one-time-offer')}`);
-        });
         
         // Filter products that are tagged with "sb-one-time-offer"
         const offerProducts = data.products.filter(product => {
@@ -278,44 +239,20 @@ class MainSubscriptionManager {
         });
         
         hasOfferProducts = offerProducts.length > 0;
-        console.log(`Found ${offerProducts.length} one-time offer products`);
-        
-        // Log the specific products found
-        if (hasOfferProducts) {
-          console.log("One-time offer products found:");
-          offerProducts.forEach((product, index) => {
-            let tagsArray = [];
-            if (typeof product.tags === 'string') {
-              tagsArray = product.tags.split(',').map(tag => tag.trim());
-            } else if (Array.isArray(product.tags)) {
-              tagsArray = product.tags;
-            }
-            console.log(`  ${index + 1}. ${product.title} - Tags: [${tagsArray.join(', ')}]`);
-          });
-        }
-      } else {
-        console.log("No products found in API response");
       }
 
       if (hasOfferProducts) {
-        // Show Step 3 if offers exist
-        console.log("✅ One-time offers exist, showing Step 3");
         this.showStep(3);
       } else {
-        // Skip Step 3 and go directly to checkout
-        console.log("❌ No one-time offers found, skipping to checkout");
         this.skipOffersAndCheckout();
       }
     } catch (error) {
-      console.error("Error checking for one-time offers:", error);
-      // On error, skip to checkout to avoid blocking the user
-      console.log("Error occurred, skipping to checkout");
+      console.error('Subscription Error: Failed to load one-time offers:', error);
       this.skipOffersAndCheckout();
     }
   }
 
   skipOffersAndCheckout() {
-    console.log("Skipping offers and proceeding to checkout");
     // Clear any selected offers
     this.subscriptionData.oneTimeOffers = [];
     // Proceed directly to final cart creation
@@ -323,26 +260,13 @@ class MainSubscriptionManager {
   }
 
   validateCurrentStep() {
-    console.log('Validating current step:', this.currentStep);
-    console.log('Current subscription data:', this.subscriptionData);
-    
     switch (this.currentStep) {
       case 1:
-        // Must have selected products
-        const hasProducts = this.subscriptionData.selectedProducts.length > 0;
-        console.log('Step 1 validation - has products:', hasProducts);
-        return hasProducts;
+        return this.subscriptionData.selectedProducts.length > 0;
       case 2:
-        // Must have selected frequency
-        const hasFrequency = this.subscriptionData.frequency !== null && this.subscriptionData.frequency !== undefined && this.subscriptionData.frequency !== '';
-        console.log('Step 2 validation - has frequency:', hasFrequency, 'frequency value:', this.subscriptionData.frequency);
-        return hasFrequency;
+        return this.subscriptionData.frequency !== null && this.subscriptionData.frequency !== undefined && this.subscriptionData.frequency !== '';
       case 3:
-        // No validation needed
-        console.log('Step 3 validation - always true');
-        return true;
       default:
-        console.log('Default validation - always true');
         return true;
     }
   }
@@ -355,7 +279,6 @@ class MainSubscriptionManager {
     if (selectFrequencyBtn) {
       const totalCount = products.reduce((sum, product) => sum + product.quantity, 0);
       selectFrequencyBtn.disabled = totalCount < 6;
-      console.log('Select frequency button state - Total items:', totalCount, 'Disabled:', totalCount < 6);
     }
   }
 
@@ -402,7 +325,6 @@ class MainSubscriptionManager {
         nextBtn.disabled = false;
       }
       
-      console.log('Frequency selected:', frequencyText);
     } else {
       // Show cart info without frequency
       if (cartMessage && cartDetails) {
@@ -436,30 +358,14 @@ class MainSubscriptionManager {
       const emailInput = document.getElementById('customer-email');
       if (emailInput && emailInput.value.trim()) {
         this.subscriptionData.customerEmail = emailInput.value.trim();
-        console.log('Email captured:', this.subscriptionData.customerEmail);
       }
 
       // Add one-time offers if not skipped
       if (!skipOffers && window.oneTimeOfferManager) {
         const selectedOffers = window.oneTimeOfferManager.getSelectedOffers();
         this.subscriptionData.oneTimeOffers = selectedOffers;
-        console.log('🎁 One-time offers capture:');
-        console.log('   - Skip offers?', skipOffers);
-        console.log('   - OneTimeOfferManager exists?', !!window.oneTimeOfferManager);
-        console.log('   - Selected offers:', selectedOffers);
-        console.log('   - Offers count:', selectedOffers.length);
-        
-        if (selectedOffers.length > 0) {
-          selectedOffers.forEach((offer, index) => {
-            console.log(`   - Offer ${index + 1}: ${offer.title} (${offer.discountPercentage}% off)`);
-          });
-        }
       } else {
         this.subscriptionData.oneTimeOffers = [];
-        console.log('❌ Skipping one-time offers:', {
-          skipOffers,
-          hasManager: !!window.oneTimeOfferManager
-        });
       }
 
       // Create subscription through cart manager
@@ -477,9 +383,7 @@ class MainSubscriptionManager {
       }
 
     } catch (error) {
-      console.error('Error creating subscription:', error);
-      console.log('Current step when error occurred:', this.currentStep);
-      console.log('Staying on current step, not returning to step 1');
+      console.error('Subscription Error: Failed to create subscription:', error);
     }
   }
 
