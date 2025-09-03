@@ -489,11 +489,11 @@
   width: 100%;
   max-width: 400px;
   padding: 1rem 1.5rem;
-  border: 1px solid #D4C5A9;
+  border: 1px solid #000;
   border-radius: 1.5rem;
   font-size: 1rem;
   text-align: center;
-  background: #F9F2E8;
+  background: #ffffff;
   color: #5B4B41;
   transition: all 0.3s ease;
 }
@@ -502,6 +502,16 @@
   outline: none;
   border-color: #EFAC52;
   box-shadow: 0 0 0 3px rgba(239, 172, 82, 0.2);
+}
+
+.offer-terms-text {
+  font-size: 12px;
+  font-weight: 400;
+  color: #5B4B41;
+  text-align: center;
+  margin: 1rem auto 0 auto;
+  max-width: 400px;
+  line-height: 1.4;
 }
 
 .offer-actions {
@@ -524,9 +534,17 @@
   transition: all 0.3s ease;
 }
 
-.offer-add-btn:hover {
+.offer-add-btn:hover:not(:disabled) {
   background: #e8841a;
   transform: translateY(-1px);
+}
+
+.offer-add-btn:disabled {
+  background: #E8DCC6;
+  color: #8B7355;
+  cursor: not-allowed;
+  transform: none;
+  opacity: 0.6;
 }
 
 .offer-skip-link {

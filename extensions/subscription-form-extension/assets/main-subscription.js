@@ -110,7 +110,7 @@ class MainSubscriptionManager {
 
   initializeStep3Navigation() {
     // Add to Cart button
-    const addToCartBtn = document.getElementById('offer-add-btn');
+    const addToCartBtn = document.getElementById('final-add-to-cart-btn');
     if (addToCartBtn) {
       addToCartBtn.addEventListener('click', () => {
         this.handleFinalAddToCart(false); // Include offers
@@ -118,7 +118,7 @@ class MainSubscriptionManager {
     }
 
     // Skip offer link
-    const skipOfferLink = document.getElementById('offer-skip-link');
+    const skipOfferLink = document.getElementById('skip-offer-btn');
     if (skipOfferLink) {
       skipOfferLink.addEventListener('click', (e) => {
         e.preventDefault();
@@ -194,8 +194,8 @@ class MainSubscriptionManager {
     }, 200);
 
     // Step 3: Final actions
-    const addToCartBtn = document.getElementById('final-add-to-cart');
-    const skipOfferBtn = document.getElementById('skip-offer');
+    const addToCartBtn = document.getElementById('final-add-to-cart-btn');
+    const skipOfferBtn = document.getElementById('skip-offer-btn');
 
     if (addToCartBtn) {
       addToCartBtn.addEventListener('click', () => {
