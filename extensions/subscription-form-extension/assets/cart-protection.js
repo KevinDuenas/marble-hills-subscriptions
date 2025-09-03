@@ -96,7 +96,6 @@ class CartProtection {
     if (url.includes('/cart/change') || url.includes('/cart/update') || url.includes('/cart/remove')) {
       // Only protect if we currently have subscription items
       if (this.subscriptionItems.size > 0) {
-        this.showProtectionWarning();
         return this.clearEntireCart();
       }
     }
@@ -201,91 +200,6 @@ class CartProtection {
     }
   }
 
-  showProtectionWarning() {
-    // Create professional system notification
-    const notification = document.createElement('div');
-    notification.innerHTML = `
-      <div class="cart-protection-notification" style="
-        position: fixed;
-        top: 24px;
-        left: 50%;
-        transform: translateX(-50%);
-        background: #ffffff;
-        color: #1a1a1a;
-        border: 1px solid #e1e5e9;
-        border-left: 4px solid #0066cc;
-        padding: 16px 20px;
-        border-radius: 6px;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08), 0 2px 6px rgba(0, 0, 0, 0.04);
-        z-index: 10000;
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
-        font-size: 14px;
-        line-height: 1.4;
-        min-width: 320px;
-        max-width: 480px;
-        animation: slideInDown 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-      ">
-        <div style="display: flex; align-items: flex-start; gap: 12px;">
-          <div style="
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 20px;
-            height: 20px;
-            background: #0066cc;
-            border-radius: 50%;
-            flex-shrink: 0;
-            margin-top: 1px;
-          ">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5">
-              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-            </svg>
-          </div>
-          <div>
-            <div style="font-weight: 600; margin-bottom: 4px; color: #1a1a1a;">
-              Subscription Protected
-            </div>
-            <div style="color: #666; font-size: 13px; margin-bottom: 8px;">
-              Items cannot be modified individually. Cart has been cleared.
-            </div>
-            <div style="font-size: 12px; color: #888;">
-              Redirecting to subscription builder...
-            </div>
-          </div>
-        </div>
-      </div>
-      <style>
-        @keyframes slideInDown {
-          from { 
-            opacity: 0; 
-            transform: translate(-50%, -20px) scale(0.95); 
-          }
-          to { 
-            opacity: 1; 
-            transform: translate(-50%, 0) scale(1); 
-          }
-        }
-        .cart-protection-notification {
-          backdrop-filter: blur(8px);
-          -webkit-backdrop-filter: blur(8px);
-        }
-      </style>
-    `;
-    
-    document.body.appendChild(notification);
-    
-    // Remove notification after 3 seconds
-    setTimeout(() => {
-      if (notification.parentNode) {
-        notification.style.animation = 'slideInDown 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275) reverse';
-        setTimeout(() => {
-          if (notification.parentNode) {
-            notification.parentNode.removeChild(notification);
-          }
-        }, 200);
-      }
-    }, 2500);
-  }
 
   addVisualProtection() {
     // Skip visual protection to avoid UI conflicts
@@ -317,7 +231,6 @@ class CartProtection {
           e.preventDefault();
           e.stopPropagation();
           
-          self.showProtectionWarning();
           self.clearEntireCart();
           
           return false;
@@ -354,11 +267,10 @@ class CartProtection {
         button.style.cursor = 'not-allowed';
         button.title = 'Subscription items are protected - removing one item will clear the entire cart';
         
-        // Add click handler to show warning
+        // Add click handler to clear cart
         button.addEventListener('click', (e) => {
           e.preventDefault();
           e.stopPropagation();
-          this.showProtectionWarning();
           this.clearEntireCart();
           return false;
         });
