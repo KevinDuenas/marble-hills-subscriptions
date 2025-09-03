@@ -40,22 +40,15 @@ class CartManager {
       discountTier = "5";
     }
     
-    console.log(`Getting selling plan for ${totalCount} products, ${frequency} frequency, ${discountTier}% discount`);
-    
     if (this.sellingPlans[discountTier] && this.sellingPlans[discountTier][frequency]) {
       const planId = this.sellingPlans[discountTier][frequency];
-      console.log(`Found selling plan ID: ${planId}`);
       return planId;
     }
-    
-    console.warn(`No selling plan found for ${discountTier}% discount and ${frequency} frequency`);
     return null;
   }
 
   async createSubscription(subscriptionData) {
     try {
-      console.log("Creating subscription with data:", subscriptionData);
-      
       const selectedProducts = subscriptionData.selectedProducts || [];
       const oneTimeOffers = subscriptionData.oneTimeOffers || [];
       
@@ -80,18 +73,10 @@ class CartManager {
       }
       
       // Add one-time offers
-      console.log('🎁 Processing one-time offers in CartManager:');
-      console.log('   - Offers received:', oneTimeOffers);
-      console.log('   - Offers count:', oneTimeOffers.length);
-      
       for (const offer of oneTimeOffers) {
-        console.log(`   - Processing offer: ${offer.title}`);
         const cartItem = await this.prepareOfferProduct(offer);
         if (cartItem) {
-          console.log(`   ✅ Offer prepared successfully:`, cartItem);
           allCartItems.push(cartItem);
-        } else {
-          console.log(`   ❌ Failed to prepare offer: ${offer.title}`);
         }
       }
       
@@ -110,8 +95,7 @@ class CartManager {
         throw new Error(draftOrderResponse.error || "Failed to create checkout");
       }
     } catch (error) {
-      console.error("Error creating subscription:", error);
-      throw error; // Re-throw to be handled by caller
+      throw error;
     }
   }
 
@@ -179,21 +163,10 @@ class CartManager {
         bundleItem.properties._discounted_price = `$${parseFloat(discountedPrice).toFixed(2)}`;
         bundleItem.properties._discount_amount = `${discountPercentage}%`;
         
-        console.log(`✅ Bundle created:`);
-        console.log(`   - ${totalCount} products`);
-        console.log(`   - ${this.frequencyText[subscriptionData.frequency]}`);
-        console.log(`   - ${discountPercentage}% discount (Selling Plan: ${sellingPlanId})`);
-        console.log(`   - Original price: $${parseFloat(totalPrice).toFixed(2)}`);
-        console.log(`   - Discounted price: $${parseFloat(discountedPrice).toFixed(2)}`);
-      } else {
-        console.log(`❌ No selling plan applied (${totalCount} products, ${subscriptionData.frequency})`);
       }
-
-      console.log("Bundle details:", bundleItem);
       return bundleItem;
       
     } catch (error) {
-      console.error("Error preparing subscription bundle:", error);
       return null;
     }
   }
@@ -204,7 +177,6 @@ class CartManager {
       const variantId = product.selectedVariant?.id;
       
       if (!variantId) {
-        console.error(`No variant found for product ${product.id}`);
         return null;
       }
 
@@ -228,12 +200,10 @@ class CartManager {
       // Add selling plan if available
       if (sellingPlanId) {
         cartItem.selling_plan = sellingPlanId;
-        console.log(`Added selling plan ${sellingPlanId} to product ${product.title}`);
       }
 
       return cartItem;
     } catch (error) {
-      console.error(`Error preparing product ${product.id}:`, error);
       return null;
     }
   }
@@ -243,7 +213,6 @@ class CartManager {
       const variantId = offer.selectedVariant?.id;
       
       if (!variantId) {
-        console.error(`No variant found for offer ${offer.id}`);
         return null;
       }
 
@@ -271,7 +240,6 @@ class CartManager {
         },
       };
     } catch (error) {
-      console.error(`Error preparing offer ${offer.id}:`, error);
       return null;
     }
   }
@@ -309,7 +277,6 @@ class CartManager {
       }
       return null;
     } catch (error) {
-      console.error("Error finding product by handle:", error);
       return null;
     }
   }
@@ -325,7 +292,6 @@ class CartManager {
 
       return null;
     } catch (error) {
-      console.error("Error getting demo product:", error);
       return null;
     }
   }
@@ -342,30 +308,23 @@ class CartManager {
 
       return null;
     } catch (error) {
-      console.error("Error getting product variant:", error);
       return null;
     }
   }
 
   async createDraftOrder(cartItems, subscriptionData) {
     try {
-      console.log("Creating subscription with individual products:", cartItems);
-      
-      // Check if we have discounted one-time offers
       const discountedOffers = cartItems.filter(item => 
         item.properties && item.properties._discount_applied === "true"
       );
 
       if (discountedOffers.length > 0) {
-        console.log("🎁 One-time offers with discounts detected - using enhanced cart with discount code");
         return await this.createSubscriptionWithOfferDiscounts(cartItems, subscriptionData, discountedOffers);
       } else {
-        console.log("📦 Regular subscription - using Cart API");
         return await this.createRegularSubscription(cartItems, subscriptionData);
       }
       
     } catch (error) {
-      console.error("❌ Error creating subscription:", error);
       return {
         success: false,
         error: "Network error creating checkout"
@@ -388,9 +347,6 @@ class CartManager {
     const result = await this.addToCartWithSubscription(cartItems, discount, subscriptionData);
     
     if (result.success) {
-      console.log("✅ Subscription products added to cart successfully!");
-      console.log(`   - ${cartItems.length} items added`);
-      console.log(`   - ${discount}% discount applied via selling plans`);
       
       // Redirect to checkout
       window.location.href = "/checkout";
@@ -405,7 +361,6 @@ class CartManager {
   }
 
   async createDraftOrderWithDiscounts(cartItems, subscriptionData) {
-    console.log("🔒 Creating Draft Order with custom pricing for one-time offer discounts");
     
     // Prepare line items for Draft Order
     const lineItems = cartItems.map(item => {
@@ -427,8 +382,7 @@ class CartManager {
 
       // Apply custom price for discounted offers
       if (item.properties && item.properties._discount_applied === "true") {
-        lineItem.price = item.price; // Use discounted price
-        console.log(`💰 Custom price applied: ${item.properties._product_title} = $${item.price.toFixed(2)}`);
+        lineItem.price = item.price;
       }
 
       // Add selling plan for subscription items
@@ -457,13 +411,7 @@ class CartManager {
       }
     };
 
-    console.log("📝 Draft Order payload:", JSON.stringify(draftOrderData, null, 2));
-
     try {
-      console.log("🌐 Making request to Draft Order API...");
-      console.log("   - URL: /api/create-draft-order");
-      console.log("   - Method: POST");
-      console.log("   - Headers: Content-Type: application/json");
       
       // Create Draft Order via our Remix app endpoint
       // Try multiple possible URLs for the API endpoint
@@ -481,7 +429,6 @@ class CartManager {
       
       for (const url of possibleUrls) {
         try {
-          console.log(`🌐 Trying URL: ${url}`);
           response = await fetch(url, {
             method: 'POST',
             headers: {
@@ -490,78 +437,42 @@ class CartManager {
             body: JSON.stringify(draftOrderData)
           });
           
-          console.log(`📡 Response for ${url}: ${response.status} ${response.statusText}`);
-          
           if (response.status !== 404) {
-            console.log(`✅ Found working endpoint: ${url}`);
-            break; // Exit loop if we get something other than 404
+            break;
           }
         } catch (error) {
-          console.log(`❌ Failed ${url}:`, error.message);
           lastError = error;
         }
       }
       
       if (!response) {
-        console.error("❌ All API endpoints failed");
         throw lastError || new Error("No API endpoint accessible");
       }
 
-      console.log("📡 Response received:");
-      console.log(`   - Status: ${response.status} ${response.statusText}`);
-      console.log(`   - OK: ${response.ok}`);
-      console.log(`   - Headers:`, response.headers);
-
       const responseText = await response.text();
-      console.log("📄 Raw response body:", responseText);
 
       if (!response.ok) {
-        console.error(`❌ HTTP Error: ${response.status} ${response.statusText}`);
-        console.error(`❌ Response body: ${responseText}`);
         throw new Error(`HTTP ${response.status}: ${responseText}`);
       }
 
       let result;
       try {
         result = JSON.parse(responseText);
-        console.log("✅ Parsed JSON response:", result);
       } catch (parseError) {
-        console.error("❌ Failed to parse JSON response:", parseError);
-        console.error("❌ Raw response was:", responseText);
         throw new Error(`Invalid JSON response: ${responseText}`);
       }
       
       if (result.success && result.checkout_url) {
-        console.log("✅ Draft Order created successfully!");
-        console.log(`   - Draft Order ID: ${result.draft_order_id}`);
-        console.log(`   - Checkout URL: ${result.checkout_url}`);
-        
-        // TEMPORARY: Don't redirect immediately for debugging
-        console.log("🚫 REDIRECT DISABLED FOR DEBUGGING");
-        console.log("🚫 Would redirect to:", result.checkout_url);
-        console.log("🚫 Copy logs now before they disappear!");
-        
-        // Show alert with checkout URL for manual testing
-        alert(`Draft Order created! Checkout URL: ${result.checkout_url}\n\nCheck console logs now, then manually go to checkout.`);
-        
-        // Uncomment this line when debugging is done:
-        // window.location.href = result.checkout_url;
         
         return {
           success: true,
           checkout_url: result.checkout_url
         };
       } else {
-        console.error("❌ Draft Order API returned failure:", result);
         throw new Error(result.error || `API returned success: ${result.success}`);
       }
 
     } catch (error) {
-      console.error("❌ Draft Order creation failed:", error);
-      console.error("❌ Error type:", typeof error);
-      console.error("❌ Error message:", error.message);
-      console.error("❌ Error stack:", error.stack);
-      console.log("🔄 Fallback: Using regular cart with notification about discount");
       
       // Fallback to regular cart but add note about discount
       return await this.createRegularSubscriptionWithDiscountNote(cartItems, subscriptionData);
@@ -652,9 +563,6 @@ class CartManager {
         totalOfferDiscount += discountAmount * offer.quantity;
       });
 
-      console.log(`💰 One-time offer discount calculation:`);
-      console.log(`   - Discounted offers: ${discountedOffers.length}`);
-      console.log(`   - Total discount amount: $${totalOfferDiscount.toFixed(2)}`);
 
       // Add all items to cart (including offers at full price)
       const response = await fetch("/cart/add.js", {
@@ -722,7 +630,6 @@ class CartManager {
 
       return { success: true, cart: cartData };
     } catch (error) {
-      console.error("Cart error:", error);
       
       // Re-enable protection even on error
       if (window.cartProtection) {

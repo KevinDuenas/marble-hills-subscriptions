@@ -216,9 +216,7 @@ class OneTimeOfferManager {
       `;
     }).join('');
 
-    console.log("Demo offers HTML generated:", offerCards);
     offerProductsContainer.innerHTML = offerCards;
-    console.log("Demo offers HTML set to container");
     
     // Update button state after displaying demo products
     this.updateAddToCartButtonState();
@@ -254,7 +252,6 @@ class OneTimeOfferManager {
     }
 
     this.updateOfferUI(productId);
-    console.log("Selected offers:", this.selectedOffers);
   }
 
   toggleDemoOffer(offerId, title, price) {
@@ -281,7 +278,6 @@ class OneTimeOfferManager {
     }
 
     this.updateOfferUI(offerId);
-    console.log("Selected demo offers:", this.selectedOffers);
   }
 
   updateOfferUI(productId) {
@@ -333,12 +329,6 @@ class OneTimeOfferManager {
       addToCartBtn.style.cursor = 'not-allowed';
     }
     
-    console.log('Add to Cart button state:', { 
-      hasSelectedOffer, 
-      isEmailValid, 
-      shouldEnable,
-      emailValue 
-    });
   }
 
   isValidEmail(email) {
@@ -364,7 +354,6 @@ class OneTimeOfferManager {
         this.updateAddToCartButtonState();
       });
       
-      console.log('Email validation initialized');
     }
   }
 
