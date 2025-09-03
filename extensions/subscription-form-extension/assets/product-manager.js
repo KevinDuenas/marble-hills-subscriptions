@@ -381,24 +381,16 @@ class ProductManager {
   }
 
   addProduct(productId) {
-    console.log('Product Manager: addProduct called for:', productId);
-    
     const product = this.findProductById(productId);
-    if (!product) {
-      console.log('Product Manager: Product not found:', productId);
-      return;
-    }
+    if (!product) return;
 
     const existingProduct = this.selectedProducts.find(p => p.id === productId);
     
     if (existingProduct) {
       // Product already selected - remove it instead
-      console.log('Product Manager: Product already selected, removing it');
       this.removeProduct(productId);
       return;
     }
-    
-    console.log('Product Manager: Adding new product');
     
     // Add new product with quantity 1 (fixed)
     // Use pre-selected variant if available, otherwise use first variant
@@ -420,8 +412,6 @@ class ProductManager {
       quantity: 1, // Always 1 - variants define the pieces
       type: "individual"
     });
-
-    console.log('Product Manager: Product added, selectedProducts length:', this.selectedProducts.length);
 
     // Clear pre-selected variant since product is now added
     if (this.preSelectedVariants?.[productId]) {
@@ -487,7 +477,6 @@ class ProductManager {
 
   // Get available inventory for a variant
   async getAvailableInventory(variant, productId = null) {
-    
     // First check the simple 'available' field from Shopify
     if (variant.hasOwnProperty('available') && !variant.available) {
       return 0; // Out of stock
@@ -716,18 +705,11 @@ class ProductManager {
   }
 
   updateProductUI(productId) {
-    console.log('Product Manager: Updating UI for product:', productId);
-    
     const card = document.querySelector(`.product-card[data-product-id="${productId}"]`);
-    if (!card) {
-      console.log('Product Manager: Card not found for product:', productId);
-      return;
-    }
+    if (!card) return;
 
     const product = this.selectedProducts.find(p => p.id === productId);
     const isSelected = !!product;
-    
-    console.log('Product Manager: Product selected state:', isSelected);
     
     // Update card selection state
     card.classList.toggle('selected', isSelected);
@@ -741,11 +723,9 @@ class ProductManager {
     
     // Update button text and state
     const addButton = card.querySelector('.add-to-cart-btn');
-    console.log('Product Manager: Button found:', !!addButton);
     
     if (addButton) {
       if (isSelected) {
-        console.log('Product Manager: Setting button to Remove mode');
         addButton.textContent = 'Remove from Cart';
         addButton.classList.add('remove-mode');
         // Style as red remove button
@@ -758,7 +738,6 @@ class ProductManager {
           opacity: 1 !important;
         `;
       } else {
-        console.log('Product Manager: Setting button to Add mode');
         addButton.textContent = 'Add to Cart';
         addButton.classList.remove('remove-mode');
         // Reset to default orange styles
@@ -768,8 +747,6 @@ class ProductManager {
           border: 1px solid #f7931e !important;
         `;
       }
-    } else {
-      console.log('Product Manager: Button not found in card');
     }
   }
 
