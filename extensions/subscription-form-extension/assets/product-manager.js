@@ -416,10 +416,10 @@ class ProductManager {
         const variantOptions = (product.variants && product.variants.length > 0) ? 
           product.variants.map(variant => 
             `<option value="${variant.id}" ${selectedVariant && selectedVariant.id === variant.id ? 'selected' : ''}>
-              ${variant.title} - $${parseFloat(variant.price).toFixed(2)}
+              ${variant.title}
             </option>`
           ).join('') : 
-          '<option value="">Default - $0.00</option>';
+          '<option value="">Default</option>';
 
         return `
           <div class="product-card ${isSelected ? 'selected' : ''}" data-product-id="${product.id}">
@@ -817,11 +817,25 @@ class ProductManager {
       // Show checking status immediately
       this.showInventoryChecking(productId);
       
+      // Update price in the card UI for non-selected products
+      this.updateProductPriceInCard(productId, newVariant.price);
+      
       // Update inventory status for the new variant selection
       const product = this.findProductById(productId);
       this.getAvailableInventory(newVariant, productId).then(availableInventory => {
         this.updateInventoryStatus(productId, availableInventory, product.title);
       });
+    }
+  }
+
+  // Update only the price in a product card (for non-selected products when variant changes)
+  updateProductPriceInCard(productId, newPrice) {
+    const productCard = document.querySelector(`.product-card[data-product-id="${productId}"]`);
+    if (productCard) {
+      const priceElement = productCard.querySelector('.product-price');
+      if (priceElement) {
+        priceElement.textContent = `$${parseFloat(newPrice).toFixed(2)}`;
+      }
     }
   }
 

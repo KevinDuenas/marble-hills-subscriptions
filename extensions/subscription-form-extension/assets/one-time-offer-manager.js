@@ -125,13 +125,10 @@ class OneTimeOfferManager {
                 ${product.variants.map(variant => {
                   const variantOriginalPrice = parseFloat(variant.price);
                   const variantDiscountedPrice = this.calculateDiscountedPrice(variantOriginalPrice, discountPercentage);
-                  const priceDisplay = hasDiscount ? 
-                    `${variant.title} - $${variantDiscountedPrice.toFixed(2)} (was $${variantOriginalPrice.toFixed(2)})` :
-                    `${variant.title} - $${variantOriginalPrice.toFixed(2)}`;
                   
                   return `
                     <option value="${variant.id}" data-price="${variant.price}" data-discounted-price="${variantDiscountedPrice}">
-                      ${priceDisplay}
+                      ${variant.title}
                     </option>
                   `;
                 }).join('')}
