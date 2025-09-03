@@ -212,10 +212,11 @@ class MainSubscriptionManager {
   }
 
   goToStep(stepNumber) {
-    console.log(`goToStep called with: ${stepNumber}, current step: ${this.currentStep}`);
+    console.log(`🚀 goToStep called with: ${stepNumber}, current step: ${this.currentStep}`);
     
     // Special handling for Step 3: check if one-time offers exist
     if (stepNumber === 3) {
+      console.log(`🔍 Step 3 requested - checking for one-time offers before proceeding`);
       this.checkOneTimeOffersAndProceed();
       return;
     }
@@ -237,25 +238,72 @@ class MainSubscriptionManager {
       // Load products tagged with "sb-one-time-offer"
       const response = await fetch("/products.json?limit=50");
       const data = await response.json();
+      
+      console.log("Products API response:", data);
+      console.log("Number of products loaded:", data.products ? data.products.length : 0);
 
       let hasOfferProducts = false;
       if (data.products) {
+        // Debug: Log all products and their tags
+        data.products.forEach((product, index) => {
+          console.log(`Product ${index + 1}: "${product.title}"`);
+          console.log(`  - Tags type: ${typeof product.tags}`);
+          console.log(`  - Tags raw: `, product.tags);
+          
+          // Handle tags as string or array
+          let tagsArray = [];
+          if (typeof product.tags === 'string') {
+            tagsArray = product.tags.split(',').map(tag => tag.trim());
+          } else if (Array.isArray(product.tags)) {
+            tagsArray = product.tags;
+          }
+          
+          console.log(`  - Tags array: [${tagsArray.join(', ') || 'none'}]`);
+          console.log(`  - Has sb-one-time-offer tag: ${tagsArray.includes('sb-one-time-offer')}`);
+        });
+        
         // Filter products that are tagged with "sb-one-time-offer"
-        const offerProducts = data.products.filter(product => 
-          product.tags && product.tags.includes('sb-one-time-offer')
-        );
+        const offerProducts = data.products.filter(product => {
+          if (!product.tags) return false;
+          
+          // Handle tags as string or array
+          let tagsArray = [];
+          if (typeof product.tags === 'string') {
+            tagsArray = product.tags.split(',').map(tag => tag.trim());
+          } else if (Array.isArray(product.tags)) {
+            tagsArray = product.tags;
+          }
+          
+          return tagsArray.includes('sb-one-time-offer');
+        });
         
         hasOfferProducts = offerProducts.length > 0;
         console.log(`Found ${offerProducts.length} one-time offer products`);
+        
+        // Log the specific products found
+        if (hasOfferProducts) {
+          console.log("One-time offer products found:");
+          offerProducts.forEach((product, index) => {
+            let tagsArray = [];
+            if (typeof product.tags === 'string') {
+              tagsArray = product.tags.split(',').map(tag => tag.trim());
+            } else if (Array.isArray(product.tags)) {
+              tagsArray = product.tags;
+            }
+            console.log(`  ${index + 1}. ${product.title} - Tags: [${tagsArray.join(', ')}]`);
+          });
+        }
+      } else {
+        console.log("No products found in API response");
       }
 
       if (hasOfferProducts) {
         // Show Step 3 if offers exist
-        console.log("One-time offers exist, showing Step 3");
+        console.log("✅ One-time offers exist, showing Step 3");
         this.showStep(3);
       } else {
         // Skip Step 3 and go directly to checkout
-        console.log("No one-time offers found, skipping to checkout");
+        console.log("❌ No one-time offers found, skipping to checkout");
         this.skipOffersAndCheckout();
       }
     } catch (error) {
@@ -395,10 +443,23 @@ class MainSubscriptionManager {
       if (!skipOffers && window.oneTimeOfferManager) {
         const selectedOffers = window.oneTimeOfferManager.getSelectedOffers();
         this.subscriptionData.oneTimeOffers = selectedOffers;
-        console.log('One-time offers added:', selectedOffers);
+        console.log('🎁 One-time offers capture:');
+        console.log('   - Skip offers?', skipOffers);
+        console.log('   - OneTimeOfferManager exists?', !!window.oneTimeOfferManager);
+        console.log('   - Selected offers:', selectedOffers);
+        console.log('   - Offers count:', selectedOffers.length);
+        
+        if (selectedOffers.length > 0) {
+          selectedOffers.forEach((offer, index) => {
+            console.log(`   - Offer ${index + 1}: ${offer.title} (${offer.discountPercentage}% off)`);
+          });
+        }
       } else {
         this.subscriptionData.oneTimeOffers = [];
-        console.log('Skipping one-time offers');
+        console.log('❌ Skipping one-time offers:', {
+          skipOffers,
+          hasManager: !!window.oneTimeOfferManager
+        });
       }
 
       console.log('Final subscription data:', this.subscriptionData);

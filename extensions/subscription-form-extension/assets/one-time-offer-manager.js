@@ -18,59 +18,37 @@ class OneTimeOfferManager {
   }
 
   async loadOfferProducts() {
-    console.log("Loading one-time offer products...");
-
     try {
-      // Load products tagged with "sb-one-time-offer"
       const response = await fetch("/products.json?limit=50");
       const data = await response.json();
 
       if (data.products) {
-        // Filter products that are tagged with "sb-one-time-offer"
         let filteredProducts = data.products.filter(product => 
           product.tags && product.tags.includes('sb-one-time-offer')
         );
 
-        // Sort by priority (priority-1 first, then priority-2, etc., then no priority)
         filteredProducts.sort((a, b) => {
           const priorityA = this.getProductPriority(a);
           const priorityB = this.getProductPriority(b);
-          return priorityA - priorityB; // Lower number = higher priority
+          return priorityA - priorityB;
         });
 
-        // Limit to maximum 3 products, minimum 1 if available
         this.offerProducts = filteredProducts.slice(0, 3);
-
-        console.log(`Found ${this.offerProducts.length} one-time offer products`);
-        
-        // Log the tag system details
-        this.offerProducts.forEach((product, index) => {
-          const priority = this.getProductPriority(product);
-          const discount = this.getProductDiscount(product);
-          console.log(`Product ${index + 1}: "${product.title}"`);
-          console.log(`  - Priority: ${priority} ${priority === 99 ? '(default)' : priority === 999 ? '(no tags)' : '(tagged)'}`);
-          console.log(`  - Discount: ${discount}%`);
-          console.log(`  - Tags: [${product.tags?.join(', ') || 'none'}]`);
-        });
         
         if (this.offerProducts.length > 0) {
           this.displayOfferProducts();
         } else {
-          console.log("No one-time offer products found, showing demo offers");
           this.displayDemoOffers();
         }
         
-        // Re-initialize validation after loading products
         setTimeout(() => {
           this.initializeEmailValidation();
           this.updateAddToCartButtonState();
         }, 100);
       }
     } catch (error) {
-      console.error("Error loading offer products:", error);
       this.displayDemoOffers();
       
-      // Re-initialize validation after displaying demo offers
       setTimeout(() => {
         this.initializeEmailValidation();
         this.updateAddToCartButtonState();
@@ -111,6 +89,7 @@ class OneTimeOfferManager {
     const discount = (originalPrice * discountPercentage) / 100;
     return originalPrice - discount;
   }
+
 
   displayOfferProducts() {
     const offerProductsContainer = document.getElementById('offer-products-grid');
@@ -177,11 +156,8 @@ class OneTimeOfferManager {
   }
 
   displayDemoOffers() {
-    console.log("Attempting to display demo offers");
     const offerProductsContainer = document.getElementById('offer-products-grid');
-    console.log("Offer products container found:", offerProductsContainer);
     if (!offerProductsContainer) {
-      console.error("offer-products-grid container not found!");
       return;
     }
 
@@ -261,15 +237,19 @@ class OneTimeOfferManager {
       // SINGLE SELECTION: Remove any existing offers first
       this.selectedOffers = [];
       
-      // Add new offer
+      // Add new offer with discount information
+      const discountPercentage = this.getProductDiscount(product);
+      const selectedVariant = this.getSelectedVariant(productId) || product.variants[0];
+      
       this.selectedOffers.push({
         id: productId,
         title: product.title,
         image: (product.images && product.images[0]?.src) || "",
         price: product.variants[0]?.price || 0,
-        selectedVariant: product.variants[0],
+        selectedVariant: selectedVariant,
         quantity: 1,
-        type: "one-time-offer"
+        type: "one-time-offer",
+        discountPercentage: discountPercentage
       });
     }
 
@@ -390,6 +370,25 @@ class OneTimeOfferManager {
 
   getSelectedOffers() {
     return this.selectedOffers;
+  }
+
+  // Get selected variant from dropdown for a product
+  getSelectedVariant(productId) {
+    const variantSelector = document.querySelector(`select[data-product-id="${productId}"]`);
+    if (variantSelector) {
+      const selectedOption = variantSelector.options[variantSelector.selectedIndex];
+      const variantId = selectedOption.value;
+      const price = selectedOption.getAttribute('data-price');
+      const discountedPrice = selectedOption.getAttribute('data-discounted-price');
+      
+      return {
+        id: variantId,
+        title: selectedOption.text,
+        price: price,
+        discountedPrice: discountedPrice
+      };
+    }
+    return null;
   }
 
   clearSelectedOffers() {

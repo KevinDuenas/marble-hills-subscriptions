@@ -80,12 +80,21 @@ class CartManager {
       }
       
       // Add one-time offers
+      console.log('🎁 Processing one-time offers in CartManager:');
+      console.log('   - Offers received:', oneTimeOffers);
+      console.log('   - Offers count:', oneTimeOffers.length);
+      
       for (const offer of oneTimeOffers) {
+        console.log(`   - Processing offer: ${offer.title}`);
         const cartItem = await this.prepareOfferProduct(offer);
         if (cartItem) {
+          console.log(`   ✅ Offer prepared successfully:`, cartItem);
           allCartItems.push(cartItem);
+        } else {
+          console.log(`   ❌ Failed to prepare offer: ${offer.title}`);
         }
       }
+      
 
       if (allCartItems.length === 0) {
         throw new Error("No products to add to cart");
@@ -238,21 +247,57 @@ class CartManager {
         return null;
       }
 
+      // Calculate discount information
+      const originalPrice = parseFloat(offer.selectedVariant.price);
+      const discountPercentage = this.getOfferDiscount(offer);
+      const discountedPrice = this.calculateDiscountedPrice(originalPrice, discountPercentage);
+
       return {
         id: variantId,
         quantity: offer.quantity,
+        price: discountedPrice,
         properties: {
           _first_box_addon: "true",
           _offer_product: "true",
+          _one_time_only: "true",
           _product_title: offer.title,
           _selected_variant: offer.selectedVariant.title,
           _quantity: offer.quantity.toString(),
+          _original_price: originalPrice.toFixed(2),
+          _discount_percentage: discountPercentage.toString(),
+          _discounted_price: discountedPrice.toFixed(2),
+          _savings_amount: (originalPrice - discountedPrice).toFixed(2),
+          _discount_applied: "true",
         },
       };
     } catch (error) {
       console.error(`Error preparing offer ${offer.id}:`, error);
       return null;
     }
+  }
+
+  // Extract discount percentage from offer object (from OneTimeOfferManager)
+  getOfferDiscount(offer) {
+    // Check if discount info was passed from OneTimeOfferManager
+    if (offer.discountPercentage !== undefined) {
+      return offer.discountPercentage;
+    }
+    
+    // Fallback: check if it's stored in properties
+    if (offer.selectedVariant && offer.selectedVariant.discountPercentage !== undefined) {
+      return offer.selectedVariant.discountPercentage;
+    }
+    
+    // Default: no discount
+    return 0;
+  }
+
+  // Calculate discounted price
+  calculateDiscountedPrice(originalPrice, discountPercentage) {
+    if (discountPercentage === 0) return originalPrice;
+    
+    const discount = (originalPrice * discountPercentage) / 100;
+    return originalPrice - discount;
   }
 
   async findProductByHandle(handle) {
@@ -306,33 +351,17 @@ class CartManager {
     try {
       console.log("Creating subscription with individual products:", cartItems);
       
-      // Calculate discount for display
-      const selectedProducts = subscriptionData.selectedProducts || [];
-      const totalCount = selectedProducts.reduce((sum, product) => sum + product.quantity, 0);
-      let discount = 0;
-      if (totalCount >= 10) {
-        discount = 10;
-      } else if (totalCount >= 6) {
-        discount = 5;
-      }
-      
-      // Use the regular cart API with individual products and selling plans
-      const result = await this.addToCartWithSubscription(cartItems, discount, subscriptionData);
-      
-      if (result.success) {
-        console.log("✅ Subscription products added to cart successfully!");
-        console.log(`   - ${cartItems.length} items added`);
-        console.log(`   - ${discount}% discount applied via selling plans`);
-        
-        // Redirect to checkout
-        window.location.href = "/checkout";
-        
-        return {
-          success: true,
-          checkout_url: "/checkout"
-        };
+      // Check if we have discounted one-time offers
+      const discountedOffers = cartItems.filter(item => 
+        item.properties && item.properties._discount_applied === "true"
+      );
+
+      if (discountedOffers.length > 0) {
+        console.log("🎁 One-time offers with discounts detected - using enhanced cart with discount code");
+        return await this.createSubscriptionWithOfferDiscounts(cartItems, subscriptionData, discountedOffers);
       } else {
-        throw new Error(result.error || "Failed to add products to cart");
+        console.log("📦 Regular subscription - using Cart API");
+        return await this.createRegularSubscription(cartItems, subscriptionData);
       }
       
     } catch (error) {
@@ -341,6 +370,263 @@ class CartManager {
         success: false,
         error: "Network error creating checkout"
       };
+    }
+  }
+
+  async createRegularSubscription(cartItems, subscriptionData) {
+    // Calculate discount for display
+    const selectedProducts = subscriptionData.selectedProducts || [];
+    const totalCount = selectedProducts.reduce((sum, product) => sum + product.quantity, 0);
+    let discount = 0;
+    if (totalCount >= 10) {
+      discount = 10;
+    } else if (totalCount >= 6) {
+      discount = 5;
+    }
+    
+    // Use the regular cart API with individual products and selling plans
+    const result = await this.addToCartWithSubscription(cartItems, discount, subscriptionData);
+    
+    if (result.success) {
+      console.log("✅ Subscription products added to cart successfully!");
+      console.log(`   - ${cartItems.length} items added`);
+      console.log(`   - ${discount}% discount applied via selling plans`);
+      
+      // Redirect to checkout
+      window.location.href = "/checkout";
+      
+      return {
+        success: true,
+        checkout_url: "/checkout"
+      };
+    } else {
+      throw new Error(result.error || "Failed to add products to cart");
+    }
+  }
+
+  async createDraftOrderWithDiscounts(cartItems, subscriptionData) {
+    console.log("🔒 Creating Draft Order with custom pricing for one-time offer discounts");
+    
+    // Prepare line items for Draft Order
+    const lineItems = cartItems.map(item => {
+      const lineItem = {
+        variant_id: item.id,
+        quantity: item.quantity,
+        properties: []
+      };
+
+      // Add properties as array for Draft Order
+      if (item.properties) {
+        Object.keys(item.properties).forEach(key => {
+          lineItem.properties.push({
+            name: key,
+            value: item.properties[key]
+          });
+        });
+      }
+
+      // Apply custom price for discounted offers
+      if (item.properties && item.properties._discount_applied === "true") {
+        lineItem.price = item.price; // Use discounted price
+        console.log(`💰 Custom price applied: ${item.properties._product_title} = $${item.price.toFixed(2)}`);
+      }
+
+      // Add selling plan for subscription items
+      if (item.selling_plan) {
+        lineItem.selling_plan_id = item.selling_plan;
+      }
+
+      return lineItem;
+    });
+
+    // Draft Order payload
+    const draftOrderData = {
+      draft_order: {
+        line_items: lineItems,
+        customer: subscriptionData.customerEmail ? {
+          email: subscriptionData.customerEmail
+        } : null,
+        note: `Subscription created: ${subscriptionData.frequency} frequency`,
+        custom_attributes: [
+          { key: "subscription_type", value: "custom" },
+          { key: "frequency", value: subscriptionData.frequency },
+          { key: "has_one_time_offers", value: "true" },
+          { key: "created_via", value: "subscription_builder" }
+        ],
+        use_customer_default_address: true
+      }
+    };
+
+    console.log("📝 Draft Order payload:", JSON.stringify(draftOrderData, null, 2));
+
+    try {
+      console.log("🌐 Making request to Draft Order API...");
+      console.log("   - URL: /api/create-draft-order");
+      console.log("   - Method: POST");
+      console.log("   - Headers: Content-Type: application/json");
+      
+      // Create Draft Order via our Remix app endpoint
+      // Try multiple possible URLs for the API endpoint
+      const possibleUrls = [
+        '/api/create-draft-order',
+        '/webhooks/draft-order',
+        '/apps/api/create-draft-order', 
+        '/apps/subscription/api/create-draft-order',
+        '/apps/subscription/webhooks/draft-order',
+        window.location.origin + '/api/create-draft-order'
+      ];
+      
+      let response;
+      let lastError;
+      
+      for (const url of possibleUrls) {
+        try {
+          console.log(`🌐 Trying URL: ${url}`);
+          response = await fetch(url, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(draftOrderData)
+          });
+          
+          console.log(`📡 Response for ${url}: ${response.status} ${response.statusText}`);
+          
+          if (response.status !== 404) {
+            console.log(`✅ Found working endpoint: ${url}`);
+            break; // Exit loop if we get something other than 404
+          }
+        } catch (error) {
+          console.log(`❌ Failed ${url}:`, error.message);
+          lastError = error;
+        }
+      }
+      
+      if (!response) {
+        console.error("❌ All API endpoints failed");
+        throw lastError || new Error("No API endpoint accessible");
+      }
+
+      console.log("📡 Response received:");
+      console.log(`   - Status: ${response.status} ${response.statusText}`);
+      console.log(`   - OK: ${response.ok}`);
+      console.log(`   - Headers:`, response.headers);
+
+      const responseText = await response.text();
+      console.log("📄 Raw response body:", responseText);
+
+      if (!response.ok) {
+        console.error(`❌ HTTP Error: ${response.status} ${response.statusText}`);
+        console.error(`❌ Response body: ${responseText}`);
+        throw new Error(`HTTP ${response.status}: ${responseText}`);
+      }
+
+      let result;
+      try {
+        result = JSON.parse(responseText);
+        console.log("✅ Parsed JSON response:", result);
+      } catch (parseError) {
+        console.error("❌ Failed to parse JSON response:", parseError);
+        console.error("❌ Raw response was:", responseText);
+        throw new Error(`Invalid JSON response: ${responseText}`);
+      }
+      
+      if (result.success && result.checkout_url) {
+        console.log("✅ Draft Order created successfully!");
+        console.log(`   - Draft Order ID: ${result.draft_order_id}`);
+        console.log(`   - Checkout URL: ${result.checkout_url}`);
+        
+        // TEMPORARY: Don't redirect immediately for debugging
+        console.log("🚫 REDIRECT DISABLED FOR DEBUGGING");
+        console.log("🚫 Would redirect to:", result.checkout_url);
+        console.log("🚫 Copy logs now before they disappear!");
+        
+        // Show alert with checkout URL for manual testing
+        alert(`Draft Order created! Checkout URL: ${result.checkout_url}\n\nCheck console logs now, then manually go to checkout.`);
+        
+        // Uncomment this line when debugging is done:
+        // window.location.href = result.checkout_url;
+        
+        return {
+          success: true,
+          checkout_url: result.checkout_url
+        };
+      } else {
+        console.error("❌ Draft Order API returned failure:", result);
+        throw new Error(result.error || `API returned success: ${result.success}`);
+      }
+
+    } catch (error) {
+      console.error("❌ Draft Order creation failed:", error);
+      console.error("❌ Error type:", typeof error);
+      console.error("❌ Error message:", error.message);
+      console.error("❌ Error stack:", error.stack);
+      console.log("🔄 Fallback: Using regular cart with notification about discount");
+      
+      // Fallback to regular cart but add note about discount
+      return await this.createRegularSubscriptionWithDiscountNote(cartItems, subscriptionData);
+    }
+  }
+
+  async createSubscriptionWithOfferDiscounts(cartItems, subscriptionData, discountedOffers) {
+    // Calculate total discount amount
+    let totalDiscountAmount = 0;
+    discountedOffers.forEach(offer => {
+      const savings = parseFloat(offer.properties._savings_amount);
+      totalDiscountAmount += savings * offer.quantity;
+    });
+
+    // Generate subscription-specific discount code
+    const randomSuffix = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+    const discountCode = `SUBSCRIPTION-OTO-${randomSuffix}`;
+    
+    // Add all items to cart 
+    const result = await this.addToCartWithSubscription(cartItems, 0, subscriptionData);
+    
+    if (result.success) {
+      // Update cart with subscription and discount information
+      await fetch("/cart/update.js", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          attributes: {
+            ...result.cart.attributes,
+            is_subscription_order: "true",
+            subscription_discount_code: discountCode,
+            subscription_discount_amount: totalDiscountAmount.toFixed(2),
+            has_oto_discounts: "true",
+            oto_savings_total: totalDiscountAmount.toFixed(2),
+          },
+          note: `Subscription Order - Discount Code: ${discountCode} - Amount: $${totalDiscountAmount.toFixed(2)}`
+        }),
+      });
+
+      // Redirect to checkout with discount code
+      window.location.href = `/checkout?discount=${discountCode}`;
+      
+      return {
+        success: true,
+        checkout_url: `/checkout?discount=${discountCode}`,
+        discount_code: discountCode,
+        discount_amount: totalDiscountAmount
+      };
+    } else {
+      throw new Error(result.error || "Failed to add products to cart");
+    }
+  }
+
+  async createRegularSubscriptionWithDiscountNote(cartItems, subscriptionData) {
+    const result = await this.addToCartWithSubscription(cartItems, 0, subscriptionData);
+    
+    if (result.success) {
+      window.location.href = "/checkout";
+      
+      return {
+        success: true,
+        checkout_url: "/checkout"
+      };
+    } else {
+      throw new Error(result.error || "Failed to add products to cart");
     }
   }
 
@@ -354,14 +640,35 @@ class CartManager {
       // Clear cart
       await fetch("/cart/clear.js", { method: "POST" });
 
-      // Add items
+      // Calculate total discount amount for cart-level discount code
+      let totalOfferDiscount = 0;
+      const discountedOffers = cartItems.filter(item => 
+        item.properties && item.properties._discount_applied === "true"
+      );
+
+      discountedOffers.forEach(offer => {
+        const originalPrice = parseFloat(offer.properties._original_price);
+        const discountAmount = parseFloat(offer.properties._savings_amount);
+        totalOfferDiscount += discountAmount * offer.quantity;
+      });
+
+      console.log(`💰 One-time offer discount calculation:`);
+      console.log(`   - Discounted offers: ${discountedOffers.length}`);
+      console.log(`   - Total discount amount: $${totalOfferDiscount.toFixed(2)}`);
+
+      // Add all items to cart (including offers at full price)
       const response = await fetch("/cart/add.js", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          items: cartItems,
+          items: cartItems.map(item => ({
+            id: item.id,
+            quantity: item.quantity,
+            properties: item.properties,
+            selling_plan: item.selling_plan // Keep selling plans for subscriptions
+          })),
         }),
       });
 
@@ -397,7 +704,11 @@ class CartManager {
             // Add detailed pricing information  
             calculated_total: selectedProducts.reduce((sum, p) => sum + (p.price * p.quantity), 0),
             display_price: `$${selectedProducts.reduce((sum, p) => sum + (p.price * p.quantity), 0).toFixed(2)}`,
-            subscription_note: `Custom subscription with ${totalCount} products and ${discount}% discount`
+            subscription_note: `Custom subscription with ${totalCount} products and ${discount}% discount`,
+            // One-time offer discount information
+            oto_discount_total: totalOfferDiscount.toFixed(2),
+            oto_discount_count: discountedOffers.length.toString(),
+            oto_discount_note: totalOfferDiscount > 0 ? `$${totalOfferDiscount.toFixed(2)} discount on one-time offers` : "",
           },
         }),
       });
