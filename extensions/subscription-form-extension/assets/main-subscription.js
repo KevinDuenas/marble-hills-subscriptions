@@ -274,11 +274,11 @@ class MainSubscriptionManager {
   updateSelectedProducts(products) {
     this.subscriptionData.selectedProducts = products;
     
-    // Update floating cart button state - require minimum 6 items
+    // Update floating cart button state - require minimum 6 products
     const selectFrequencyBtn = document.getElementById('select-frequency-btn');
     if (selectFrequencyBtn) {
-      const totalCount = products.reduce((sum, product) => sum + product.quantity, 0);
-      selectFrequencyBtn.disabled = totalCount < 6;
+      const totalProducts = products.length; // Count products, not quantity
+      selectFrequencyBtn.disabled = totalProducts < 6;
     }
   }
 
@@ -290,8 +290,8 @@ class MainSubscriptionManager {
 
     // Get cart info from Step 1
     const selectedProducts = this.subscriptionData.selectedProducts || [];
-    const totalCount = selectedProducts.reduce((sum, product) => sum + product.quantity, 0);
-    const totalPrice = selectedProducts.reduce((sum, product) => sum + (product.price * product.quantity), 0);
+    const totalCount = selectedProducts.length; // Count products, not quantities
+    const totalPrice = selectedProducts.reduce((sum, product) => sum + product.price, 0); // No multiplication by quantity
     
     // Calculate discount
     let discountPercentage = 0;
