@@ -887,19 +887,7 @@ class ProductManager {
     }
   }
 
-  initializeCategoryHandlers() {
-    document.querySelectorAll(".category-item").forEach((item) => {
-      item.addEventListener("click", () => {
-        document.querySelectorAll(".category-item").forEach((cat) => cat.classList.remove("active"));
-        item.classList.add("active");
-
-        const collection = item.dataset.collection;
-        if (this.productsByCollection[collection]) {
-          this.displayProducts(this.productsByCollection[collection].products);
-        }
-      });
-    });
-  }
+  // Removed duplicate method - using the more complete version below
 
   // Mobile Categories Popup Functions
   createMobileCategoriesPopup(categoriesWithProducts, defaultCategory) {
@@ -1036,6 +1024,12 @@ class ProductManager {
         const collection = item.dataset.collection;
         if (this.productsByCollection[collection]) {
           this.displayProducts(this.productsByCollection[collection].products);
+          
+          // Update desktop sidebar active states
+          document.querySelectorAll('.categories-sidebar .category-item').forEach(sidebarItem => {
+            sidebarItem.classList.remove('active');
+          });
+          item.classList.add('active');
           
           // Update mobile button text when desktop category changes
           const selectedCategoryDisplay = document.getElementById('selected-category-display');
