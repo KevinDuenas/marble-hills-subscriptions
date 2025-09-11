@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { json } from "@remix-run/node";
 import { useLoaderData, useFetcher } from "@remix-run/react";
 import {
   Page,
@@ -16,10 +15,10 @@ import {
   InlineCode
 } from "@shopify/polaris";
 import { TitleBar } from "@shopify/app-bridge-react";
-import { authenticate } from "../shopify.server";
-import prisma from "../db.server";
 
 export const loader = async ({ request }) => {
+  const { authenticate } = await import("../shopify.server");
+  const prisma = (await import("../db.server")).default;
   const { session } = await authenticate.admin(request);
   
   let config = await prisma.subscriptionConfig.findUnique({
@@ -38,6 +37,8 @@ export const loader = async ({ request }) => {
 };
 
 export const action = async ({ request }) => {
+  const { authenticate } = await import("../shopify.server");
+  const prisma = (await import("../db.server")).default;
   const { session } = await authenticate.admin(request);
   const formData = await request.formData();
   

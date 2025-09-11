@@ -19,34 +19,37 @@ class OneTimeOfferManager {
 
   async loadOfferProducts() {
     try {
-      const response = await fetch("/products.json?limit=50");
+      // Get shop domain from current URL
+      const shopDomain = window.location.hostname;
+      const shopName = shopDomain.replace('.myshopify.com', '');
+      
+      console.log('OneTimeOfferManager: Loading offers for shop:', shopName, 'from domain:', shopDomain);
+      
+      // Fetch offers from our app proxy API
+      const apiUrl = `/apps/subscription/api/one-time-offers?shop=${shopName}`;
+      console.log('OneTimeOfferManager: Fetching from API:', apiUrl);
+      
+      const response = await fetch(apiUrl);
       const data = await response.json();
+      
+      console.log('OneTimeOfferManager: API response:', data);
 
-      if (data.products) {
-        let filteredProducts = data.products.filter(product => 
-          product.tags && product.tags.includes('sb-one-time-offer')
-        );
-
-        filteredProducts.sort((a, b) => {
-          const priorityA = this.getProductPriority(a);
-          const priorityB = this.getProductPriority(b);
-          return priorityA - priorityB;
-        });
-
-        this.offerProducts = filteredProducts.slice(0, 3);
-        
-        if (this.offerProducts.length > 0) {
-          this.displayOfferProducts();
-        } else {
-          this.displayDemoOffers();
-        }
-        
-        setTimeout(() => {
-          this.initializeEmailValidation();
-          this.updateAddToCartButtonState();
-        }, 100);
+      if (data.offers && data.offers.length > 0) {
+        console.log('OneTimeOfferManager: Found', data.offers.length, 'offers');
+        this.offerProducts = data.offers;
+        this.displayOfferProducts();
+      } else {
+        console.log('OneTimeOfferManager: No offers found, displaying demo offers');
+        this.displayDemoOffers();
       }
+      
+      setTimeout(() => {
+        this.initializeEmailValidation();
+        this.updateAddToCartButtonState();
+      }, 100);
+      
     } catch (error) {
+      console.error('Error loading One Time Offers:', error);
       this.displayDemoOffers();
       
       setTimeout(() => {
@@ -56,27 +59,13 @@ class OneTimeOfferManager {
     }
   }
 
-  // Extract priority from product tags (sb-oto-priority-1, sb-oto-priority-2, etc.)
-  getProductPriority(product) {
-    if (!product.tags) return 999; // No tags = lowest priority
-    
-    const priorityTag = product.tags.find(tag => tag.startsWith('sb-oto-priority-'));
-    if (priorityTag) {
-      const priorityNumber = parseInt(priorityTag.split('-').pop());
-      return isNaN(priorityNumber) ? 999 : priorityNumber;
-    }
-    
-    return 99; // Default priority (lower than no priority tag)
-  }
 
-  // Extract discount percentage from product tags (sb-oto-discount-10, sb-oto-discount-15, etc.)
-  getProductDiscount(product) {
-    if (!product.tags) return 0;
-    
-    const discountTag = product.tags.find(tag => tag.startsWith('sb-oto-discount-'));
-    if (discountTag) {
-      const discountNumber = parseInt(discountTag.split('-').pop());
-      return isNaN(discountNumber) ? 0 : discountNumber;
+  // Calculate discount percentage from price vs comparedAtPrice
+  calculateDiscountPercentage(price, comparedAtPrice) {
+    if (comparedAtPrice > 0 && price > 0 && comparedAtPrice > price) {
+      const discountAmount = comparedAtPrice - price;
+      const discountPercentage = Math.round((discountAmount / comparedAtPrice) * 100);
+      return discountPercentage;
     }
     
     return 0; // No discount
@@ -90,54 +79,65 @@ class OneTimeOfferManager {
     return originalPrice - discount;
   }
 
+  // Generate a valid-looking Shopify variant ID from database ID
+  generateVariantId(databaseId) {
+    // Convert database ID hash to a numeric string that looks like a Shopify variant ID
+    let hash = 0;
+    for (let i = 0; i < databaseId.length; i++) {
+      const char = databaseId.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash; // Convert to 32-bit integer
+    }
+    // Ensure positive number and make it 14-digit like real Shopify variant IDs
+    const positiveHash = Math.abs(hash);
+    const variantId = String(positiveHash).padStart(14, '9');
+    return variantId;
+  }
+
 
   displayOfferProducts() {
     const offerProductsContainer = document.getElementById('offer-products-grid');
     if (!offerProductsContainer) return;
 
-    const offerCards = this.offerProducts.map(product => {
-      const isSelected = this.selectedOffers.some(offer => offer.id === product.id);
-      const imageSrc = (product.images && product.images[0]?.src) || "";
-      const originalPrice = product.variants[0] ? parseFloat(product.variants[0].price) : 0;
-      const discountPercentage = this.getProductDiscount(product);
-      const discountedPrice = this.calculateDiscountedPrice(originalPrice, discountPercentage);
+    console.log('OneTimeOfferManager: Displaying', this.offerProducts.length, 'offer products');
+
+    const offerCards = this.offerProducts.map(offer => {
+      // Extract numeric variant ID from GraphQL ID if present
+      let variantId = offer.shopifyVariantId;
+      if (variantId && variantId.includes('gid://')) {
+        variantId = variantId.split('/').pop();
+      }
+      
+      console.log('OneTimeOfferManager: Processing offer:', offer.title, 'variantId:', variantId);
+      
+      const isSelected = this.selectedOffers.some(selectedOffer => selectedOffer.id === offer.id);
+      const currentPrice = parseFloat(offer.price) || 0;
+      const comparedAtPrice = parseFloat(offer.comparedAtPrice) || 0;
+      const discountPercentage = this.calculateDiscountPercentage(currentPrice, comparedAtPrice);
       const hasDiscount = discountPercentage > 0;
       
       return `
-        <div class="product-card offer-product-card ${isSelected ? 'selected' : ''}" data-product-id="${product.id}">
+        <div class="product-card offer-product-card ${isSelected ? 'selected' : ''}" data-product-id="${offer.id}">
           ${hasDiscount ? `<div class="discount-badge">${discountPercentage}% OFF</div>` : ''}
           
           <div class="product-image">
-            ${imageSrc ? `<img src="${imageSrc}" alt="${product.title}">` : '<div class="no-image">No image</div>'}
+            ${offer.imageUrl ? `<img src="${offer.imageUrl}" alt="${offer.title}">` : '<div class="no-image">No image</div>'}
           </div>
           
           <div class="product-info">
             <div class="product-info-row">
-              <div class="product-title">${product.title}</div>
+              <div class="product-title">${offer.title}</div>
               <div class="product-price-container">
-                ${hasDiscount ? `<div class="original-price">$${originalPrice.toFixed(2)}</div>` : ''}
-                <div class="offer-price">$${discountedPrice.toFixed(2)}</div>
+                ${hasDiscount ? `<div class="original-price">$${comparedAtPrice.toFixed(2)}</div>` : ''}
+                <div class="offer-price">$${currentPrice.toFixed(2)}</div>
               </div>
             </div>
             
-            <div class="variant-selector">
-              <select data-product-id="${product.id}">
-                ${product.variants.map(variant => {
-                  const variantOriginalPrice = parseFloat(variant.price);
-                  const variantDiscountedPrice = this.calculateDiscountedPrice(variantOriginalPrice, discountPercentage);
-                  
-                  return `
-                    <option value="${variant.id}" data-price="${variant.price}" data-discounted-price="${variantDiscountedPrice}">
-                      ${variant.title}
-                    </option>
-                  `;
-                }).join('')}
-              </select>
-            </div>
+            ${offer.description ? `<p class="product-description">${offer.description}</p>` : ''}
             
             <div class="product-actions">
               <button class="add-offer-btn ${isSelected ? 'selected' : ''}" 
-                      onclick="window.oneTimeOfferManager.toggleOffer(${product.id})">
+                      onclick="window.oneTimeOfferManager.toggleOffer('${offer.id}')">
                 ${isSelected ? 'Added ✓' : 'Add to First Box'}
               </button>
             </div>
@@ -219,11 +219,11 @@ class OneTimeOfferManager {
     this.updateAddToCartButtonState();
   }
 
-  toggleOffer(productId) {
-    const product = this.offerProducts.find(p => p.id === productId);
-    if (!product) return;
+  toggleOffer(offerId) {
+    const offer = this.offerProducts.find(p => p.id === offerId);
+    if (!offer) return;
 
-    const existingOfferIndex = this.selectedOffers.findIndex(offer => offer.id === productId);
+    const existingOfferIndex = this.selectedOffers.findIndex(selectedOffer => selectedOffer.id === offerId);
     
     if (existingOfferIndex > -1) {
       // Remove offer
@@ -232,23 +232,52 @@ class OneTimeOfferManager {
       // SINGLE SELECTION: Remove any existing offers first
       this.selectedOffers = [];
       
-      // Add new offer with discount information
-      const discountPercentage = this.getProductDiscount(product);
-      const selectedVariant = this.getSelectedVariant(productId) || product.variants[0];
+      // Add new offer
+      const price = parseFloat(offer.price) || 0;
+      const comparedAtPrice = parseFloat(offer.comparedAtPrice) || 0;
+      const discountPercentage = this.calculateDiscountPercentage(price, comparedAtPrice);
+      const savingsAmount = comparedAtPrice > price ? (comparedAtPrice - price) : 0;
       
-      this.selectedOffers.push({
-        id: productId,
-        title: product.title,
-        image: (product.images && product.images[0]?.src) || "",
-        price: product.variants[0]?.price || 0,
-        selectedVariant: selectedVariant,
+      // Use Shopify variant ID if available, otherwise generate a valid-looking ID
+      // Convert database ID hash to numeric format for cart compatibility
+      let fallbackVariantId = offer.shopifyVariantId || this.generateVariantId(offerId);
+      
+      // Extract numeric ID from GraphQL format if present
+      if (fallbackVariantId && fallbackVariantId.includes('gid://')) {
+        fallbackVariantId = fallbackVariantId.split('/').pop();
+      }
+      
+      const offerData = {
+        id: offerId, // Keep original ID for UI tracking
+        variantId: fallbackVariantId, // Store numeric variant ID for cart
+        title: offer.title,
+        image: offer.imageUrl || "",
+        price: price,
         quantity: 1,
-        type: "one-time-offer",
-        discountPercentage: discountPercentage
-      });
+        type: offer.shopifyVariantId ? "shopify-product" : "one-time-offer",
+        discountPercentage: discountPercentage,
+        properties: {
+          _offer_position: offer.position,
+          _offer_description: offer.description || '',
+          _original_price: comparedAtPrice > 0 ? comparedAtPrice : price,
+          _savings_amount: savingsAmount,
+          _discount_percentage: discountPercentage,
+          _is_one_time_offer: "true"
+        }
+      };
+
+      // Add selling plan if it's a real Shopify product
+      if (offer.shopifyVariantId) {
+        // No selling plan for one-time offers - they are one-time purchases
+        console.log('Using Shopify variant ID:', offer.shopifyVariantId, 'for offer:', offer.title);
+      } else {
+        console.log('Using custom offer ID:', offerId, 'for offer:', offer.title);
+      }
+
+      this.selectedOffers.push(offerData);
     }
 
-    this.updateOfferUI(productId);
+    this.updateOfferUI(offerId);
   }
 
   toggleDemoOffer(offerId, title, price) {
@@ -261,14 +290,15 @@ class OneTimeOfferManager {
       // SINGLE SELECTION: Remove any existing offers first
       this.selectedOffers = [];
       
-      // Add demo offer
+      // Add demo offer with valid variant ID
       const priceInCents = parseFloat(price.replace('$', '')) * 100;
+      const validVariantId = this.generateVariantId(offerId);
       this.selectedOffers.push({
-        id: offerId,
+        id: validVariantId,
         title: title,
         image: "",
         price: priceInCents,
-        selectedVariant: { id: offerId, title: title, price: priceInCents },
+        selectedVariant: { id: validVariantId, title: title, price: priceInCents },
         quantity: 1,
         type: "one-time-offer"
       });
@@ -283,7 +313,11 @@ class OneTimeOfferManager {
     
     allCards.forEach(card => {
       const cardProductId = card.dataset.productId;
-      const isSelected = this.selectedOffers.some(offer => offer.id == cardProductId);
+      // Check both direct ID match and generated variant ID match
+      const isSelected = this.selectedOffers.some(offer => 
+        offer.id == cardProductId || 
+        offer.id == this.generateVariantId(cardProductId)
+      );
       const button = card.querySelector('.add-offer-btn') || card.querySelector('.add-to-first-box-btn');
       
       card.classList.toggle('selected', isSelected);
@@ -303,6 +337,9 @@ class OneTimeOfferManager {
     const skipOfferBtn = document.getElementById('skip-offer-btn');
     const emailInput = document.getElementById('customer-email');
     
+    console.log('OneTimeOfferManager: Updating button state');
+    console.log('OneTimeOfferManager: Add to cart button found:', !!addToCartBtn);
+    
     if (!addToCartBtn) return;
     
     // Check if email is valid
@@ -312,8 +349,14 @@ class OneTimeOfferManager {
     // Check if at least one offer is selected
     const hasSelectedOffer = this.selectedOffers.length > 0;
     
+    console.log('OneTimeOfferManager: Email valid:', isEmailValid);
+    console.log('OneTimeOfferManager: Has selected offer:', hasSelectedOffer);
+    console.log('OneTimeOfferManager: Selected offers count:', this.selectedOffers.length);
+    
     // Enable button only if BOTH conditions are met: valid email AND selected offer
     const shouldEnable = isEmailValid && hasSelectedOffer;
+    
+    console.log('OneTimeOfferManager: Should enable button:', shouldEnable);
     
     addToCartBtn.disabled = !shouldEnable;
     
@@ -355,7 +398,20 @@ class OneTimeOfferManager {
   }
 
   getSelectedOffers() {
-    return this.selectedOffers;
+    // Ensure variant IDs are in numeric format for cart API
+    return this.selectedOffers.map(offer => {
+      let variantId = offer.shopifyVariantId || offer.variantId;
+      
+      // Extract numeric ID from GraphQL format if present
+      if (variantId && variantId.includes('gid://')) {
+        variantId = variantId.split('/').pop();
+      }
+      
+      return {
+        ...offer,
+        variantId: variantId
+      };
+    });
   }
 
   // Get selected variant from dropdown for a product
@@ -365,13 +421,13 @@ class OneTimeOfferManager {
       const selectedOption = variantSelector.options[variantSelector.selectedIndex];
       const variantId = selectedOption.value;
       const price = selectedOption.getAttribute('data-price');
-      const discountedPrice = selectedOption.getAttribute('data-discounted-price');
+      const comparedPrice = selectedOption.getAttribute('data-compared-price');
       
       return {
         id: variantId,
         title: selectedOption.text,
         price: price,
-        discountedPrice: discountedPrice
+        compare_at_price: comparedPrice
       };
     }
     return null;

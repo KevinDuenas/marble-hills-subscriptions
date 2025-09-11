@@ -39,7 +39,30 @@ class CartManager {
     };
   }
 
+  // Method to update milestone config from main manager
+  updateMilestoneConfig(config) {
+    this.milestoneConfig = config;
+    
+    // Update selling plans with dynamic configuration
+    this.sellingPlans = {
+      [config.milestone1Discount.toString()]: {
+        "2weeks": config.milestone1_2weeks,
+        "4weeks": config.milestone1_4weeks,
+        "6weeks": config.milestone1_6weeks
+      },
+      [config.milestone2Discount.toString()]: {
+        "2weeks": config.milestone2_2weeks,
+        "4weeks": config.milestone2_4weeks,
+        "6weeks": config.milestone2_6weeks
+      }
+    };
+    
+    console.log('CartManager: Updated milestone config and selling plans:', this.milestoneConfig, this.sellingPlans);
+  }
+
   getSellingPlanId(totalCount, frequency) {
+    console.log('CartManager: Getting selling plan for count:', totalCount, 'frequency:', frequency);
+    
     let discountTier = "0";
     
     const config = this.milestoneConfig || window.mainSubscriptionManager?.milestoneConfig || {
@@ -49,21 +72,31 @@ class CartManager {
       milestone2Discount: 10.0,
     };
     
+    console.log('CartManager: Milestone config:', config);
+    
     if (totalCount >= config.milestone2Items) {
       discountTier = config.milestone2Discount.toString();
     } else if (totalCount >= config.milestone1Items) {
       discountTier = config.milestone1Discount.toString();
     }
     
+    console.log('CartManager: Discount tier:', discountTier);
+    console.log('CartManager: Available selling plans:', this.sellingPlans);
+    
     if (this.sellingPlans[discountTier] && this.sellingPlans[discountTier][frequency]) {
       const planId = this.sellingPlans[discountTier][frequency];
+      console.log('CartManager: Found selling plan:', planId);
       return planId;
     }
+    
+    console.warn('CartManager: No selling plan found for tier:', discountTier, 'frequency:', frequency);
     return null;
   }
 
   async createSubscription(subscriptionData) {
     try {
+      console.log('CartManager: Starting subscription creation with data:', subscriptionData);
+      
       // Disable cart protection during subscription creation
       if (window.cartProtection) {
         window.cartProtection.isProtectionActive = false;
@@ -71,6 +104,9 @@ class CartManager {
       
       const selectedProducts = subscriptionData.selectedProducts || [];
       const oneTimeOffers = subscriptionData.oneTimeOffers || [];
+      
+      console.log('CartManager: Selected products:', selectedProducts.length);
+      console.log('CartManager: One time offers:', oneTimeOffers.length);
       
       // Calculate discount
       const totalCount = selectedProducts.reduce((sum, product) => sum + product.quantity, 0);
@@ -88,40 +124,54 @@ class CartManager {
         discount = config.milestone1Discount;
       }
 
+      console.log('CartManager: Calculated discount:', discount);
+
       // Prepare all cart items
       const allCartItems = [];
       
       // Add individual subscription products with selling plans
       for (const product of selectedProducts) {
+        console.log('CartManager: Preparing subscription product:', product.title);
         const cartItem = await this.prepareSubscriptionProduct(product, subscriptionData, totalCount);
         if (cartItem) {
           allCartItems.push(cartItem);
+          console.log('CartManager: Added subscription product to cart:', cartItem.id);
         }
       }
       
       // Add one-time offers
       for (const offer of oneTimeOffers) {
+        console.log('CartManager: Preparing one-time offer:', offer.title);
         const cartItem = await this.prepareOfferProduct(offer);
         if (cartItem) {
           allCartItems.push(cartItem);
+          console.log('CartManager: Added one-time offer to cart:', cartItem.id);
         }
       }
       
+      console.log('CartManager: Total cart items prepared:', allCartItems.length);
 
       if (allCartItems.length === 0) {
+        console.error('CartManager: No products to add to cart');
         throw new Error("No products to add to cart");
       }
 
       // Create Draft Order instead of adding to cart
+      console.log('CartManager: Creating draft order...');
       const draftOrderResponse = await this.createDraftOrder(allCartItems, subscriptionData);
 
+      console.log('CartManager: Draft order response:', draftOrderResponse);
+
       if (draftOrderResponse.success) {
+        console.log('CartManager: Redirecting to checkout:', draftOrderResponse.checkout_url);
         // Successfully created subscription, redirect
         window.location.href = draftOrderResponse.checkout_url;
       } else {
+        console.error('CartManager: Draft order failed:', draftOrderResponse.error);
         throw new Error(draftOrderResponse.error || "Failed to create checkout");
       }
     } catch (error) {
+      console.error('CartManager: Subscription creation failed:', error);
       // Re-enable cart protection on error
       if (window.cartProtection) {
         setTimeout(() => {
@@ -214,15 +264,23 @@ class CartManager {
 
   async prepareSubscriptionProduct(product, subscriptionData, totalCount) {
     try {
+      console.log('CartManager: Preparing subscription product:', product.title);
+      
       // Use the selected variant directly
       const variantId = product.selectedVariant?.id;
       
+      console.log('CartManager: Variant ID for subscription:', variantId);
+      
       if (!variantId) {
+        console.error('CartManager: No variant ID found for subscription product:', product);
         return null;
       }
 
       // Get the appropriate selling plan
       const sellingPlanId = this.getSellingPlanId(totalCount, subscriptionData.frequency);
+      
+      console.log('CartManager: Selling plan ID:', sellingPlanId);
+      console.log('CartManager: Total count:', totalCount, 'Frequency:', subscriptionData.frequency);
       
       const cartItem = {
         id: variantId,
@@ -230,59 +288,85 @@ class CartManager {
         properties: {
           _subscription_type: "custom",
           _frequency: subscriptionData.frequency,
+          _frequency_text: this.frequencyText[subscriptionData.frequency] || subscriptionData.frequency,
           _product_title: product.title,
           _selected_variant: product.selectedVariant.title,
           _quantity: product.quantity.toString(),
           _custom_selection: "true",
           _protected_item: "true", // Mark for cart protection
+          _is_subscription: "true",
+          _recurring: "true"
         },
       };
 
-      // Add selling plan if available
+      // Add selling plan if available (THIS IS CRITICAL FOR SUBSCRIPTIONS)
       if (sellingPlanId) {
         cartItem.selling_plan = sellingPlanId;
+        console.log('CartManager: Added selling plan to subscription product:', sellingPlanId);
+        
+        // Add selling plan info to properties for tracking
+        cartItem.properties._selling_plan_id = sellingPlanId;
+        cartItem.properties._has_selling_plan = "true";
+      } else {
+        console.warn('CartManager: No selling plan found for subscription product - this will be a one-time purchase!');
+        cartItem.properties._has_selling_plan = "false";
       }
 
+      console.log('CartManager: Final subscription cart item:', cartItem);
       return cartItem;
     } catch (error) {
-      console.error("Cart Manager Error:", error);
+      console.error("CartManager: Error preparing subscription product:", error);
       return null;
     }
   }
   
   async prepareOfferProduct(offer) {
     try {
-      const variantId = offer.selectedVariant?.id;
+      console.log('CartManager: Preparing offer product:', offer);
+      
+      // Handle both Shopify variant IDs and generated IDs
+      let variantId = offer.variantId || offer.id;
+      
+      // Extract numeric ID from GraphQL format if present
+      if (variantId && variantId.includes('gid://')) {
+        variantId = variantId.split('/').pop();
+      }
+      
+      console.log('CartManager: Using variant ID:', variantId);
       
       if (!variantId) {
+        console.error('CartManager: No variant ID found for offer:', offer);
         return null;
       }
 
-      // Calculate discount information
-      const originalPrice = parseFloat(offer.selectedVariant.price);
-      const discountPercentage = this.getOfferDiscount(offer);
-      const discountedPrice = this.calculateDiscountedPrice(originalPrice, discountPercentage);
+      // Calculate discount information from offer data
+      const originalPrice = parseFloat(offer.price) || 0;
+      const discountPercentage = offer.discountPercentage || 0;
+      const discountedPrice = discountPercentage > 0 
+        ? originalPrice * (1 - discountPercentage / 100) 
+        : originalPrice;
 
-      return {
+      const cartItem = {
         id: variantId,
-        quantity: offer.quantity,
-        price: discountedPrice,
+        quantity: offer.quantity || 1,
         properties: {
           _first_box_addon: "true",
           _offer_product: "true",
           _one_time_only: "true",
           _product_title: offer.title,
-          _selected_variant: offer.selectedVariant.title,
-          _quantity: offer.quantity.toString(),
+          _quantity: (offer.quantity || 1).toString(),
           _original_price: originalPrice.toFixed(2),
           _discount_percentage: discountPercentage.toString(),
           _discounted_price: discountedPrice.toFixed(2),
           _savings_amount: (originalPrice - discountedPrice).toFixed(2),
-          _discount_applied: "true",
+          _discount_applied: discountPercentage > 0 ? "true" : "false",
         },
       };
+
+      console.log('CartManager: Prepared cart item for offer:', cartItem);
+      return cartItem;
     } catch (error) {
-      console.error("Cart Manager Error:", error);
+      console.error("CartManager: Error preparing offer product:", error);
       return null;
     }
   }
@@ -611,31 +695,50 @@ class CartManager {
       });
 
 
-      // Add all items to cart (including offers at full price)
-      const response = await fetch("/cart/add.js", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          items: cartItems.map(item => ({
-            id: item.id,
-            quantity: item.quantity,
-            properties: item.properties,
-            selling_plan: item.selling_plan // Keep selling plans for subscriptions
-          })),
-        }),
-      });
+      // All items should be added to cart, whether subscription products, Shopify one-time offers, or custom one-time offers
+      // The Shopify Cart API can handle all valid variant IDs (real or generated)
+      const allCartItems = cartItems;
+      
+      console.log('DEBUG: Cart items received:', cartItems);
 
-      if (!response.ok) {
-        throw new Error("Error adding to cart");
+      // Add all items to cart (subscription products, Shopify offers, and custom offers)
+      if (allCartItems.length > 0) {
+        const formattedCartItems = allCartItems.map(item => ({
+          id: item.id,
+          quantity: item.quantity,
+          properties: item.properties,
+          selling_plan: item.selling_plan // Keep selling plans for subscription products
+        }));
+        
+        console.log('DEBUG: Sending to Shopify Cart API:', formattedCartItems);
+        
+        const response = await fetch("/cart/add.js", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            items: formattedCartItems,
+          }),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          console.error('Cart API Error:', errorData);
+          throw new Error(`Failed to add products: ${errorData.message || 'Unknown error'}`);
+        }
+      }
+      
+      // Get cart after adding all products  
+      const cartResponse = await fetch("/cart.js");
+      if (!cartResponse.ok) {
+        throw new Error("Failed to get cart data");
       }
 
-      const cartData = await response.json();
+      const cartData = await cartResponse.json();
       
       // Calculate totals
       const selectedProducts = subscriptionData.selectedProducts || [];
-      const oneTimeOffers = subscriptionData.oneTimeOffers || [];
       const totalCount = selectedProducts.reduce((sum, product) => sum + product.quantity, 0);
 
       // Update cart attributes with enhanced metadata
@@ -652,8 +755,8 @@ class CartManager {
             product_count: totalCount.toString(),
             unique_products: selectedProducts.length.toString(),
             customer_email: subscriptionData.customerEmail || "",
-            has_one_time_offers: (oneTimeOffers.length > 0).toString(),
-            offer_count: oneTimeOffers.length.toString(),
+            has_one_time_offers: ((subscriptionData.oneTimeOffers || []).length > 0).toString(),
+            offer_count: (subscriptionData.oneTimeOffers || []).length.toString(),
             subscription_created: new Date().toISOString(),
             frequency_text: this.frequencyText[subscriptionData.frequency] || subscriptionData.frequency,
             // Add detailed pricing information  

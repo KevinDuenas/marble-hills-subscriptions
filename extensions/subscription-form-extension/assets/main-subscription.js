@@ -55,7 +55,7 @@ class MainSubscriptionManager {
           window.productManager.updateProgressBar();
         }
         if (window.cartManager) {
-          window.cartManager.milestoneConfig = this.milestoneConfig;
+          window.cartManager.updateMilestoneConfig(this.milestoneConfig);
         }
       } else {
         console.warn('Could not load milestone config, using defaults');
@@ -71,6 +71,7 @@ class MainSubscriptionManager {
       return;
     }
 
+    console.log(`MainSubscriptionManager: Transitioning to step ${stepNumber}`);
     this.currentStep = stepNumber;
 
     // Hide all steps
@@ -81,6 +82,7 @@ class MainSubscriptionManager {
     // Show current step
     const currentStepElement = document.querySelector(`.form-step[data-step="${stepNumber}"]`);
     if (currentStepElement) {
+      console.log(`MainSubscriptionManager: Found and showing step ${stepNumber} element`);
       currentStepElement.classList.add('active');
       
       // Show/hide floating carts based on step - both use same class now
@@ -130,14 +132,18 @@ class MainSubscriptionManager {
   }
 
   initializeOfferStep() {
+    console.log('MainSubscriptionManager: Initializing offer step');
+    
     // Add delay to ensure Step 3 DOM is ready
     setTimeout(() => {
       if (window.oneTimeOfferManager) {
+        console.log('MainSubscriptionManager: OneTimeOfferManager found, loading offers');
         window.oneTimeOfferManager.loadOfferProducts();
         
         // Initialize Step 3 navigation
         this.initializeStep3Navigation();
       } else {
+        console.log('MainSubscriptionManager: OneTimeOfferManager not found, waiting...');
         // Wait for OneTimeOfferManager to initialize
         setTimeout(() => {
           this.initializeOfferStep();
@@ -254,37 +260,40 @@ class MainSubscriptionManager {
 
   async checkOneTimeOffersAndProceed() {
     try {
-      const response = await fetch("/products.json?limit=50");
+      console.log('MainSubscriptionManager: Checking for one-time offers...');
+      
+      // Get shop name from current URL
+      let shopName = window.Shopify?.shop || window.location.hostname;
+      
+      // Ensure we have the shop name without .myshopify.com
+      if (shopName.includes('.myshopify.com')) {
+        shopName = shopName.replace('.myshopify.com', '');
+      }
+      
+      console.log('MainSubscriptionManager: Fetching offers for shop:', shopName);
+      
+      // Check our dedicated one-time offers API
+      const response = await fetch(`/apps/subscription/api/one-time-offers?shop=${shopName}`);
       const data = await response.json();
 
+      console.log('MainSubscriptionManager: One-time offers response:', data);
+
       let hasOfferProducts = false;
-      if (data.products) {
-        
-        // Filter products that are tagged with "sb-one-time-offer"
-        const offerProducts = data.products.filter(product => {
-          if (!product.tags) return false;
-          
-          // Handle tags as string or array
-          let tagsArray = [];
-          if (typeof product.tags === 'string') {
-            tagsArray = product.tags.split(',').map(tag => tag.trim());
-          } else if (Array.isArray(product.tags)) {
-            tagsArray = product.tags;
-          }
-          
-          return tagsArray.includes('sb-one-time-offer');
-        });
-        
-        hasOfferProducts = offerProducts.length > 0;
+      if (data.offers && Array.isArray(data.offers)) {
+        hasOfferProducts = data.offers.length > 0;
+        console.log('MainSubscriptionManager: Found', data.offers.length, 'one-time offers');
       }
 
       if (hasOfferProducts) {
+        console.log('MainSubscriptionManager: Proceeding to Step 3 with offers');
         this.showStep(3);
       } else {
+        console.log('MainSubscriptionManager: No offers found, skipping to checkout');
         this.skipOffersAndCheckout();
       }
     } catch (error) {
-      console.error('Subscription Error: Failed to load one-time offers:', error);
+      console.error('MainSubscriptionManager: Failed to load one-time offers:', error);
+      console.log('MainSubscriptionManager: Error occurred, skipping to checkout');
       this.skipOffersAndCheckout();
     }
   }
@@ -415,7 +424,14 @@ class MainSubscriptionManager {
         if (window.cartManager) {
           await window.cartManager.createSubscription(this.subscriptionData);
         } else {
-          throw new Error('Cart manager not available');
+          console.warn('Cart manager not available, initializing...');
+          // Initialize CartManager if not available
+          if (typeof CartManager !== 'undefined') {
+            window.cartManager = new CartManager();
+            await window.cartManager.createSubscription(this.subscriptionData);
+          } else {
+            throw new Error('CartManager class not loaded');
+          }
         }
       }
 

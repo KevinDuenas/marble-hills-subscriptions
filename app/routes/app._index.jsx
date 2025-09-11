@@ -58,7 +58,7 @@ export default function Index() {
                   <List type="number">
                     <List.Item><strong>Step 1:</strong> Select products from dynamic categories</List.Item>
                     <List.Item><strong>Step 2:</strong> Choose delivery frequency (2, 4, or 6 weeks)</List.Item>
-                    <List.Item><strong>Step 3:</strong> Optional one-time offers and email capture</List.Item>
+                    <List.Item><strong>Step 3:</strong> Special offers (configured in One Time Offers) and email capture</List.Item>
                   </List>
                 </BlockStack>
               </BlockStack>
@@ -79,7 +79,7 @@ export default function Index() {
                       </Text>
                       <Text variant="bodyMd" color="subdued">
                         Configure product tags using the <InlineCode>sb-</InlineCode> prefix system. 
-                        Use the "Product Setup" menu item above.
+                        Use the "Configuring Products" menu item above.
                       </Text>
                     </List.Item>
                     <List.Item>
@@ -89,6 +89,15 @@ export default function Index() {
                       <Text variant="bodyMd" color="subdued">
                         Set up discount milestones and Selling Plan IDs. 
                         Use the "Milestone Configuration" menu item above.
+                      </Text>
+                    </List.Item>
+                    <List.Item>
+                      <Text as="span" variant="headingSm">
+                        3. One Time Offers
+                      </Text>
+                      <Text variant="bodyMd" color="subdued">
+                        Configure up to 3 special products for step 3 of the subscription form. 
+                        Use the "One Time Offers" menu item above.
                       </Text>
                     </List.Item>
                   </List>

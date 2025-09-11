@@ -49,3 +49,25 @@ model SubscriptionConfig {
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
 }
+
+model OneTimeOffer {
+  id              String    @id @default(cuid())
+  shop            String
+  position        Int       // 1, 2, or 3 (max 3 products)
+  title           String
+  description     String?
+  price           Float
+  comparedAtPrice Float?
+  imageUrl        String?
+  active          Boolean   @default(true)
+  // Optional: Reference to original Shopify product if copied
+  sourceProductId String?
+  sourceVariantId String?
+  // Shopify product created for this offer
+  shopifyProductId String?
+  shopifyVariantId String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  @@unique([shop, position])
+}
