@@ -342,9 +342,13 @@ class ProductManager {
           ).join('') : 
           '<option value="">Default</option>';
 
+        // Generate button styles based on selection state
+        const buttonStyle = isSelected ? 
+          'background: #dc3545 !important; color: white !important; border: 1px solid #dc3545 !important; display: block !important; visibility: visible !important; opacity: 1 !important;' :
+          'background: #f7931e !important; color: white !important; border: 1px solid #f7931e !important;';
+
         return `
           <div class="product-card ${isSelected ? 'selected' : ''}" data-product-id="${product.id}">
-            ${isSelected ? '<div class="selected-badge">✓</div>' : ''}
             
             <div class="product-image">
               ${imageSrc ? `<img src="${imageSrc}" alt="${product.title}">` : '<div style="color: #999; font-size: 0.9rem;">No image</div>'}
@@ -363,7 +367,7 @@ class ProductManager {
             </div>
             
             <div class="product-controls">
-              <button class="add-to-cart-btn ${isSelected ? 'remove-mode' : ''}" onclick="window.productManager.addProduct(${product.id})">
+              <button class="add-to-cart-btn ${isSelected ? 'remove-mode' : ''}" style="${buttonStyle}" onclick="window.productManager.addProduct(${product.id})">
                 ${isSelected ? 'Remove from Cart' : 'Add to Cart'}
               </button>
             </div>
