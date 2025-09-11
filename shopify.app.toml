@@ -3,7 +3,7 @@
 client_id = "cbb5a44b5fc8b588a7198a726ec321ab"
 name = "marble-hills-subscription"
 handle = "marble-hills-subscription"
-application_url = "https://photograph-maintaining-clarity-buying.trycloudflare.com"
+application_url = "https://christina-analyze-highly-belief.trycloudflare.com"
 embedded = true
 
 [build]
@@ -26,12 +26,12 @@ api_version = "2025-04"
 scopes = "write_products,write_draft_orders"
 
 [auth]
-redirect_urls = ["https://photograph-maintaining-clarity-buying.trycloudflare.com/auth/callback", "https://photograph-maintaining-clarity-buying.trycloudflare.com/auth/shopify/callback", "https://photograph-maintaining-clarity-buying.trycloudflare.com/api/auth/callback"]
+redirect_urls = ["https://christina-analyze-highly-belief.trycloudflare.com/auth/callback", "https://christina-analyze-highly-belief.trycloudflare.com/auth/shopify/callback", "https://christina-analyze-highly-belief.trycloudflare.com/api/auth/callback"]
 
 [pos]
 embedded = false
 
 [app_proxy]
-url = "https://photograph-maintaining-clarity-buying.trycloudflare.com/apps"
+url = "https://christina-analyze-highly-belief.trycloudflare.com/apps"
 subpath = "subscription"
 prefix = "apps"
