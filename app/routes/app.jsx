@@ -24,6 +24,7 @@ export default function App() {
           Home
         </Link>
         <Link to="/app/form">Product Setup</Link>
+        <Link to="/app/milestones">Milestone Configuration</Link>
       </NavMenu>
       <Frame>
         <Outlet />

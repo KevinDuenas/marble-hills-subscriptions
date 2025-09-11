@@ -3,7 +3,7 @@
 client_id = "cbb5a44b5fc8b588a7198a726ec321ab"
 name = "marble-hills-subscription"
 handle = "marble-hills-subscription"
-application_url = "https://much-canal-assumptions-cal.trycloudflare.com"
+application_url = "https://costume-disappointed-pleasant-portfolio.trycloudflare.com"
 embedded = true
 
 [build]
@@ -26,12 +26,12 @@ api_version = "2025-04"
 scopes = "write_products,write_draft_orders"
 
 [auth]
-redirect_urls = ["https://much-canal-assumptions-cal.trycloudflare.com/auth/callback", "https://much-canal-assumptions-cal.trycloudflare.com/auth/shopify/callback", "https://much-canal-assumptions-cal.trycloudflare.com/api/auth/callback"]
+redirect_urls = ["https://costume-disappointed-pleasant-portfolio.trycloudflare.com/auth/callback", "https://costume-disappointed-pleasant-portfolio.trycloudflare.com/auth/shopify/callback", "https://costume-disappointed-pleasant-portfolio.trycloudflare.com/api/auth/callback"]
 
 [pos]
 embedded = false
 
 [app_proxy]
-url = "https://much-canal-assumptions-cal.trycloudflare.com/apps"
+url = "https://costume-disappointed-pleasant-portfolio.trycloudflare.com/apps"
 subpath = "subscription"
 prefix = "apps"

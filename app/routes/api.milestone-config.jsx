@@ -20,10 +20,14 @@ export const loader = async ({ request }) => {
       config = {
         milestone1Items: 6,
         milestone1Discount: 5.0,
-        milestone1SubscriptionId: null,
+        milestone1_2weeks: "689100587309",
+        milestone1_4weeks: "689157964077", 
+        milestone1_6weeks: "689157996845",
         milestone2Items: 10,
         milestone2Discount: 10.0,
-        milestone2SubscriptionId: null,
+        milestone2_2weeks: "689425580333",
+        milestone2_4weeks: "689425613101",
+        milestone2_6weeks: "689425645869",
       };
     }
 
@@ -34,10 +38,14 @@ export const loader = async ({ request }) => {
     return json({
       milestone1Items: 6,
       milestone1Discount: 5.0,
-      milestone1SubscriptionId: null,
+      milestone1_2weeks: "689100587309",
+      milestone1_4weeks: "689157964077", 
+      milestone1_6weeks: "689157996845",
       milestone2Items: 10,
       milestone2Discount: 10.0,
-      milestone2SubscriptionId: null,
+      milestone2_2weeks: "689425580333",
+      milestone2_4weeks: "689425613101",
+      milestone2_6weeks: "689425645869",
     });
   }
 };
