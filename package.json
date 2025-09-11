@@ -11,7 +11,8 @@
     "env": "shopify app env",
     "start": "remix-serve ./build/server/index.js",
     "docker-start": "npm run setup && npm run start",
-    "setup": "prisma generate && prisma db push",
+    "setup": "npx prisma generate && npx prisma db push",
+    "postinstall": "npx prisma generate",
     "railway:build": "./scripts/deploy-production.sh",
     "railway:start": "npm start",
     "lint": "eslint --cache --cache-location ./node_modules/.cache/eslint .",
@@ -38,6 +39,7 @@
     "@types/pg": "^8.15.5",
     "isbot": "^5.1.0",
     "pg": "^8.16.3",
+    "prisma": "^6.15.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "vite-tsconfig-paths": "^5.0.1"
@@ -53,7 +55,6 @@
     "eslint": "^8.42.0",
     "eslint-config-prettier": "^10.0.1",
     "prettier": "^3.2.4",
-    "prisma": "^6.15.0",
     "typescript": "^5.2.2",
     "vite": "^6.2.2"
   },
