@@ -1,0 +1,22 @@
+[
+  {
+    "title": "Subjetivo",
+    "formatPrompt": "•⁠  ⁠Motivo(s) de consulta: [problema(s)] en [localización(es) específica(s)] desde hace [tiempo]\n  • Síntomas: [lista detallada de síntomas para cada problema]\n•⁠  ⁠Antecedentes relevantes:\n  • [Lista detallada de antecedentes mencionados, siguiendo las categorías del punto 3, excluyendo la edad]",
+    "identificationPrompt": "- Identifica y lista todos los motivos de consulta, incluyendo:\n     • Temporalidad de cada problema\n     • Localización específica de cada molestia (ej. rodilla, cadera, costillas, cabeza, manos, brazos, abdomen)\n     • Síntomas referidos por el paciente\n   - Incluye todos los antecedentes relevantes mencionados, EXCEPTO la edad del paciente:\n     • Antecedentes heredo-familiares\n     • Antecedentes personales patológicos (incluyendo cirugías previas con fechas, enfermedades actuales y pasadas con sus tratamientos, hospitalizaciones previas)\n     • Alergias (a medicamentos, alimentos o sustancias)\n     • Hábitos (consumo de alcohol, tabaco, drogas)\n     • Antecedentes personales no patológicos (ocupación, escolaridad, vacunación, dieta, actividad física o recreativa)\n   - NO incluyas la edad del paciente en esta sección.\n   - Si alguno de estos antecedentes no se menciona, no los incluyas ni señales su ausencia.\n"
+  },
+  {
+    "title": "Objetivo",
+    "formatPrompt": "•⁠  ⁠Exploración física:\n  • [Describe las acciones o maniobras inferidas de la conversación]\n  • [Área examinada]: [hallazgos específicos, incluyendo presencia o ausencia de dolor]\n  • [Pruebas o maniobras realizadas]: [resultados detallados]",
+    "identificationPrompt": "   - Describe la exploración física inferida del contexto de la conversación, siendo lo más específico posible:\n     • Para cada área examinada, describe la reacción del paciente (ej. \"dolor a la palpación\", \"sin dolor\", \"limitación de movimiento\")\n     • Incluye resultados de pruebas o maniobras específicas realizadas\n   - Presta atención a frases como \"siéntese\", \"respire\", \"extienda\", etc., que puedan indicar partes de la exploración.\n   - Incluye signos vitales solo si se mencionan explícitamente.\n   - Si la exploración parece incompleta o fragmentada, describe lo que puedas inferir sin inventar datos."
+  },
+  {
+    "title": "Evaluación",
+    "formatPrompt": "•⁠  ⁠Diagnóstico(s) principal(es): [diagnóstico(s)]\n•⁠  ⁠Diagnóstico(s) secundario(s): [si aplica]\n•⁠  ⁠Resultados de estudios: [si se mencionan]",
+    "identificationPrompt": "   - Lista TODOS los diagnósticos identificados, tanto principales como secundarios, incluyendo aquellos que surjan de quejas secundarias durante la consulta.\n   - Incluye resultados de estudios de imagen o laboratorio si se mencionan."
+  },
+  {
+    "title": "Plan",
+    "formatPrompt": "•⁠  ⁠Medicamentos:\n  • [Nombre del medicamento]: [dosis] [frecuencia] por [duración]\n•⁠  ⁠Estudios solicitados:\n  • [Tipo de estudio]: [especificaciones detalladas]\n•⁠  ⁠Recomendaciones y seguimiento: [plan detallado para cada problema identificado]",
+    "identificationPrompt": "   - Detalla los medicamentos prescritos con nombre, dosis, frecuencia y duración.\n   - Lista los estudios de imagen o laboratorio solicitados, especificando tipo y detalles (ej. Rx AP, RMN con contraste).\n   - Especifica el plan de seguimiento y cualquier recomendación adicional para TODOS los problemas identificados."
+  }
+]
