@@ -761,17 +761,25 @@ class ProductManager {
 
     const totalCount = this.selectedProducts.length; // Count products, not quantities
     
-    // Update progress bar fill
-    // 50% at 6 items (5% discount in middle), 100% at 10 items (10% discount at end)
+    // Get milestone configuration (use config from main manager or fallback to defaults)
+    const config = this.milestoneConfig || window.mainSubscriptionManager?.milestoneConfig || {
+      milestone1Items: 6,
+      milestone1Discount: 5.0,
+      milestone2Items: 10,
+      milestone2Discount: 10.0,
+    };
+    
+    // Update progress bar fill based on dynamic configuration
     let percentage = 0;
-    if (totalCount >= 10) {
+    if (totalCount >= config.milestone2Items) {
       percentage = 100;
-    } else if (totalCount >= 6) {
-      // Between 6 and 10 items: 50% to 100%
-      percentage = 50 + ((totalCount - 6) / 4) * 50;
+    } else if (totalCount >= config.milestone1Items) {
+      // Between milestone1 and milestone2: 50% to 100%
+      const range = config.milestone2Items - config.milestone1Items;
+      percentage = 50 + ((totalCount - config.milestone1Items) / range) * 50;
     } else {
-      // 0 to 6 items: 0% to 50%
-      percentage = (totalCount / 6) * 50;
+      // 0 to milestone1: 0% to 50%
+      percentage = (totalCount / config.milestone1Items) * 50;
     }
     
     if (progressFill) {
@@ -791,9 +799,10 @@ class ProductManager {
       console.error('Product Manager Error: Progress fill element not found');
     }
 
-    // Update milestones
+    // Update milestones with dynamic configuration
     milestones.forEach((milestone, index) => {
-      const threshold = index === 0 ? 6 : 10;
+      const threshold = index === 0 ? config.milestone1Items : config.milestone2Items;
+      const discount = index === 0 ? config.milestone1Discount : config.milestone2Discount;
       const isActive = totalCount >= threshold;
       
       milestone.classList.toggle('active', isActive);
@@ -801,10 +810,9 @@ class ProductManager {
       const milestoneText = milestone.querySelector('.milestone-text');
       if (milestoneText) {
         if (isActive) {
-          const discount = threshold === 6 ? 5 : 10;
           milestoneText.textContent = `You've got ${discount}% OFF`;
         } else {
-          milestoneText.textContent = `Add ${threshold}, get ${threshold === 6 ? 5 : 10}% OFF`;
+          milestoneText.textContent = `Add ${threshold}, get ${discount}% OFF`;
         }
       }
     });
@@ -823,41 +831,50 @@ class ProductManager {
     const totalPrice = this.selectedProducts.reduce((sum, product) => {
       // Always use the price from selectedVariant to ensure accuracy
       const price = product.selectedVariant ? product.selectedVariant.price : product.price;
-      return sum + price; // No multiplication by quantity since quantity is always 1
+      return sum + parseFloat(price); // Convert to number before adding
     }, 0);
     
-    // Calculate discount
+    // Calculate discount using milestone configuration
+    const milestoneConfig = this.milestoneConfig || window.mainSubscriptionManager?.milestoneConfig || {
+      milestone1Items: 6,
+      milestone1Discount: 5.0,
+      milestone2Items: 10,
+      milestone2Discount: 10.0,
+    };
+    
     let discount = 0;
-    if (totalCount >= 10) {
-      discount = 10;
-    } else if (totalCount >= 6) {
-      discount = 5;
+    if (totalCount >= milestoneConfig.milestone2Items) {
+      discount = milestoneConfig.milestone2Discount;
+    } else if (totalCount >= milestoneConfig.milestone1Items) {
+      discount = milestoneConfig.milestone1Discount;
     }
 
     const discountedPrice = totalPrice * (1 - discount / 100);
 
     if (cartMessage && cartDetails) {
-      // Get messages from configuration or use defaults
+      // Use the milestone configuration already defined above
+
+      // Get messages from configuration or use defaults with dynamic values
       const config = window.subscriptionConfig?.messages || {};
       const messages = {
-        noItems: config.noItems || "Choose at least 6 items for 5% recurring savings",
-        building: config.building || "Add {remaining} more for 5% recurring savings", 
-        fivePercent: config.fivePercent || "Great! Add {remaining} more for 10% recurring savings",
-        tenPercent: config.tenPercent || "Amazing! You've unlocked 10% recurring savings"
+        noItems: config.noItems || `Choose at least ${milestoneConfig.milestone1Items} items for ${milestoneConfig.milestone1Discount}% recurring savings`,
+        building: config.building || `Add {remaining} more for ${milestoneConfig.milestone1Discount}% recurring savings`, 
+        firstMilestone: config.fivePercent || `Great! Add {remaining} more for ${milestoneConfig.milestone2Discount}% recurring savings`,
+        maxDiscount: config.tenPercent || `Amazing! You've unlocked ${milestoneConfig.milestone2Discount}% recurring savings`
       };
 
-      if (totalCount >= 10) {
-        // State 3: Maximum discount achieved (10% OFF)
-        cartMessage.textContent = messages.tenPercent;
-        cartDetails.innerHTML = `${totalCount} selected: <span class="original-price">$${parseFloat(totalPrice).toFixed(2)}</span> <span class="discount-price">$${parseFloat(discountedPrice).toFixed(2)} (10% OFF)</span>`;
-      } else if (totalCount >= 6) {
-        // State 2: First discount achieved, show progress to next level (5% OFF)
-        const remaining = 10 - totalCount;
-        cartMessage.textContent = messages.fivePercent.replace('{remaining}', remaining);
-        cartDetails.innerHTML = `${totalCount} selected: <span class="original-price">$${parseFloat(totalPrice).toFixed(2)}</span> <span class="discount-price">$${parseFloat(discountedPrice).toFixed(2)} (5% OFF)</span>`;
+      if (totalCount >= milestoneConfig.milestone2Items) {
+        // State 3: Maximum discount achieved
+        cartMessage.textContent = messages.maxDiscount;
+        cartDetails.innerHTML = `${totalCount} selected: <span class="original-price">$${parseFloat(totalPrice).toFixed(2)}</span> <span class="discount-price">$${parseFloat(discountedPrice).toFixed(2)} (${milestoneConfig.milestone2Discount}% OFF)</span>`;
+      } else if (totalCount >= milestoneConfig.milestone1Items) {
+        // State 2: First discount achieved, show progress to next level
+        const remaining = milestoneConfig.milestone2Items - totalCount;
+        cartMessage.textContent = messages.firstMilestone.replace('{remaining}', remaining);
+        cartDetails.innerHTML = `${totalCount} selected: <span class="original-price">$${parseFloat(totalPrice).toFixed(2)}</span> <span class="discount-price">$${parseFloat(discountedPrice).toFixed(2)} (${milestoneConfig.milestone1Discount}% OFF)</span>`;
       } else if (totalCount >= 1) {
-        // State 1: Building towards first discount (1-5 items)
-        const remaining = 6 - totalCount;
+        // State 1: Building towards first discount
+        const remaining = milestoneConfig.milestone1Items - totalCount;
         cartMessage.textContent = messages.building.replace('{remaining}', remaining);
         cartDetails.textContent = `${totalCount} selected: $${parseFloat(totalPrice).toFixed(2)}`;
       } else {

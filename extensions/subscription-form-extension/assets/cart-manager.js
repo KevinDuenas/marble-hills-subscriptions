@@ -7,6 +7,14 @@ class CartManager {
       "6weeks": "Every 6 weeks",
     };
     
+    // Default milestone configuration - will be updated by main manager
+    this.milestoneConfig = {
+      milestone1Items: 6,
+      milestone1Discount: 5.0,
+      milestone2Items: 10,
+      milestone2Discount: 10.0,
+    };
+    
     // Bundle Product Configuration
     this.bundleProduct = {
       variantId: "51266685731117",
@@ -34,10 +42,17 @@ class CartManager {
   getSellingPlanId(totalCount, frequency) {
     let discountTier = "0";
     
-    if (totalCount >= 10) {
-      discountTier = "10";
-    } else if (totalCount >= 6) {
-      discountTier = "5";
+    const config = this.milestoneConfig || window.mainSubscriptionManager?.milestoneConfig || {
+      milestone1Items: 6,
+      milestone1Discount: 5.0,
+      milestone2Items: 10,
+      milestone2Discount: 10.0,
+    };
+    
+    if (totalCount >= config.milestone2Items) {
+      discountTier = config.milestone2Discount.toString();
+    } else if (totalCount >= config.milestone1Items) {
+      discountTier = config.milestone1Discount.toString();
     }
     
     if (this.sellingPlans[discountTier] && this.sellingPlans[discountTier][frequency]) {
@@ -59,11 +74,18 @@ class CartManager {
       
       // Calculate discount
       const totalCount = selectedProducts.reduce((sum, product) => sum + product.quantity, 0);
+      const config = this.milestoneConfig || window.mainSubscriptionManager?.milestoneConfig || {
+        milestone1Items: 6,
+        milestone1Discount: 5.0,
+        milestone2Items: 10,
+        milestone2Discount: 10.0,
+      };
+      
       let discount = 0;
-      if (totalCount >= 10) {
-        discount = 10;
-      } else if (totalCount >= 6) {
-        discount = 5;
+      if (totalCount >= config.milestone2Items) {
+        discount = config.milestone2Discount;
+      } else if (totalCount >= config.milestone1Items) {
+        discount = config.milestone1Discount;
       }
 
       // Prepare all cart items
@@ -165,9 +187,16 @@ class CartManager {
         bundleItem.selling_plan = sellingPlanId;
         
         // Calculate discount info
+        const config = this.milestoneConfig || window.mainSubscriptionManager?.milestoneConfig || {
+          milestone1Items: 6,
+          milestone1Discount: 5.0,
+          milestone2Items: 10,
+          milestone2Discount: 10.0,
+        };
+        
         let discountPercentage = 0;
-        if (totalCount >= 10) discountPercentage = 10;
-        else if (totalCount >= 6) discountPercentage = 5;
+        if (totalCount >= config.milestone2Items) discountPercentage = config.milestone2Discount;
+        else if (totalCount >= config.milestone1Items) discountPercentage = config.milestone1Discount;
         
         // Calculate discounted price
         const discountedPrice = totalPrice * (1 - discountPercentage / 100);

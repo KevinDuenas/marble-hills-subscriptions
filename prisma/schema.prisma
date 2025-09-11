@@ -30,3 +30,16 @@ model Session {
   collaborator  Boolean?  @default(false)
   emailVerified Boolean?  @default(false)
 }
+
+model SubscriptionConfig {
+  id                String    @id @default(cuid())
+  shop              String    @unique
+  milestone1Items   Int       @default(6)
+  milestone1Discount Float    @default(5.0)
+  milestone1SubscriptionId String?
+  milestone2Items   Int       @default(10)
+  milestone2Discount Float    @default(10.0)
+  milestone2SubscriptionId String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+}

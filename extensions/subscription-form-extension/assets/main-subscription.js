@@ -10,12 +10,55 @@ class MainSubscriptionManager {
       customerEmail: null
     };
     
+    // Default milestone configuration - will be loaded from API
+    this.milestoneConfig = {
+      milestone1Items: 6,
+      milestone1Discount: 5.0,
+      milestone1SubscriptionId: null,
+      milestone2Items: 10,
+      milestone2Discount: 10.0,
+      milestone2SubscriptionId: null,
+    };
+    
     this.init();
   }
 
-  init() {
+  async init() {
+    await this.loadMilestoneConfig();
     this.initializeNavigation();
     this.showStep(1);
+  }
+
+  async loadMilestoneConfig() {
+    try {
+      // Get shop name without duplicating .myshopify.com
+      let shopName = window.Shopify?.shop || window.location.hostname;
+      
+      // Ensure we have the full domain format
+      if (!shopName.includes('.myshopify.com')) {
+        shopName = `${shopName}.myshopify.com`;
+      }
+      
+      const response = await fetch(`/apps/subscription/api/milestone-config?shop=${shopName}`);
+      
+      if (response.ok) {
+        const config = await response.json();
+        this.milestoneConfig = config;
+        
+        // Update any existing managers with new config
+        if (window.productManager) {
+          window.productManager.milestoneConfig = this.milestoneConfig;
+          window.productManager.updateProgressBar();
+        }
+        if (window.cartManager) {
+          window.cartManager.milestoneConfig = this.milestoneConfig;
+        }
+      } else {
+        console.warn('Could not load milestone config, using defaults');
+      }
+    } catch (error) {
+      console.warn('Error loading milestone config:', error, 'Using defaults');
+    }
   }
 
   showStep(stepNumber) {
@@ -134,29 +177,21 @@ class MainSubscriptionManager {
       const prevBtn = document.querySelector('.prev-btn');
       const nextBtn = document.getElementById('frequency-next-btn'); // Use ID instead of class
       
-      console.log("Navigation buttons found:", { prevBtn, nextBtn });
       
       if (prevBtn) {
         prevBtn.addEventListener('click', () => {
-          console.log("Previous button clicked");
           this.goToStep(1);
         });
       }
 
       if (nextBtn) {
         nextBtn.addEventListener('click', () => {
-          console.log("Next button clicked");
           if (!nextBtn.disabled) {
             const selectedFrequency = document.querySelector('input[name="frequency"]:checked');
             if (selectedFrequency) {
               this.subscriptionData.frequency = selectedFrequency.value;
-              console.log("Frequency selected:", selectedFrequency.value);
               this.goToStep(3);
-            } else {
-              console.log("No frequency selected");
             }
-          } else {
-            console.log("Next button is disabled");
           }
         });
       }
@@ -175,10 +210,8 @@ class MainSubscriptionManager {
       const nextBtn = document.querySelector('.next-btn');
       document.querySelectorAll('input[name="frequency"]').forEach(radio => {
         radio.addEventListener('change', () => {
-          console.log("Frequency selected:", radio.value);
           if (nextBtn) {
             nextBtn.disabled = false;
-            console.log("Next button enabled");
           }
         });
       });
@@ -278,7 +311,7 @@ class MainSubscriptionManager {
     const selectFrequencyBtn = document.getElementById('select-frequency-btn');
     if (selectFrequencyBtn) {
       const totalProducts = products.length; // Count products, not quantity
-      selectFrequencyBtn.disabled = totalProducts < 6;
+      selectFrequencyBtn.disabled = totalProducts < this.milestoneConfig.milestone1Items;
     }
   }
 
@@ -291,14 +324,14 @@ class MainSubscriptionManager {
     // Get cart info from Step 1
     const selectedProducts = this.subscriptionData.selectedProducts || [];
     const totalCount = selectedProducts.length; // Count products, not quantities
-    const totalPrice = selectedProducts.reduce((sum, product) => sum + product.price, 0); // No multiplication by quantity
+    const totalPrice = selectedProducts.reduce((sum, product) => sum + parseFloat(product.price), 0); // No multiplication by quantity
     
-    // Calculate discount
+    // Calculate discount using milestone configuration
     let discountPercentage = 0;
-    if (totalCount >= 10) {
-      discountPercentage = 10;
-    } else if (totalCount >= 6) {
-      discountPercentage = 5;
+    if (totalCount >= this.milestoneConfig.milestone2Items) {
+      discountPercentage = this.milestoneConfig.milestone2Discount;
+    } else if (totalCount >= this.milestoneConfig.milestone1Items) {
+      discountPercentage = this.milestoneConfig.milestone1Discount;
     }
     
     const discountAmount = totalPrice * (discountPercentage / 100);

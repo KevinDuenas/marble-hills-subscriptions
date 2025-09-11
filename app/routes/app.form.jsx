@@ -1,3 +1,5 @@
+import React, { useState } from "react";
+import { useFetcher, useLoaderData } from "@remix-run/react";
 import {
   Card,
   Page,
@@ -10,23 +12,217 @@ import {
   Divider,
   List,
   InlineCode,
+  Form,
+  FormLayout,
+  TextField,
+  Button,
+  Toast,
 } from "@shopify/polaris";
 import { TitleBar } from "@shopify/app-bridge-react";
+import { authenticate } from "../shopify.server";
+import prisma from "../db.server";
+
+export const loader = async ({ request }) => {
+  const { session } = await authenticate.admin(request);
+  
+  let config = await prisma.subscriptionConfig.findUnique({
+    where: { shop: session.shop }
+  });
+
+  if (!config) {
+    config = await prisma.subscriptionConfig.create({
+      data: {
+        shop: session.shop,
+      }
+    });
+  }
+
+  return { config };
+};
+
+export const action = async ({ request }) => {
+  const { session } = await authenticate.admin(request);
+  const formData = await request.formData();
+  
+  const data = {
+    milestone1Items: parseInt(formData.get("milestone1Items")),
+    milestone1Discount: parseFloat(formData.get("milestone1Discount")),
+    milestone1SubscriptionId: formData.get("milestone1SubscriptionId") || null,
+    milestone2Items: parseInt(formData.get("milestone2Items")),
+    milestone2Discount: parseFloat(formData.get("milestone2Discount")),
+    milestone2SubscriptionId: formData.get("milestone2SubscriptionId") || null,
+  };
+
+  await prisma.subscriptionConfig.upsert({
+    where: { shop: session.shop },
+    update: data,
+    create: {
+      shop: session.shop,
+      ...data,
+    }
+  });
+
+  return { success: true };
+};
 
 export default function SubscriptionTagsPage() {
+  const { config } = useLoaderData();
+  const fetcher = useFetcher();
+  const [showToast, setShowToast] = useState(false);
+
+  const [formData, setFormData] = useState({
+    milestone1Items: config.milestone1Items?.toString() || "6",
+    milestone1Discount: config.milestone1Discount?.toString() || "5",
+    milestone1SubscriptionId: config.milestone1SubscriptionId || "",
+    milestone2Items: config.milestone2Items?.toString() || "10", 
+    milestone2Discount: config.milestone2Discount?.toString() || "10",
+    milestone2SubscriptionId: config.milestone2SubscriptionId || "",
+  });
+
+  const handleInputChange = (field) => (value) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleSubmit = () => {
+    fetcher.submit(formData, { method: "POST" });
+  };
+
+  const isLoading = fetcher.state === "submitting";
+  const isSuccess = fetcher.data?.success && fetcher.state === "idle";
+
+  // Show toast after successful submission
+  React.useEffect(() => {
+    if (isSuccess) {
+      setShowToast(true);
+    }
+  }, [isSuccess]);
+
   return (
     <Page>
       <TitleBar title="Product Setup for Subscriptions" />
+      {showToast && (
+        <Toast
+          content="Configuration saved successfully!"
+          onDismiss={() => setShowToast(false)}
+        />
+      )}
       <Layout>
         {/* Banner informativo */}
         <Layout.Section>
-          <Banner title="Configuración de Tags para Suscripciones" status="info">
+          <Banner title="Configuración del Formulario de Suscripción" status="info">
             <p>
-              Configura los tags de tus productos para que aparezcan correctamente 
+              Configura los milestones de descuento y los tags de tus productos para que aparezcan correctamente 
               en el formulario de suscripción. Todos los tags usan el prefijo <InlineCode>sb-</InlineCode> 
               para evitar conflictos con otros tags de la tienda.
             </p>
           </Banner>
+        </Layout.Section>
+
+        {/* Configuración de Milestones */}
+        <Layout.Section>
+          <Card>
+            <BlockStack gap="400">
+              <div>
+                <Text variant="headingLg" as="h2">
+                  Configuración de Milestones de Descuento
+                </Text>
+                <Text variant="bodyMd" color="subdued">
+                  Configura las metas de productos y descuentos que aparecerán en la barra de progreso
+                </Text>
+              </div>
+
+              <Form onSubmit={handleSubmit}>
+                <FormLayout>
+                  <FormLayout.Group>
+                    <div>
+                      <Text variant="headingMd" as="h3">
+                        Milestone 1 (Primer Descuento)
+                      </Text>
+                      <FormLayout>
+                        <TextField
+                          label="Cantidad de productos requeridos"
+                          value={formData.milestone1Items}
+                          onChange={handleInputChange("milestone1Items")}
+                          type="number"
+                          min="1"
+                          helpText="Número de productos que el cliente debe agregar para obtener el descuento"
+                        />
+                        <TextField
+                          label="Porcentaje de descuento (%)"
+                          value={formData.milestone1Discount}
+                          onChange={handleInputChange("milestone1Discount")}
+                          type="number"
+                          min="0"
+                          max="100"
+                          step="0.1"
+                          helpText="Porcentaje de descuento que se aplicará"
+                        />
+                        <TextField
+                          label="Subscription ID (opcional)"
+                          value={formData.milestone1SubscriptionId}
+                          onChange={handleInputChange("milestone1SubscriptionId")}
+                          helpText="ID del plan de suscripción en Shopify para este nivel"
+                        />
+                      </FormLayout>
+                    </div>
+
+                    <div>
+                      <Text variant="headingMd" as="h3">
+                        Milestone 2 (Segundo Descuento)
+                      </Text>
+                      <FormLayout>
+                        <TextField
+                          label="Cantidad de productos requeridos"
+                          value={formData.milestone2Items}
+                          onChange={handleInputChange("milestone2Items")}
+                          type="number"
+                          min="1"
+                          helpText="Número de productos que el cliente debe agregar para obtener el descuento máximo"
+                        />
+                        <TextField
+                          label="Porcentaje de descuento (%)"
+                          value={formData.milestone2Discount}
+                          onChange={handleInputChange("milestone2Discount")}
+                          type="number"
+                          min="0"
+                          max="100"
+                          step="0.1"
+                          helpText="Porcentaje de descuento máximo que se aplicará"
+                        />
+                        <TextField
+                          label="Subscription ID (opcional)"
+                          value={formData.milestone2SubscriptionId}
+                          onChange={handleInputChange("milestone2SubscriptionId")}
+                          helpText="ID del plan de suscripción en Shopify para este nivel"
+                        />
+                      </FormLayout>
+                    </div>
+                  </FormLayout.Group>
+
+                  <Button 
+                    primary 
+                    onClick={handleSubmit}
+                    loading={isLoading}
+                  >
+                    {isLoading ? "Guardando..." : "Guardar Configuración"}
+                  </Button>
+                </FormLayout>
+              </Form>
+
+              {/* Preview de la configuración */}
+              <Box padding="400" background="bg-surface-secondary" borderRadius="200">
+                <BlockStack gap="200">
+                  <Text variant="headingMd">Vista Previa de Milestones:</Text>
+                  <Text variant="bodyMd">
+                    • <strong>Milestone 1:</strong> {formData.milestone1Discount}% de descuento al agregar {formData.milestone1Items} productos
+                  </Text>
+                  <Text variant="bodyMd">
+                    • <strong>Milestone 2:</strong> {formData.milestone2Discount}% de descuento al agregar {formData.milestone2Items} productos
+                  </Text>
+                </BlockStack>
+              </Box>
+            </BlockStack>
+          </Card>
         </Layout.Section>
 
         {/* Tags de Elegibilidad */}
