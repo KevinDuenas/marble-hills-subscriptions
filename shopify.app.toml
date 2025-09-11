@@ -3,7 +3,7 @@
 client_id = "cbb5a44b5fc8b588a7198a726ec321ab"
 name = "marble-hills-subscription"
 handle = "marble-hills-subscription"
-application_url = "https://christina-analyze-highly-belief.trycloudflare.com"
+application_url = "https://tu-app-url.railway.app"
 embedded = true
 
 [build]
@@ -26,12 +26,12 @@ api_version = "2025-04"
 scopes = "write_products,write_draft_orders"
 
 [auth]
-redirect_urls = ["https://christina-analyze-highly-belief.trycloudflare.com/auth/callback", "https://christina-analyze-highly-belief.trycloudflare.com/auth/shopify/callback", "https://christina-analyze-highly-belief.trycloudflare.com/api/auth/callback"]
+redirect_urls = ["https://tu-app-url.railway.app/auth/callback", "https://tu-app-url.railway.app/auth/shopify/callback", "https://tu-app-url.railway.app/api/auth/callback"]
 
 [pos]
 embedded = false
 
 [app_proxy]
-url = "https://christina-analyze-highly-belief.trycloudflare.com/apps"
+url = "https://tu-app-url.railway.app/apps"
 subpath = "subscription"
 prefix = "apps"
