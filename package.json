@@ -12,7 +12,6 @@
     "start": "remix-serve ./build/server/index.js",
     "docker-start": "npm run setup && npm run start",
     "setup": "npx prisma generate && npx prisma db push",
-    "postinstall": "npx prisma generate",
     "railway:build": "./scripts/deploy-production.sh",
     "railway:start": "npm start",
     "lint": "eslint --cache --cache-location ./node_modules/.cache/eslint .",
