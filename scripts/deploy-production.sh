@@ -4,12 +4,14 @@
 
 echo "🚂 Starting Railway deployment..."
 
-# Check if we're in production
-if [ "$NODE_ENV" = "production" ]; then
-  echo "📦 Production environment detected"
+# Check if DATABASE_URL is set (Railway provides this)
+if [ -n "$DATABASE_URL" ]; then
+  echo "📦 Production environment detected - DATABASE_URL found"
   
-  # Use production schema
+  # Use production schema (PostgreSQL)
   cp prisma/schema.production.prisma prisma/schema.prisma
+  
+  echo "📄 Switched to PostgreSQL schema"
   
   # Generate Prisma client
   npx prisma generate
@@ -20,10 +22,8 @@ if [ "$NODE_ENV" = "production" ]; then
   echo "✅ Database setup complete"
 else
   echo "🔧 Development environment - using SQLite"
+  # Keep the default SQLite schema
   npx prisma generate
 fi
 
-# Build the app
-npm run build
-
-echo "🎉 Deployment preparation complete!"
+echo "🎉 Schema setup complete!"
