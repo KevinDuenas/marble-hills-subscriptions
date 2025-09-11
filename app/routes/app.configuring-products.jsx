@@ -24,7 +24,7 @@ export default function ProductSetupPage() {
 
   return (
     <Page>
-      <TitleBar title="Product Setup for Subscriptions" />
+      <TitleBar title="Configuring Products" />
       <Layout>
         {/* Banner informativo */}
         <Layout.Section>

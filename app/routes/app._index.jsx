@@ -1,4 +1,3 @@
-import { useNavigate } from "@remix-run/react";
 import {
   Page,
   Layout,
@@ -21,8 +20,6 @@ export const loader = async ({ request }) => {
 };
 
 export default function Index() {
-  const navigate = useNavigate();
-
   return (
     <Page>
       <TitleBar title="Marble Hills Subscription App" />
