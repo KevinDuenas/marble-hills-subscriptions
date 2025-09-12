@@ -3,7 +3,8 @@ export async function loader() {
   const health = {
     status: "ok",
     timestamp: new Date().toISOString(),
-    version: "1.1.0",
+    version: "1.2.0",
+    database_ready: true,
     environment: process.env.NODE_ENV || "development",
     database: process.env.DATABASE_URL ? "configured" : "missing",
     shopify: {
