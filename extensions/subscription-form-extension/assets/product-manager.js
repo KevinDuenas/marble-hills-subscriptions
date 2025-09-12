@@ -335,11 +335,47 @@ class ProductManager {
 
         // Generate variant options - check if variants exist
         const variantOptions = (product.variants && product.variants.length > 0) ? 
-          product.variants.map(variant => 
-            `<option value="${variant.id}" ${selectedVariant && selectedVariant.id === variant.id ? 'selected' : ''}>
-              ${variant.title}
-            </option>`
-          ).join('') : 
+          product.variants.map((variant, index) => {
+            // Build descriptive variant name with option names
+            let variantLabel = '';
+            
+            // Try to build from product options and variant values
+            if (product.options && product.options.length > 0) {
+              const options = [];
+              product.options.forEach((option, optionIndex) => {
+                let optionValue = '';
+                if (optionIndex === 0 && variant.option1) optionValue = variant.option1;
+                else if (optionIndex === 1 && variant.option2) optionValue = variant.option2;
+                else if (optionIndex === 2 && variant.option3) optionValue = variant.option3;
+                
+                if (optionValue) {
+                  options.push(`${option.name} ${optionValue}`);
+                }
+              });
+              
+              if (options.length > 0) {
+                variantLabel = options.join(' / ');
+              }
+            }
+            
+            // Fallback to just option values if no option names
+            if (!variantLabel && (variant.option1 || variant.option2 || variant.option3)) {
+              const options = [];
+              if (variant.option1) options.push(variant.option1);
+              if (variant.option2) options.push(variant.option2);
+              if (variant.option3) options.push(variant.option3);
+              variantLabel = options.join(' / ');
+            }
+            
+            // Final fallback to variant title
+            if (!variantLabel) {
+              variantLabel = variant.title || 'Default';
+            }
+            
+            return `<option value="${variant.id}" ${selectedVariant && selectedVariant.id === variant.id ? 'selected' : ''}>
+              ${variantLabel}
+            </option>`;
+          }).join('') : 
           '<option value="">Default</option>';
 
         // Generate button styles based on selection state
