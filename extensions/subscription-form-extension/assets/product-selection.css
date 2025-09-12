@@ -47,10 +47,10 @@
 /* Products Grid Container */
 .products-grid-container {
   flex: 1;
-  max-height: 500px;
+  max-height: 450px;
   overflow-y: auto;
   padding: 0 1rem;
-  margin-bottom: 2rem; /* Add space to prevent milestone overlap */
+  margin-bottom: 4rem; /* Increased space to prevent milestone overlap */
 }
 
 .products-grid {
@@ -146,7 +146,7 @@
   padding: 8px 32px 8px 10px;
   border: 1px solid #D4C5A9;
   border-radius: 0.4rem;
-  font-size: 13px;
+  font-size: 11px;
   color: #5B4B41;
   background: #F9F2E8;
   cursor: pointer;

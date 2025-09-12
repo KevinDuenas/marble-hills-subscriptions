@@ -101,7 +101,7 @@
 
 /* Progress Bar Styles */
 .discount-progress-container {
-  margin-bottom: 2rem;
+  margin-bottom: 4rem; /* Increased space to prevent overlap with products-main-container */
   text-align: center;
 }
 
@@ -196,7 +196,8 @@
 .products-main-container {
   display: flex;
   gap: 2rem;
-  margin-bottom: 6rem; /* Space for floating cart */
+  margin-top: 3rem; /* Add space above to prevent overlap with discount-progress-container */
+  margin-bottom: 8rem; /* Increased space for floating cart and milestone separation */
 }
 
 /* Floating Cart Summary */
