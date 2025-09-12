@@ -1,4 +1,3 @@
-// Production schema for PostgreSQL
 generator client {
   provider = "prisma-client-js"
 }
@@ -27,42 +26,38 @@ model Session {
 }
 
 model SubscriptionConfig {
-  id                String    @id @default(cuid())
-  shop              String    @unique
-  milestone1Items   Int       @default(6)
+  id                 String   @id @default(cuid())
+  shop               String   @unique
+  milestone1Items    Int      @default(6)
   milestone1Discount Float    @default(5.0)
-  milestone2Items   Int       @default(10)
+  milestone2Items    Int      @default(10)
   milestone2Discount Float    @default(10.0)
-  // Selling Plan IDs for milestone 1 (required)
-  milestone1_2weeks String
-  milestone1_4weeks String
-  milestone1_6weeks String
-  // Selling Plan IDs for milestone 2 (required)
-  milestone2_2weeks String
-  milestone2_4weeks String
-  milestone2_6weeks String
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
+  milestone1_2weeks  String?
+  milestone1_4weeks  String?
+  milestone1_6weeks  String?
+  milestone2_2weeks  String?
+  milestone2_4weeks  String?
+  milestone2_6weeks  String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
 }
 
 model OneTimeOffer {
-  id              String    @id @default(cuid())
-  shop            String
-  position        Int       // 1, 2, or 3 (max 3 products)
-  title           String
-  description     String?
-  price           Float
-  comparedAtPrice Float?
-  imageUrl        String?
-  active          Boolean   @default(true)
-  // Optional: Reference to original Shopify product if copied
-  sourceProductId String?
-  sourceVariantId String?
-  // Shopify product created for this offer
+  id               String   @id @default(cuid())
+  shop             String
+  position         Int
+  title            String
+  description      String?
+  price            Float
+  comparedAtPrice  Float?
+  imageUrl         String?
+  active           Boolean  @default(true)
+  sourceProductId  String?
+  sourceVariantId  String?
   shopifyProductId String?
   shopifyVariantId String?
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-  
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
   @@unique([shop, position])
 }
