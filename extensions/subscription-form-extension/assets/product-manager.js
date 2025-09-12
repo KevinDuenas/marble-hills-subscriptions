@@ -333,8 +333,11 @@ class ProductManager {
         const imageSrc = (product.images && product.images[0]?.src) || "";
         const price = selectedVariant ? `$${parseFloat(selectedVariant.price).toFixed(2)}` : "$0.00";
 
-        // Generate variant options - check if variants exist
-        const variantOptions = (product.variants && product.variants.length > 0) ? 
+        // Check if product has multiple variants (more than 1 variant means real variant options)
+        const hasMultipleVariants = product.variants && product.variants.length > 1;
+        
+        // Generate variant options only if there are multiple variants
+        const variantOptions = hasMultipleVariants ? 
           product.variants.map((variant, index) => {
             // Build descriptive variant name with option names
             let variantLabel = '';
@@ -376,7 +379,7 @@ class ProductManager {
               ${variantLabel}
             </option>`;
           }).join('') : 
-          '<option value="">Default</option>';
+          null;
 
         // Generate button styles based on selection state
         const buttonStyle = isSelected ? 
@@ -397,9 +400,12 @@ class ProductManager {
             <div class="product-description">${product.body_html?.replace(/<[^>]*>/g, '').substring(0, 100) || 'Product description'}</div>
             
             <div class="variant-selector">
-              <select onchange="window.productManager.updateVariant(${product.id}, this.value)">
-                ${variantOptions}
-              </select>
+              ${hasMultipleVariants ? 
+                `<select onchange="window.productManager.updateVariant(${product.id}, this.value)">
+                  ${variantOptions}
+                </select>` : 
+                `<div class="no-variants-placeholder"></div>`
+              }
             </div>
             
             <div class="product-controls">

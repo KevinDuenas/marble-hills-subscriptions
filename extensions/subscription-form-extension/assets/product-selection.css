@@ -170,6 +170,14 @@
   box-shadow: 0 0 0 2px rgba(239, 172, 82, 0.2);
 }
 
+/* Placeholder for products without variants - maintains card height */
+.variant-selector .no-variants-placeholder {
+  height: calc(11px + 16px + 2px); /* font-size + padding (8px top + 8px bottom) + border (1px top + 1px bottom) */
+  width: 100%;
+  visibility: hidden;
+  margin: 0;
+}
+
 /* Quantity Display */
 .quantity-display-container {
   display: flex;
