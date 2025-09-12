@@ -33,14 +33,14 @@ model SubscriptionConfig {
   milestone1Discount Float    @default(5.0)
   milestone2Items   Int       @default(10)
   milestone2Discount Float    @default(10.0)
-  // Selling Plan IDs for milestone 1 (required)
-  milestone1_2weeks String
-  milestone1_4weeks String
-  milestone1_6weeks String
-  // Selling Plan IDs for milestone 2 (required)
-  milestone2_2weeks String
-  milestone2_4weeks String
-  milestone2_6weeks String
+  // Selling Plan IDs for milestone 1 (optional until configured)
+  milestone1_2weeks String?
+  milestone1_4weeks String?
+  milestone1_6weeks String?
+  // Selling Plan IDs for milestone 2 (optional until configured)
+  milestone2_2weeks String?
+  milestone2_4weeks String?
+  milestone2_6weeks String?
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
 }
