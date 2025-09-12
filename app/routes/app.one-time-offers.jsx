@@ -622,46 +622,6 @@ export default function OneTimeOffersPage() {
           </Banner>
         </Layout.Section>
 
-        {/* Shopify Product Creation */}
-        <Layout.Section>
-          <Card>
-            <BlockStack gap="400">
-              <Text variant="headingMd" as="h3">
-                Crear Productos en Shopify
-              </Text>
-              <Text>
-                Si algunos One Time Offers no aparecen en el carrito, puede ser porque no tienen productos reales en Shopify. 
-                Haz clic para crear automáticamente los productos faltantes.
-              </Text>
-              <Button
-                primary
-                loading={fetcher.state === "submitting" && fetcher.formData?.get("intent") === "create-missing-products"}
-                onClick={() => {
-                  const formData = new FormData();
-                  formData.append("intent", "create-missing-products");
-                  fetcher.submit(formData, { method: "post" });
-                }}
-              >
-                Crear Productos Shopify Faltantes
-              </Button>
-              {fetcher.data?.created !== undefined && (
-                <Banner 
-                  title="Productos Creados" 
-                  status={fetcher.data.errors ? "warning" : "success"}
-                >
-                  <p>{fetcher.data.message}</p>
-                  {fetcher.data.errors && (
-                    <ul>
-                      {fetcher.data.errors.map((error, index) => (
-                        <li key={index}>{error}</li>
-                      ))}
-                    </ul>
-                  )}
-                </Banner>
-              )}
-            </BlockStack>
-          </Card>
-        </Layout.Section>
 
         {/* Current Offers Overview */}
         <Layout.Section>
