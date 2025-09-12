@@ -78,8 +78,8 @@ export default function Index() {
                         1. Product Setup
                       </Text>
                       <Text variant="bodyMd" color="subdued">
-                        Configure product tags using the <InlineCode>sb-</InlineCode> prefix system. 
-                        Use the "Configuring Products" menu item above.
+                        Configure product tags using the <InlineCode>sb-</InlineCode> prefix system 
+                        to categorize products for the subscription form.
                       </Text>
                     </List.Item>
                     <List.Item>
@@ -96,8 +96,8 @@ export default function Index() {
                         3. One Time Offers
                       </Text>
                       <Text variant="bodyMd" color="subdued">
-                        Configure up to 3 special products for step 3 of the subscription form. 
-                        Use the "One Time Offers" menu item above.
+                        Configure up to 3 special products for step 3 of the subscription form 
+                        directly through the One Time Offers admin interface.
                       </Text>
                     </List.Item>
                   </List>
@@ -127,12 +127,6 @@ export default function Index() {
                         Best Sellers
                       </Text>
                       <InlineCode>sb-best-seller</InlineCode>
-                    </InlineStack>
-                    <InlineStack align="space-between">
-                      <Text as="span" variant="bodyMd">
-                        One-Time Offers
-                      </Text>
-                      <InlineCode>sb-one-time-offer</InlineCode>
                     </InlineStack>
                   </BlockStack>
                 </BlockStack>
