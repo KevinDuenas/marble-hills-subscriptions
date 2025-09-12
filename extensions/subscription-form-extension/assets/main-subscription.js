@@ -43,10 +43,12 @@ class MainSubscriptionManager {
         shopName = `${shopName}.myshopify.com`;
       }
       
+      console.log('MainSubscriptionManager: Attempting to load milestone config from API for shop:', shopName);
       const response = await fetch(`/apps/subscription/api/milestone-config?shop=${shopName}`);
       
       if (response.ok) {
         const config = await response.json();
+        console.log('MainSubscriptionManager: Successfully loaded milestone config from API:', config);
         this.milestoneConfig = config;
         
         // Update any existing managers with new config
@@ -57,11 +59,27 @@ class MainSubscriptionManager {
         if (window.cartManager) {
           window.cartManager.updateMilestoneConfig(this.milestoneConfig);
         }
+        
+        console.log('MainSubscriptionManager: Updated all managers with new config');
       } else {
-        console.warn('Could not load milestone config, using defaults');
+        console.warn('MainSubscriptionManager: Could not load milestone config from API (status:', response.status, '), using defaults');
+        console.warn('MainSubscriptionManager: Default config being used:', this.milestoneConfig);
+        
+        // Ensure CartManager gets the default config too
+        if (window.cartManager) {
+          window.cartManager.updateMilestoneConfig(this.milestoneConfig);
+          console.log('MainSubscriptionManager: Updated CartManager with default config');
+        }
       }
     } catch (error) {
-      console.warn('Error loading milestone config:', error, 'Using defaults');
+      console.warn('MainSubscriptionManager: Error loading milestone config:', error, 'Using defaults');
+      console.warn('MainSubscriptionManager: Default config being used:', this.milestoneConfig);
+      
+      // Ensure CartManager gets the default config even on error
+      if (window.cartManager) {
+        window.cartManager.updateMilestoneConfig(this.milestoneConfig);
+        console.log('MainSubscriptionManager: Updated CartManager with default config after error');
+      }
     }
   }
 
@@ -454,4 +472,12 @@ class MainSubscriptionManager {
 // Initialize when DOM is loaded
 document.addEventListener('DOMContentLoaded', function() {
   window.mainSubscriptionManager = new MainSubscriptionManager();
+  
+  // Ensure CartManager is initialized with default config if it exists
+  setTimeout(() => {
+    if (window.cartManager && window.mainSubscriptionManager) {
+      console.log('MainSubscriptionManager: Initializing CartManager with config on DOM load');
+      window.cartManager.updateMilestoneConfig(window.mainSubscriptionManager.milestoneConfig);
+    }
+  }, 100); // Small delay to ensure CartManager is loaded
 });

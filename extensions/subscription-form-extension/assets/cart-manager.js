@@ -43,6 +43,7 @@ class CartManager {
   updateMilestoneConfig(config) {
     this.milestoneConfig = config;
     
+    
     // Update selling plans with dynamic configuration
     this.sellingPlans = {
       [config.milestone1Discount.toString()]: {
@@ -82,14 +83,26 @@ class CartManager {
     
     console.log('CartManager: Discount tier:', discountTier);
     console.log('CartManager: Available selling plans:', this.sellingPlans);
+    console.log('CartManager: Looking for selling plan with tier:', discountTier, 'and frequency:', frequency);
     
     if (this.sellingPlans[discountTier] && this.sellingPlans[discountTier][frequency]) {
       const planId = this.sellingPlans[discountTier][frequency];
-      console.log('CartManager: Found selling plan:', planId);
+      console.log('CartManager: ✅ Found selling plan:', planId, 'for tier:', discountTier, 'frequency:', frequency);
+      
+      // Validate that the plan ID is not empty or null
+      if (!planId || planId.trim() === '') {
+        console.warn('CartManager: ⚠️ Selling plan ID is empty for tier:', discountTier, 'frequency:', frequency);
+        return null;
+      }
+      
       return planId;
     }
     
-    console.warn('CartManager: No selling plan found for tier:', discountTier, 'frequency:', frequency);
+    console.warn('CartManager: ❌ No selling plan found for tier:', discountTier, 'frequency:', frequency);
+    console.warn('CartManager: Available tiers:', Object.keys(this.sellingPlans));
+    if (this.sellingPlans[discountTier]) {
+      console.warn('CartManager: Available frequencies for tier', discountTier + ':', Object.keys(this.sellingPlans[discountTier]));
+    }
     return null;
   }
 
@@ -163,6 +176,7 @@ class CartManager {
       console.log('CartManager: Draft order response:', draftOrderResponse);
 
       if (draftOrderResponse.success) {
+        console.log('CartManager: ✅ SUCCESS! Subscription created successfully');
         console.log('CartManager: Redirecting to checkout:', draftOrderResponse.checkout_url);
         // Successfully created subscription, redirect
         window.location.href = draftOrderResponse.checkout_url;
