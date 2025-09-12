@@ -12,14 +12,16 @@ import {
   BlockStack,
   Toast,
   Form,
-  InlineCode
+  InlineCode,
+  Select,
+  InlineStack
 } from "@shopify/polaris";
 import { TitleBar } from "@shopify/app-bridge-react";
 
 export const loader = async ({ request }) => {
   const { authenticate } = await import("../shopify.server");
   const prisma = (await import("../db.server")).default;
-  const { session } = await authenticate.admin(request);
+  const { session, admin } = await authenticate.admin(request);
   
   let config = await prisma.subscriptionConfig.findUnique({
     where: { shop: session.shop }
@@ -33,7 +35,111 @@ export const loader = async ({ request }) => {
     });
   }
 
-  return { config };
+  // Fetch available Selling Plans from Shopify
+  let sellingPlans = [];
+  try {
+    const response = await admin.graphql(`
+      query getSellingPlans {
+        sellingPlanGroups(first: 50) {
+          edges {
+            node {
+              id
+              name
+              sellingPlans(first: 50) {
+                edges {
+                  node {
+                    id
+                    name
+                    billingPolicy {
+                      ... on SellingPlanRecurringBillingPolicy {
+                        interval
+                        intervalCount
+                      }
+                    }
+                    deliveryPolicy {
+                      ... on SellingPlanRecurringDeliveryPolicy {
+                        interval
+                        intervalCount
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    `);
+
+    const data = await response.json();
+    
+    console.log('=== FETCHING SELLING PLANS FROM SHOPIFY ===');
+    console.log('Raw GraphQL Response:', JSON.stringify(data, null, 2));
+    
+    // Process selling plans to extract the ones we need
+    if (data?.data?.sellingPlanGroups?.edges) {
+      console.log(`Found ${data.data.sellingPlanGroups.edges.length} Selling Plan Groups`);
+      
+      data.data.sellingPlanGroups.edges.forEach(group => {
+        console.log(`\nProcessing Group: ${group.node?.name} (ID: ${group.node?.id})`);
+        
+        if (group.node?.sellingPlans?.edges) {
+          group.node.sellingPlans.edges.forEach(plan => {
+            const node = plan.node;
+            if (node) {
+              // Extract interval information
+              const deliveryInterval = node.deliveryPolicy?.interval || '';
+              const deliveryCount = node.deliveryPolicy?.intervalCount || 0;
+              
+              console.log(`  - Plan: ${node.name}`);
+              console.log(`    ID: ${node.id}`);
+              console.log(`    Delivery Policy: ${deliveryInterval} x ${deliveryCount}`);
+              console.log(`    Billing Policy: ${node.billingPolicy?.interval} x ${node.billingPolicy?.intervalCount}`);
+              
+              // Convert to weeks if needed
+              let weeksInterval = 0;
+              if (deliveryInterval === 'WEEK') {
+                weeksInterval = deliveryCount;
+              } else if (deliveryInterval === 'DAY') {
+                weeksInterval = Math.round(deliveryCount / 7);
+              } else if (deliveryInterval === 'MONTH') {
+                weeksInterval = deliveryCount * 4;
+              }
+              
+              console.log(`    Calculated weeks interval: ${weeksInterval}`);
+              
+              sellingPlans.push({
+                id: node.id,
+                name: node.name,
+                groupName: group.node.name,
+                interval: deliveryInterval,
+                intervalCount: deliveryCount,
+                weeksInterval: weeksInterval,
+                displayName: `${node.name} (${group.node.name})`
+              });
+            }
+          });
+        }
+      });
+    } else {
+      console.log('No Selling Plan Groups found in the response');
+    }
+    
+    // Sort selling plans by weeks interval
+    sellingPlans.sort((a, b) => a.weeksInterval - b.weeksInterval);
+    
+    console.log('\n=== SELLING PLANS SUMMARY ===');
+    console.log(`Total plans found: ${sellingPlans.length}`);
+    sellingPlans.forEach(plan => {
+      console.log(`- ${plan.id}: ${plan.displayName} (${plan.weeksInterval} weeks)`);
+    });
+    console.log('=============================\n');
+    
+  } catch (error) {
+    console.error('Error fetching selling plans:', error);
+  }
+
+  return { config, sellingPlans };
 };
 
 export const action = async ({ request }) => {
@@ -91,11 +197,12 @@ export const action = async ({ request }) => {
 };
 
 export default function MilestonesPage() {
-  const { config } = useLoaderData();
+  const { config, sellingPlans } = useLoaderData();
   const fetcher = useFetcher();
   const [showToast, setShowToast] = useState(false);
   const [showErrorToast, setShowErrorToast] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [showSellingPlans, setShowSellingPlans] = useState(false);
 
   const [formData, setFormData] = useState({
     milestone1Items: config.milestone1Items?.toString() || "6",
@@ -112,6 +219,63 @@ export default function MilestonesPage() {
 
   const handleInputChange = (field) => (value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  // Auto-populate selling plan IDs based on detected intervals
+  const handleAutoPopulate = () => {
+    console.log('=== AUTO-POPULATE SELLING PLAN IDS ===');
+    console.log('Available Selling Plans:', sellingPlans);
+    
+    if (!sellingPlans || sellingPlans.length === 0) {
+      console.log('ERROR: No selling plans found');
+      alert('No se encontraron Selling Plans configurados en tu tienda. Por favor, configura los planes de suscripción primero.');
+      return;
+    }
+
+    // Find plans for each interval (2, 4, 6 weeks)
+    const plan2weeks = sellingPlans.find(p => p.weeksInterval === 2);
+    const plan4weeks = sellingPlans.find(p => p.weeksInterval === 4);
+    const plan6weeks = sellingPlans.find(p => p.weeksInterval === 6);
+
+    console.log('Matching plans:');
+    console.log('  2 weeks plan:', plan2weeks ? `${plan2weeks.id} - ${plan2weeks.displayName}` : 'NOT FOUND');
+    console.log('  4 weeks plan:', plan4weeks ? `${plan4weeks.id} - ${plan4weeks.displayName}` : 'NOT FOUND');
+    console.log('  6 weeks plan:', plan6weeks ? `${plan6weeks.id} - ${plan6weeks.displayName}` : 'NOT FOUND');
+
+    const updates = {};
+    
+    // Check if we found plans for each interval
+    const missingIntervals = [];
+    if (!plan2weeks) missingIntervals.push('2 semanas');
+    if (!plan4weeks) missingIntervals.push('4 semanas');
+    if (!plan6weeks) missingIntervals.push('6 semanas');
+
+    if (missingIntervals.length > 0) {
+      const foundPlans = sellingPlans.map(p => `${p.displayName} (${p.weeksInterval} semanas)`).join('\n');
+      console.log('WARNING: Missing intervals:', missingIntervals);
+      alert(`No se encontraron planes para: ${missingIntervals.join(', ')}\n\nPlanes encontrados:\n${foundPlans}`);
+    }
+
+    // Populate with found plans (using the same plan ID for both milestones)
+    if (plan2weeks) {
+      updates.milestone1_2weeks = plan2weeks.id;
+      updates.milestone2_2weeks = plan2weeks.id;
+      console.log(`Setting 2 weeks IDs to: ${plan2weeks.id}`);
+    }
+    if (plan4weeks) {
+      updates.milestone1_4weeks = plan4weeks.id;
+      updates.milestone2_4weeks = plan4weeks.id;
+      console.log(`Setting 4 weeks IDs to: ${plan4weeks.id}`);
+    }
+    if (plan6weeks) {
+      updates.milestone1_6weeks = plan6weeks.id;
+      updates.milestone2_6weeks = plan6weeks.id;
+      console.log(`Setting 6 weeks IDs to: ${plan6weeks.id}`);
+    }
+
+    console.log('Final updates to apply:', updates);
+    setFormData(prev => ({ ...prev, ...updates }));
+    setShowToast(true);
   };
 
   const handleSubmit = () => {
@@ -181,6 +345,46 @@ export default function MilestonesPage() {
             </p>
           </Banner>
         </Layout.Section>
+
+        {/* Auto-populate section */}
+        {sellingPlans && sellingPlans.length > 0 && (
+          <Layout.Section>
+            <Card>
+              <BlockStack gap="300">
+                <Text variant="headingMd" as="h3">
+                  Auto-configuración de Selling Plans
+                </Text>
+                <Text variant="bodyMd" color="subdued">
+                  Detectamos {sellingPlans.length} Selling Plans en tu tienda. 
+                  Haz clic para auto-llenar los IDs basados en los intervalos de entrega.
+                </Text>
+                <InlineStack gap="300">
+                  <Button onClick={handleAutoPopulate}>
+                    Auto-llenar Selling Plan IDs
+                  </Button>
+                  <Button 
+                    plain
+                    onClick={() => setShowSellingPlans(!showSellingPlans)}
+                  >
+                    {showSellingPlans ? 'Ocultar' : 'Ver'} planes disponibles
+                  </Button>
+                </InlineStack>
+                {showSellingPlans && (
+                  <Banner status="info">
+                    <BlockStack gap="200">
+                      <Text variant="headingSm">Selling Plans disponibles:</Text>
+                      {sellingPlans.map((plan, index) => (
+                        <Text key={index} variant="bodyMd">
+                          <InlineCode>{plan.id}</InlineCode> - {plan.displayName} ({plan.weeksInterval} semanas)
+                        </Text>
+                      ))}
+                    </BlockStack>
+                  </Banner>
+                )}
+              </BlockStack>
+            </Card>
+          </Layout.Section>
+        )}
 
         {/* Configuración de Milestones */}
         <Layout.Section>
