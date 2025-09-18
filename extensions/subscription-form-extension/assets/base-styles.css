@@ -106,7 +106,7 @@
 }
 
 .progress-text {
-  font-size: 1.1rem;
+  font-size: 2.2rem; /* Doubled from 1.1rem */
   font-weight: 500;
   color: #5B4B41;
   margin-bottom: 1rem;
@@ -234,7 +234,7 @@
 }
 
 .cart-message {
-  font-size: 1.1rem;
+  font-size: 1.8rem; /* Increased from 1.1rem for desktop */
   font-weight: 600;
   color: #5B4B41;
   margin-bottom: 0.25rem;
