@@ -441,6 +441,45 @@
 }
 
 @media (max-width: 768px) {
+  /* Change to 2-column grid layout on mobile */
+  .products-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+  }
+
+  /* Ensure vertical scroll for mobile grid */
+  .products-grid-container {
+    max-height: 400px;
+    overflow-y: auto;
+    padding: 0 0.5rem;
+  }
+
+  /* Mobile product card adjustments */
+  .product-card {
+    min-height: 320px;
+    padding: 0.8rem;
+  }
+
+  .product-image {
+    height: 120px;
+    margin-bottom: 0.8rem;
+  }
+
+  .product-title {
+    font-size: 1rem;
+    line-height: 1.2;
+  }
+
+  .product-description {
+    font-size: 0.85rem;
+    min-height: 50px;
+    -webkit-line-clamp: 2;
+  }
+
+  .product-price {
+    font-size: 0.95rem;
+  }
+
   /* Hide desktop categories sidebar */
   .categories-sidebar {
     display: none;
@@ -631,39 +670,30 @@
     border-color: #EFAC52;
   }
   
+  /* Override carousel - use grid layout instead */
   .products-grid-container {
-    max-height: none;
-    padding: 0;
-    overflow-x: auto; /* Horizontal scrolling */
-    overflow-y: visible;
-    /* Smooth scrolling */
-    -webkit-overflow-scrolling: touch;
-    scroll-behavior: smooth;
-  }
-  
-  .products-grid {
-    display: flex; /* Change from grid to flex */
-    gap: 1rem;
-    /* Center first card - calculate: (viewport_width - card_width) / 2 */
-    padding: 0 calc(50vw - 140px) 0 calc(50vw - 140px); /* 140px = half of card width (280px/2) */
-    /* Allow horizontal scrolling */
-    overflow-x: auto;
-    /* Ensure cards don't shrink */
-    flex-wrap: nowrap;
-    /* Smooth scrolling */
-    scroll-snap-type: x mandatory;
+    max-height: 400px;
+    padding: 0 0.5rem;
+    overflow-x: visible; /* Remove horizontal scrolling */
+    overflow-y: auto; /* Enable vertical scrolling */
   }
 
-  /* Product cards in carousel */
+  .products-grid {
+    display: grid !important; /* Force grid layout instead of flex */
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 1rem;
+    padding: 0; /* Remove carousel padding */
+  }
+
+  /* Product cards in grid - override carousel styles */
   .product-card {
-    flex: 0 0 280px; /* Fixed width, no shrink/grow */
-    max-width: 280px;
+    flex: none; /* Remove flex properties */
+    max-width: none; /* Remove fixed width */
+    width: 100%; /* Take full grid cell width */
     height: auto;
-    /* Ensure cards maintain structure */
     display: flex;
     flex-direction: column;
-    /* Snap each card to center when scrolling */
-    scroll-snap-align: center;
+    scroll-snap-align: none; /* Remove scroll snap */
   }
 
   /* Minimal fix for mobile select positioning */
