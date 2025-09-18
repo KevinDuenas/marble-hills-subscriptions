@@ -388,30 +388,34 @@ class ProductManager {
 
         return `
           <div class="product-card ${isSelected ? 'selected' : ''}" data-product-id="${product.id}">
-            
+
             <div class="product-image">
               ${imageSrc ? `<img src="${imageSrc}" alt="${product.title}">` : '<div style="color: #999; font-size: 0.9rem;">No image</div>'}
             </div>
-            
-            <div class="product-info-row">
-              <div class="product-title">${product.title}</div>
-              <div class="product-price">${price}</div>
+
+            <div class="product-content-wrapper">
+              <div class="product-info-row">
+                <div class="product-title">${product.title}</div>
+                <div class="product-price">${price}</div>
+              </div>
+              <div class="product-description">${product.body_html?.replace(/<[^>]*>/g, '').substring(0, 100) || 'Product description'}</div>
             </div>
-            <div class="product-description">${product.body_html?.replace(/<[^>]*>/g, '').substring(0, 100) || 'Product description'}</div>
-            
-            <div class="variant-selector">
-              ${hasMultipleVariants ? 
-                `<select onchange="window.productManager.updateVariant(${product.id}, this.value)">
-                  ${variantOptions}
-                </select>` : 
-                `<div class="no-variants-placeholder"></div>`
-              }
-            </div>
-            
-            <div class="product-controls">
-              <button class="add-to-cart-btn ${isSelected ? 'remove-mode' : ''}" style="${buttonStyle}" onclick="window.productManager.addProduct(${product.id})">
-                ${isSelected ? 'Remove from Cart' : 'Add to Cart'}
-              </button>
+
+            <div class="product-bottom-section">
+              <div class="variant-selector">
+                ${hasMultipleVariants ?
+                  `<select onchange="window.productManager.updateVariant(${product.id}, this.value)">
+                    ${variantOptions}
+                  </select>` :
+                  `<div class="no-variants-placeholder"></div>`
+                }
+              </div>
+
+              <div class="product-controls">
+                <button class="add-to-cart-btn ${isSelected ? 'remove-mode' : ''}" style="${buttonStyle}" onclick="window.productManager.addProduct(${product.id})">
+                  ${isSelected ? 'Remove from Box' : 'Add to Box'}
+                </button>
+              </div>
             </div>
           </div>
         `;
@@ -557,7 +561,7 @@ class ProductManager {
     if (placeholder) {
       let statusHtml = '';
       let buttonDisabled = false;
-      let buttonText = 'Add to Cart';
+      let buttonText = 'Add to Box';
       let hideQuantityElements = false;
       
       if (availableInventory !== null) {
@@ -784,7 +788,7 @@ class ProductManager {
           opacity: 1 !important;
         `;
       } else {
-        addButton.textContent = 'Add to Cart';
+        addButton.textContent = 'Add to Box';
         addButton.classList.remove('remove-mode');
         // Reset to default orange styles
         addButton.style.cssText = `
