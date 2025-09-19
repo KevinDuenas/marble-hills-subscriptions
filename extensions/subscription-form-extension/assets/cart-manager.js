@@ -375,15 +375,25 @@ class CartManager {
           _discounted_price: discountedPrice.toFixed(2),
           _savings_amount: (originalPrice - discountedPrice).toFixed(2),
           _discount_applied: discountPercentage > 0 ? "true" : "false",
+          // CRITICAL: Add the custom pricing flag for Draft Order API detection
+          _custom_pricing: "true",
+          // Copy over any additional properties from the original offer
+          ...(offer.properties || {})
         },
       };
 
       // Special logging for $0 offers to debug the issue
       if (originalPrice === 0) {
-        console.log('🔥 CartManager: $0 OFFER DETECTED!');
-        console.log('🔥 CartManager: Original offer data:', offer);
-        console.log('🔥 CartManager: Price in dollars:', originalPrice);
-        console.log('🔥 CartManager: Price in cents:', Math.round(originalPrice * 100));
+        console.log('🚨 CartManager: $0 OFFER DETECTED IN PREPARE!');
+        console.log('🚨 CartManager: Original offer data:', offer);
+        console.log('🚨 CartManager: Price in dollars:', originalPrice);
+        console.log('🚨 CartManager: Price in cents:', Math.round(originalPrice * 100));
+        console.log('🚨 CartManager: Cart item with custom pricing flag:', {
+          id: cartItem.id,
+          price: cartItem.price,
+          hasCustomPricing: cartItem.properties._custom_pricing === "true",
+          productTitle: cartItem.properties._product_title
+        });
         console.log('🔥 CartManager: Final cart item:', cartItem);
 
         // Persistent logging to survive redirects
@@ -482,6 +492,18 @@ class CartManager {
 
   async createDraftOrder(cartItems, subscriptionData) {
     try {
+      console.log('🔍 CartManager: createDraftOrder called with:', {
+        cartItemsLength: cartItems.length,
+        allCartItems: cartItems.map(item => ({
+          id: item.id,
+          title: item.title,
+          price: item.price,
+          type: item.type,
+          properties: item.properties,
+          hasCustomPricing: item.properties?._custom_pricing === "true"
+        }))
+      });
+
       const discountedOffers = cartItems.filter(item =>
         item.properties && item.properties._discount_applied === "true"
       );
@@ -491,6 +513,19 @@ class CartManager {
       const customOffers = cartItems.filter(item =>
         item.properties && item.properties._custom_pricing === "true"
       );
+
+      console.log('CartManager: Checking for special offers:', {
+        cartItemsCount: cartItems.length,
+        discountedOffersCount: discountedOffers.length,
+        zeroOffersCount: zeroOffers.length,
+        customOffersCount: customOffers.length,
+        firstItem: cartItems[0] ? {
+          id: cartItems[0].id,
+          price: cartItems[0].price,
+          hasCustomPricing: cartItems[0].properties?._custom_pricing === "true",
+          properties: cartItems[0].properties
+        } : null
+      });
 
       // Use Draft Order API if we have $0 offers OR discounted offers OR custom pricing offers
       if (discountedOffers.length > 0 || zeroOffers.length > 0 || customOffers.length > 0) {
@@ -513,6 +548,13 @@ class CartManager {
 
         return await this.createDraftOrderWithDiscounts(cartItems, subscriptionData);
       } else {
+        console.log('CartManager: Using regular subscription - no special offers detected');
+        console.log('CartManager: Cart items for regular subscription:', cartItems.map(item => ({
+          id: item.id,
+          price: item.price,
+          hasProperties: !!item.properties,
+          hasCustomPricing: item.properties?._custom_pricing === "true"
+        })));
         return await this.createRegularSubscription(cartItems, subscriptionData);
       }
       
