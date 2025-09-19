@@ -28,15 +28,17 @@ export async function action({ request }) {
     }
 
     const { items, customerEmail, frequency } = body;
-    console.log("Received data:", { 
-      itemsCount: items?.length, 
-      customerEmail, 
+    console.log("Received data:", {
+      itemsCount: items?.length,
+      customerEmail,
       frequency,
-      firstItem: items?.[0] ? {
-        id: items[0].id,
-        hasPrice: !!items[0].price,
-        hasSellingPlan: !!items[0].selling_plan
-      } : null
+      allItems: items?.map(item => ({
+        id: item.id,
+        price: item.price,
+        hasSellingPlan: !!item.selling_plan,
+        hasCustomPricing: item.properties?._custom_pricing === "true",
+        productTitle: item.properties?._product_title
+      }))
     });
 
     if (!items || items.length === 0) {
@@ -127,6 +129,20 @@ export async function action({ request }) {
     }
 
     console.log("Creating draft order with data:", JSON.stringify(draftOrderData, null, 2));
+
+    // Debug each line item to see if they're properly formatted
+    console.log("Line items breakdown:");
+    draftOrderData.draft_order.line_items.forEach((item, index) => {
+      console.log(`Item ${index + 1}:`, {
+        hasVariantId: !!item.variant_id,
+        hasTitle: !!item.title,
+        hasPrice: !!item.price,
+        variantId: item.variant_id,
+        title: item.title,
+        price: item.price,
+        isVirtualProduct: !item.variant_id && !!item.title
+      });
+    });
 
     // Create draft order using Admin API
     const apiUrl = `https://${session.shop}/admin/api/2024-01/draft_orders.json`;
