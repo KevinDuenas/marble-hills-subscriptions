@@ -385,6 +385,20 @@ class CartManager {
         console.log('🔥 CartManager: Price in dollars:', originalPrice);
         console.log('🔥 CartManager: Price in cents:', Math.round(originalPrice * 100));
         console.log('🔥 CartManager: Final cart item:', cartItem);
+
+        // Persistent logging to survive redirects
+        const debugLog = JSON.parse(localStorage.getItem('zeroOfferDebug') || '[]');
+        debugLog.push({
+          timestamp: new Date().toISOString(),
+          action: '$0_OFFER_DETECTED',
+          data: {
+            offerId: offer.id,
+            title: offer.title,
+            variantId: cartItem.id,
+            priceInCents: Math.round(originalPrice * 100)
+          }
+        });
+        localStorage.setItem('zeroOfferDebug', JSON.stringify(debugLog));
       }
 
       console.log('CartManager: Prepared cart item for offer:', cartItem);
@@ -741,6 +755,22 @@ class CartManager {
         const zeroOffers = formattedCartItems.filter(item => item.price === 0);
         if (zeroOffers.length > 0) {
           console.log('🔥 CartManager: SENDING $0 OFFERS TO CART API:', zeroOffers);
+
+          // Persistent logging
+          const debugLog = JSON.parse(localStorage.getItem('zeroOfferDebug') || '[]');
+          debugLog.push({
+            timestamp: new Date().toISOString(),
+            action: 'SENDING_TO_CART_API',
+            data: {
+              zeroOffersCount: zeroOffers.length,
+              zeroOffers: zeroOffers.map(item => ({
+                id: item.id,
+                price: item.price,
+                quantity: item.quantity
+              }))
+            }
+          });
+          localStorage.setItem('zeroOfferDebug', JSON.stringify(debugLog));
         }
 
         const response = await fetch("/cart/add.js", {
@@ -768,6 +798,17 @@ class CartManager {
         // Success - check if $0 offers were actually added
         if (zeroOffers.length > 0) {
           console.log('🔥 CartManager: CART API SUCCESS - $0 offers should be added');
+
+          // Persistent logging
+          const debugLog = JSON.parse(localStorage.getItem('zeroOfferDebug') || '[]');
+          debugLog.push({
+            timestamp: new Date().toISOString(),
+            action: 'CART_API_SUCCESS',
+            data: {
+              message: '$0 offers sent successfully to Cart API'
+            }
+          });
+          localStorage.setItem('zeroOfferDebug', JSON.stringify(debugLog));
         }
       }
       
@@ -790,11 +831,42 @@ class CartManager {
         // Check if our $0 offers made it to the cart
         zeroOfferFormattedItems.forEach(zeroOffer => {
           const foundInCart = currentCartItems.find(cartItem => cartItem.variant_id.toString() === zeroOffer.id.toString());
+
+          // Persistent logging
+          const debugLog = JSON.parse(localStorage.getItem('zeroOfferDebug') || '[]');
+
           if (foundInCart) {
             console.log(`🔥 CartManager: ✅ $0 offer found in cart:`, foundInCart);
+            debugLog.push({
+              timestamp: new Date().toISOString(),
+              action: 'FOUND_IN_CART',
+              data: {
+                offerId: zeroOffer.id,
+                foundItem: {
+                  variant_id: foundInCart.variant_id,
+                  price: foundInCart.price,
+                  title: foundInCart.title,
+                  quantity: foundInCart.quantity
+                }
+              }
+            });
           } else {
             console.log(`🔥 CartManager: ❌ $0 offer NOT found in cart! ID: ${zeroOffer.id}`);
+            debugLog.push({
+              timestamp: new Date().toISOString(),
+              action: 'NOT_FOUND_IN_CART',
+              data: {
+                offerId: zeroOffer.id,
+                allCartItems: currentCartItems.map(item => ({
+                  variant_id: item.variant_id,
+                  price: item.price,
+                  title: item.title
+                }))
+              }
+            });
           }
+
+          localStorage.setItem('zeroOfferDebug', JSON.stringify(debugLog));
         });
       }
 
