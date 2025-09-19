@@ -762,6 +762,7 @@ class CartManager {
       const formattedCartItems = allCartItems.map(item => ({
         id: item.id,
         quantity: item.quantity,
+        price: item.price, // CRITICAL: Include price for $0 offers
         properties: item.properties,
         selling_plan: item.selling_plan // Keep selling plans for subscription products
       }));
