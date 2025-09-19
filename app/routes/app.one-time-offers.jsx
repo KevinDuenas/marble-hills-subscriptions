@@ -542,22 +542,31 @@ export default function OneTimeOffersPage() {
   }
 
   const handleInputChange = (field) => (value) => {
+    console.log(`Field ${field} changed to:`, value);
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
   const handleSubmit = () => {
+    console.log('Form data before validation:', formData);
+
     // Check title first
     if (!formData.title) {
+      console.log('Title is missing');
       alert('Title and price are required (price can be $0).');
       return;
     }
 
     // Parse price and validate
     const price = parseFloat(formData.price);
+    console.log('Price string:', formData.price, 'Parsed price:', price, 'isNaN:', isNaN(price), 'price < 0:', price < 0);
+
     if (isNaN(price) || price < 0) {
+      console.log('Price validation failed');
       alert('Title and price are required (price can be $0).');
       return;
     }
+
+    console.log('Validation passed, submitting...');
     
     const submitData = {
       ...formData,
@@ -735,18 +744,18 @@ export default function OneTimeOffersPage() {
         <Modal.Section>
           <FormLayout>
             <TextField
-              label="Título del Producto"
+              label="Product Title"
               value={formData.title}
               onChange={handleInputChange('title')}
-              helpText="Nombre que aparecerá en la oferta"
+              helpText="Name that will appear in the offer"
             />
             
             <TextField
-              label="Descripción"
+              label="Description"
               value={formData.description}
               onChange={handleInputChange('description')}
               multiline={4}
-              helpText="Descripción opcional del producto"
+              helpText="Optional product description"
             />
             
             <FormLayout.Group>
@@ -759,6 +768,8 @@ export default function OneTimeOffersPage() {
                 helpText="Sale price (can be $0)"
                 min="0"
                 step="0.01"
+                required={false}
+                autoComplete="off"
               />
               
               <TextField
