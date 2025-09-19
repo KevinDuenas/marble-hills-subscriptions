@@ -45,10 +45,47 @@ export async function action({ request }) {
 
     // Prepare line items for draft order
     const lineItems = items.map(item => {
+      const isCustomOffer = item.properties && item.properties._custom_pricing === "true";
+
       const lineItem = {
-        variant_id: item.id,
-        quantity: item.quantity
+        quantity: item.quantity,
+        custom_properties: []
       };
+
+      if (isCustomOffer) {
+        // For custom one-time offers, create a virtual product
+        lineItem.title = item.properties._product_title || "One-Time Offer";
+        lineItem.price = (item.price / 100).toFixed(2); // Convert cents to dollars
+        lineItem.requires_shipping = true;
+        console.log(`Creating virtual product for custom offer: ${lineItem.title} at $${lineItem.price}`);
+
+        // CRITICAL: Special logging for $0 virtual products
+        if (lineItem.price === "0.00") {
+          console.log('🚨 CREATING $0 VIRTUAL PRODUCT! 🚨');
+          console.log('Virtual product details:', {
+            title: lineItem.title,
+            price: lineItem.price,
+            originalPriceCents: item.price,
+            itemId: item.id,
+            hasCustomPricing: item.properties._custom_pricing
+          });
+        }
+      } else {
+        // For real Shopify products, use variant_id
+        lineItem.variant_id = item.id;
+
+        // Add selling plan if exists
+        if (item.selling_plan) {
+          lineItem.selling_plan_id = item.selling_plan;
+          console.log(`Adding selling plan ${item.selling_plan} to item ${item.id}`);
+        }
+
+        // Add custom price if provided (including $0 prices)
+        if (typeof item.price === 'number') {
+          lineItem.price = (item.price / 100).toFixed(2); // Convert cents to dollars
+          console.log(`Setting custom price for Shopify variant ${item.id}: $${lineItem.price}`);
+        }
+      }
 
       // Add properties if they exist
       if (item.properties) {
@@ -56,18 +93,6 @@ export async function action({ request }) {
           name: key,
           value: value.toString()
         }));
-      }
-
-      // Add selling plan if exists
-      if (item.selling_plan) {
-        lineItem.selling_plan_id = item.selling_plan;
-        console.log(`Adding selling plan ${item.selling_plan} to item ${item.id}`);
-      }
-
-      // Add custom price if provided (for bundle)
-      if (item.price) {
-        lineItem.price = (item.price / 100).toFixed(2); // Convert cents to dollars
-        console.log(`Setting custom price: $${lineItem.price} for item ${item.id}`);
       }
 
       return lineItem;

@@ -488,9 +488,13 @@ class CartManager {
 
       const zeroOffers = cartItems.filter(item => item.price === 0);
 
-      // Use Draft Order API if we have $0 offers OR discounted offers
-      if (discountedOffers.length > 0 || zeroOffers.length > 0) {
-        console.log('CartManager: Using Draft Order API for $0 or discounted offers');
+      const customOffers = cartItems.filter(item =>
+        item.properties && item.properties._custom_pricing === "true"
+      );
+
+      // Use Draft Order API if we have $0 offers OR discounted offers OR custom pricing offers
+      if (discountedOffers.length > 0 || zeroOffers.length > 0 || customOffers.length > 0) {
+        console.log('CartManager: Using Draft Order API for custom pricing offers');
 
         // Persistent logging
         const debugLog = JSON.parse(localStorage.getItem('zeroOfferDebug') || '[]');
@@ -500,7 +504,9 @@ class CartManager {
           data: {
             zeroOffersCount: zeroOffers.length,
             discountedOffersCount: discountedOffers.length,
-            reason: zeroOffers.length > 0 ? '$0 offers detected' : 'discounted offers detected'
+            customOffersCount: customOffers.length,
+            reason: customOffers.length > 0 ? 'custom pricing offers detected' :
+                   zeroOffers.length > 0 ? '$0 offers detected' : 'discounted offers detected'
           }
         });
         localStorage.setItem('zeroOfferDebug', JSON.stringify(debugLog));
@@ -618,10 +624,12 @@ class CartManager {
       
       // Create Draft Order via our Remix app endpoint
       // Try multiple possible URLs for the API endpoint
+      // Primary endpoint based on app proxy configuration (apps/subscription)
       const possibleUrls = [
-        '/api/draft-order',
-        '/api/subscription/draft-order',
-        '/apps/subscription/api/draft-order',
+        '/apps/subscription/api/draft-order', // PRIMARY: App proxy URL with virtual product support
+        '/api/draft-order',                    // Fallback: Direct API route
+        '/api/subscription/draft-order',       // Alternative path
+        '/apps/subscription/draft-order',     // Alternative app proxy path
         '/api/create-draft-order',
         '/webhooks/draft-order',
         '/apps/api/create-draft-order',
@@ -632,9 +640,13 @@ class CartManager {
       
       let response;
       let lastError;
-      
+
+      console.log('CartManager: Attempting Draft Order API calls...');
+
       for (const url of possibleUrls) {
         try {
+          console.log(`CartManager: Trying Draft Order API: ${url}`);
+
           response = await fetch(url, {
             method: 'POST',
             headers: {
@@ -642,11 +654,15 @@ class CartManager {
             },
             body: JSON.stringify(draftOrderData)
           });
-          
+
+          console.log(`CartManager: Response from ${url}: status ${response.status}`);
+
           if (response.status !== 404) {
+            console.log(`CartManager: Using Draft Order API endpoint: ${url}`);
             break;
           }
         } catch (error) {
+          console.log(`CartManager: Error with ${url}:`, error.message);
           lastError = error;
         }
       }
@@ -657,7 +673,10 @@ class CartManager {
 
       const responseText = await response.text();
 
+      console.log('CartManager: Draft Order API response text:', responseText);
+
       if (!response.ok) {
+        console.error(`CartManager: Draft Order API failed with status ${response.status}:`, responseText);
         throw new Error(`HTTP ${response.status}: ${responseText}`);
       }
 
@@ -680,7 +699,32 @@ class CartManager {
 
     } catch (error) {
       console.error("Cart Manager Error:", error);
-      // Fallback to regular cart but add note about discount
+
+      // CRITICAL: Do NOT fallback to Cart API if we have custom offers with unique variant IDs
+      // as they don't exist in Shopify's catalog and will cause "Cannot find variant" errors
+      const hasCustomOffers = cartItems.some(item =>
+        item.properties && item.properties._custom_pricing === "true"
+      );
+
+      if (hasCustomOffers) {
+        console.error('CartManager: ❌ CANNOT fallback to Cart API - custom offers with unique variant IDs detected');
+
+        const debugLog = JSON.parse(localStorage.getItem('zeroOfferDebug') || '[]');
+        debugLog.push({
+          timestamp: new Date().toISOString(),
+          action: 'DRAFT_ORDER_FAILED_NO_FALLBACK',
+          error: error.message,
+          customOffers: cartItems.filter(item => item.properties && item.properties._custom_pricing === "true")
+        });
+        localStorage.setItem('zeroOfferDebug', JSON.stringify(debugLog));
+
+        return {
+          success: false,
+          error: `Draft Order API required for custom offers but failed: ${error.message}`
+        };
+      }
+
+      // Fallback to regular cart only for standard products
       return await this.createRegularSubscriptionWithDiscountNote(cartItems, subscriptionData);
     }
   }
