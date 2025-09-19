@@ -363,6 +363,7 @@ class CartManager {
       const cartItem = {
         id: variantId,
         quantity: offer.quantity || 1,
+        price: Math.round(originalPrice * 100), // Price in cents for Shopify Cart API
         properties: {
           _first_box_addon: "true",
           _offer_product: "true",
@@ -376,6 +377,15 @@ class CartManager {
           _discount_applied: discountPercentage > 0 ? "true" : "false",
         },
       };
+
+      // Special logging for $0 offers to debug the issue
+      if (originalPrice === 0) {
+        console.log('🔥 CartManager: $0 OFFER DETECTED!');
+        console.log('🔥 CartManager: Original offer data:', offer);
+        console.log('🔥 CartManager: Price in dollars:', originalPrice);
+        console.log('🔥 CartManager: Price in cents:', Math.round(originalPrice * 100));
+        console.log('🔥 CartManager: Final cart item:', cartItem);
+      }
 
       console.log('CartManager: Prepared cart item for offer:', cartItem);
       return cartItem;
@@ -696,9 +706,13 @@ class CartManager {
       // Clear cart
       await fetch("/cart/clear.js", { method: "POST" });
 
+      // All items should be added to cart, whether subscription products, Shopify one-time offers, or custom one-time offers
+      // The Shopify Cart API can handle all valid variant IDs (real or generated)
+      const allCartItems = cartItems;
+
       // Calculate total discount amount for cart-level discount code
       let totalOfferDiscount = 0;
-      const discountedOffers = cartItems.filter(item => 
+      const discountedOffers = allCartItems.filter(item =>
         item.properties && item.properties._discount_applied === "true"
       );
 
@@ -707,11 +721,6 @@ class CartManager {
         const discountAmount = parseFloat(offer.properties._savings_amount);
         totalOfferDiscount += discountAmount * offer.quantity;
       });
-
-
-      // All items should be added to cart, whether subscription products, Shopify one-time offers, or custom one-time offers
-      // The Shopify Cart API can handle all valid variant IDs (real or generated)
-      const allCartItems = cartItems;
       
       console.log('DEBUG: Cart items received:', cartItems);
 
@@ -725,7 +734,13 @@ class CartManager {
         }));
         
         console.log('DEBUG: Sending to Shopify Cart API:', formattedCartItems);
-        
+
+        // Special logging for $0 offers
+        const zeroOffers = formattedCartItems.filter(item => item.price === 0);
+        if (zeroOffers.length > 0) {
+          console.log('🔥 CartManager: SENDING $0 OFFERS TO CART API:', zeroOffers);
+        }
+
         const response = await fetch("/cart/add.js", {
           method: "POST",
           headers: {
@@ -739,7 +754,18 @@ class CartManager {
         if (!response.ok) {
           const errorData = await response.json();
           console.error('Cart API Error:', errorData);
+
+          // Special error handling for $0 offers
+          if (zeroOffers.length > 0) {
+            console.log('🔥 CartManager: CART API FAILED WITH $0 OFFERS - Error:', errorData);
+          }
+
           throw new Error(`Failed to add products: ${errorData.message || 'Unknown error'}`);
+        }
+
+        // Success - check if $0 offers were actually added
+        if (zeroOffers.length > 0) {
+          console.log('🔥 CartManager: CART API SUCCESS - $0 offers should be added');
         }
       }
       
@@ -750,7 +776,26 @@ class CartManager {
       }
 
       const cartData = await cartResponse.json();
-      
+
+      // Debug: Check if $0 offers are actually in the cart
+      const cartItems = cartData.items || [];
+      const zeroOfferFormattedItems = formattedCartItems.filter(item => item.price === 0);
+      if (zeroOfferFormattedItems.length > 0) {
+        console.log('🔥 CartManager: CHECKING CART CONTENTS FOR $0 OFFERS...');
+        console.log('🔥 CartManager: Items we tried to add with $0:', zeroOfferFormattedItems.map(item => ({id: item.id, price: item.price, title: item.properties._product_title})));
+        console.log('🔥 CartManager: Items actually in cart:', cartItems.map(item => ({id: item.variant_id, price: item.price, title: item.title})));
+
+        // Check if our $0 offers made it to the cart
+        zeroOfferFormattedItems.forEach(zeroOffer => {
+          const foundInCart = cartItems.find(cartItem => cartItem.variant_id.toString() === zeroOffer.id.toString());
+          if (foundInCart) {
+            console.log(`🔥 CartManager: ✅ $0 offer found in cart:`, foundInCart);
+          } else {
+            console.log(`🔥 CartManager: ❌ $0 offer NOT found in cart! ID: ${zeroOffer.id}`);
+          }
+        });
+      }
+
       // Calculate totals
       const selectedProducts = subscriptionData.selectedProducts || [];
       const totalCount = selectedProducts.reduce((sum, product) => sum + product.quantity, 0);
