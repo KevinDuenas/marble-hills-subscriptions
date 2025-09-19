@@ -38,9 +38,10 @@ export async function action({ request }) {
         lineItem.selling_plan_id = item.selling_plan;
       }
 
-      // Add custom price if provided (for bundle)
-      if (item.price) {
+      // Add custom price if provided (including $0 prices)
+      if (typeof item.price === 'number') {
         lineItem.price = (item.price / 100).toFixed(2); // Convert cents to dollars
+        console.log(`Setting custom price for variant ${item.id}: $${lineItem.price}`);
       }
 
       return lineItem;

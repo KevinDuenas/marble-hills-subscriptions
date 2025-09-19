@@ -482,12 +482,30 @@ class CartManager {
 
   async createDraftOrder(cartItems, subscriptionData) {
     try {
-      const discountedOffers = cartItems.filter(item => 
+      const discountedOffers = cartItems.filter(item =>
         item.properties && item.properties._discount_applied === "true"
       );
 
-      if (discountedOffers.length > 0) {
-        return await this.createSubscriptionWithOfferDiscounts(cartItems, subscriptionData, discountedOffers);
+      const zeroOffers = cartItems.filter(item => item.price === 0);
+
+      // Use Draft Order API if we have $0 offers OR discounted offers
+      if (discountedOffers.length > 0 || zeroOffers.length > 0) {
+        console.log('CartManager: Using Draft Order API for $0 or discounted offers');
+
+        // Persistent logging
+        const debugLog = JSON.parse(localStorage.getItem('zeroOfferDebug') || '[]');
+        debugLog.push({
+          timestamp: new Date().toISOString(),
+          action: 'USING_DRAFT_ORDER_API',
+          data: {
+            zeroOffersCount: zeroOffers.length,
+            discountedOffersCount: discountedOffers.length,
+            reason: zeroOffers.length > 0 ? '$0 offers detected' : 'discounted offers detected'
+          }
+        });
+        localStorage.setItem('zeroOfferDebug', JSON.stringify(debugLog));
+
+        return await this.createDraftOrderWithDiscounts(cartItems, subscriptionData);
       } else {
         return await this.createRegularSubscription(cartItems, subscriptionData);
       }
@@ -549,9 +567,13 @@ class CartManager {
         });
       }
 
-      // Apply custom price for discounted offers
+      // Apply custom price for discounted offers OR $0 offers
       if (item.properties && item.properties._discount_applied === "true") {
         lineItem.price = item.price;
+      } else if (item.price === 0) {
+        // Critical: Set $0 price for zero offers
+        lineItem.price = 0;
+        console.log('CartManager: Setting $0 price for offer:', item.id);
       }
 
       // Add selling plan for subscription items
@@ -562,35 +584,50 @@ class CartManager {
       return lineItem;
     });
 
-    // Draft Order payload
+    // Draft Order payload - adjust to match API.draft-order.jsx format
     const draftOrderData = {
-      draft_order: {
-        line_items: lineItems,
-        customer: subscriptionData.customerEmail ? {
-          email: subscriptionData.customerEmail
-        } : null,
-        note: `Subscription created: ${subscriptionData.frequency} frequency`,
-        custom_attributes: [
-          { key: "subscription_type", value: "custom" },
-          { key: "frequency", value: subscriptionData.frequency },
-          { key: "has_one_time_offers", value: "true" },
-          { key: "created_via", value: "subscription_builder" }
-        ],
-        use_customer_default_address: true
-      }
+      items: cartItems.map(item => ({
+        id: item.id,
+        quantity: item.quantity,
+        price: Math.round((item.price || 0) * 100), // Convert to cents
+        properties: item.properties,
+        selling_plan: item.selling_plan
+      })),
+      customerEmail: subscriptionData.customerEmail,
+      frequency: subscriptionData.frequency
     };
+
+    // Debug logging for $0 offers in Draft Order
+    const zeroItemsInDraft = draftOrderData.items.filter(item => item.price === 0);
+    if (zeroItemsInDraft.length > 0) {
+      console.log('CartManager: Draft Order contains $0 items:', zeroItemsInDraft);
+
+      const debugLog = JSON.parse(localStorage.getItem('zeroOfferDebug') || '[]');
+      debugLog.push({
+        timestamp: new Date().toISOString(),
+        action: 'DRAFT_ORDER_WITH_ZERO_ITEMS',
+        data: {
+          zeroItemsCount: zeroItemsInDraft.length,
+          zeroItems: zeroItemsInDraft
+        }
+      });
+      localStorage.setItem('zeroOfferDebug', JSON.stringify(debugLog));
+    }
 
     try {
       
       // Create Draft Order via our Remix app endpoint
       // Try multiple possible URLs for the API endpoint
       const possibleUrls = [
+        '/api/draft-order',
+        '/api/subscription/draft-order',
+        '/apps/subscription/api/draft-order',
         '/api/create-draft-order',
         '/webhooks/draft-order',
-        '/apps/api/create-draft-order', 
+        '/apps/api/create-draft-order',
         '/apps/subscription/api/create-draft-order',
         '/apps/subscription/webhooks/draft-order',
-        window.location.origin + '/api/create-draft-order'
+        window.location.origin + '/api/draft-order'
       ];
       
       let response;
