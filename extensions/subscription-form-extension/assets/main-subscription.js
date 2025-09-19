@@ -319,8 +319,11 @@ class MainSubscriptionManager {
   skipOffersAndCheckout() {
     // Clear any selected offers
     this.subscriptionData.oneTimeOffers = [];
-    // Proceed directly to final cart creation
-    this.handleFinalAddToCart(true); // true = skip offers
+
+    // Add delay to ensure all components are initialized
+    setTimeout(() => {
+      this.handleFinalAddToCart(true); // true = skip offers
+    }, 1000); // Increased delay for better initialization
   }
 
   validateCurrentStep() {
@@ -432,23 +435,32 @@ class MainSubscriptionManager {
         this.subscriptionData.oneTimeOffers = [];
       }
 
-      // Create subscription through cart manager
-      if (window.cartManager) {
-        await window.cartManager.createSubscription(this.subscriptionData);
-      } else {
-        // Wait a bit and retry - sometimes CartManager loads after MainSubscriptionManager
-        await new Promise(resolve => setTimeout(resolve, 500));
-        
+      // Create subscription through cart manager with improved retry logic
+      let retryCount = 0;
+      const maxRetries = 3;
+
+      while (retryCount < maxRetries) {
         if (window.cartManager) {
           await window.cartManager.createSubscription(this.subscriptionData);
+          break; // Success, exit loop
         } else {
-          console.warn('Cart manager not available, initializing...');
-          // Initialize CartManager if not available
-          if (typeof CartManager !== 'undefined') {
-            window.cartManager = new CartManager();
-            await window.cartManager.createSubscription(this.subscriptionData);
+          console.log(`MainSubscriptionManager: CartManager not ready, attempt ${retryCount + 1}/${maxRetries}`);
+
+          if (retryCount === maxRetries - 1) {
+            // Last attempt - try to initialize manually
+            console.warn('MainSubscriptionManager: Last attempt - initializing CartManager...');
+            if (typeof CartManager !== 'undefined') {
+              window.cartManager = new CartManager();
+              await window.cartManager.createSubscription(this.subscriptionData);
+              break;
+            } else {
+              throw new Error('CartManager class not loaded after multiple attempts');
+            }
           } else {
-            throw new Error('CartManager class not loaded');
+            // Wait longer with each retry
+            const waitTime = 500 * (retryCount + 1); // 500ms, 1000ms, 1500ms
+            await new Promise(resolve => setTimeout(resolve, waitTime));
+            retryCount++;
           }
         }
       }
