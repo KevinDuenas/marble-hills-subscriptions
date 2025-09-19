@@ -778,16 +778,16 @@ class CartManager {
       const cartData = await cartResponse.json();
 
       // Debug: Check if $0 offers are actually in the cart
-      const cartItems = cartData.items || [];
+      const currentCartItems = cartData.items || [];
       const zeroOfferFormattedItems = formattedCartItems.filter(item => item.price === 0);
       if (zeroOfferFormattedItems.length > 0) {
         console.log('🔥 CartManager: CHECKING CART CONTENTS FOR $0 OFFERS...');
         console.log('🔥 CartManager: Items we tried to add with $0:', zeroOfferFormattedItems.map(item => ({id: item.id, price: item.price, title: item.properties._product_title})));
-        console.log('🔥 CartManager: Items actually in cart:', cartItems.map(item => ({id: item.variant_id, price: item.price, title: item.title})));
+        console.log('🔥 CartManager: Items actually in cart:', currentCartItems.map(item => ({id: item.variant_id, price: item.price, title: item.title})));
 
         // Check if our $0 offers made it to the cart
         zeroOfferFormattedItems.forEach(zeroOffer => {
-          const foundInCart = cartItems.find(cartItem => cartItem.variant_id.toString() === zeroOffer.id.toString());
+          const foundInCart = currentCartItems.find(cartItem => cartItem.variant_id.toString() === zeroOffer.id.toString());
           if (foundInCart) {
             console.log(`🔥 CartManager: ✅ $0 offer found in cart:`, foundInCart);
           } else {
