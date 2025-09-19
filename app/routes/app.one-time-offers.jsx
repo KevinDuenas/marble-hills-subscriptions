@@ -244,10 +244,19 @@ export const action = async ({ request }) => {
       console.log('Form data to save:', JSON.stringify(data, null, 2));
 
       // Validate required fields
-      if (!data.title || !data.price || data.price <= 0) {
-        return { 
-          error: "Title and valid price are required.",
-          success: false 
+      if (!data.title) {
+        return {
+          error: "Title and price are required (price can be $0).",
+          success: false
+        };
+      }
+
+      // Parse and validate price
+      const price = parseFloat(data.price);
+      if (isNaN(price) || price < 0) {
+        return {
+          error: "Title and price are required (price can be $0).",
+          success: false
         };
       }
 
@@ -537,8 +546,16 @@ export default function OneTimeOffersPage() {
   };
 
   const handleSubmit = () => {
-    if (!formData.title || !formData.price || parseFloat(formData.price) <= 0) {
-      alert('Title and valid price are required.');
+    // Check title first
+    if (!formData.title) {
+      alert('Title and price are required (price can be $0).');
+      return;
+    }
+
+    // Parse price and validate
+    const price = parseFloat(formData.price);
+    if (isNaN(price) || price < 0) {
+      alert('Title and price are required (price can be $0).');
       return;
     }
     
@@ -734,21 +751,25 @@ export default function OneTimeOffersPage() {
             
             <FormLayout.Group>
               <TextField
-                label="Precio"
+                label="Price"
                 type="number"
                 value={formData.price}
                 onChange={handleInputChange('price')}
                 prefix="$"
-                helpText="Precio de venta"
+                helpText="Sale price (can be $0)"
+                min="0"
+                step="0.01"
               />
               
               <TextField
-                label="Precio Comparativo"
+                label="Compare at Price"
                 type="number"
                 value={formData.comparedAtPrice}
                 onChange={handleInputChange('comparedAtPrice')}
                 prefix="$"
-                helpText="Precio antes del descuento (opcional)"
+                helpText="Price before discount (optional)"
+                min="0"
+                step="0.01"
               />
             </FormLayout.Group>
             
