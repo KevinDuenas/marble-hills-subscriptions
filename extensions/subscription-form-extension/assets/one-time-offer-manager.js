@@ -259,7 +259,7 @@ class OneTimeOfferManager {
         properties: {
           _offer_position: offer.position,
           _offer_description: offer.description || '',
-          _original_price: comparedAtPrice > 0 ? comparedAtPrice : price,
+          _original_price: price,
           _savings_amount: savingsAmount,
           _discount_percentage: discountPercentage,
           _is_one_time_offer: "true"
