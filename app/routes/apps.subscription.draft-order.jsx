@@ -46,8 +46,15 @@ export async function action({ request }) {
     }
 
     // Prepare line items for draft order
-    const lineItems = items.map(item => {
+    const lineItems = items.map((item, index) => {
       const isCustomOffer = item.properties && item.properties._custom_pricing === "true";
+
+      console.log(`Processing line item ${index + 1}:`, {
+        id: item.id,
+        price: item.price,
+        hasCustomPricing: isCustomOffer,
+        properties: item.properties
+      });
 
       const lineItem = {
         quantity: item.quantity,
@@ -56,6 +63,7 @@ export async function action({ request }) {
 
       if (isCustomOffer) {
         // For custom one-time offers, create a virtual product
+        console.log(`🔥 CREATING VIRTUAL PRODUCT for item ${item.id}`);
         lineItem.title = item.properties._product_title || "One-Time Offer";
         lineItem.price = (item.price / 100).toFixed(2); // Convert cents to dollars
         lineItem.requires_shipping = true;

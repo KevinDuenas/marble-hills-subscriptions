@@ -668,10 +668,11 @@ class CartManager {
       // Try multiple possible URLs for the API endpoint
       // Primary endpoint based on app proxy configuration (apps/subscription)
       const possibleUrls = [
-        '/apps/subscription/api/draft-order', // PRIMARY: App proxy URL with virtual product support
+        'https://marble-hills-subscriptions-production.up.railway.app/apps/subscription/draft-order', // DEV: Direct to development server
+        '/apps/subscription/draft-order',     // PRIMARY: App proxy URL with virtual product support
+        '/apps/subscription/api/draft-order',
         '/api/draft-order',                    // Fallback: Direct API route
         '/api/subscription/draft-order',       // Alternative path
-        '/apps/subscription/draft-order',     // Alternative app proxy path
         '/api/create-draft-order',
         '/webhooks/draft-order',
         '/apps/api/create-draft-order',
