@@ -241,9 +241,9 @@ class ProductManager {
 
   // Get all categories this product belongs to from sb-category- tags
   getProductCategories(product) {
-    
+
     const categories = [];
-    
+
     if (product.tags && Array.isArray(product.tags)) {
       // Look for sb-category- tags
       product.tags.forEach(tag => {
@@ -256,19 +256,37 @@ class ProductManager {
         }
       });
     }
-    
+
     // If no sb-category- tags found, put in best-sellers
     if (categories.length === 0) {
       categories.push("best-sellers");
     }
-    
+
     return categories;
+  }
+
+  // Parse category name and extract position number
+  parseCategoryWithPosition(categoryName) {
+    const match = categoryName.match(/^(.+)-#(\d+)$/);
+    if (match) {
+      return {
+        name: match[1],
+        position: parseInt(match[2], 10)
+      };
+    }
+    return {
+      name: categoryName,
+      position: 999 // Default high position for categories without explicit order
+    };
   }
   
   // Format category key into a display title
   formatCategoryTitle(categoryKey) {
+    // Parse category to remove position number if present
+    const parsed = this.parseCategoryWithPosition(categoryKey);
+
     // Simply capitalize first letter and replace dashes/underscores with spaces
-    return categoryKey
+    return parsed.name
       .replace(/[-_]/g, ' ')
       .split(' ')
       .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
@@ -284,18 +302,33 @@ class ProductManager {
 
     // Get categories with products, prioritizing order
     const categoriesWithProducts = [];
-    
+
     // First add Best Sellers if it has products
     if (this.productsByCollection["best-sellers"]?.products.length > 0) {
       categoriesWithProducts.push(["best-sellers", this.productsByCollection["best-sellers"]]);
     }
-    
-    // Then add other categories with products (excluding best-sellers to avoid duplicates)
+
+    // Then add other categories with products, sorted by position number
+    const otherCategories = [];
     for (const [handle, data] of Object.entries(this.productsByCollection)) {
       if (handle !== "best-sellers" && data.products.length > 0) {
-        categoriesWithProducts.push([handle, data]);
+        const parsed = this.parseCategoryWithPosition(handle);
+        otherCategories.push({
+          handle,
+          data,
+          position: parsed.position,
+          name: parsed.name
+        });
       }
     }
+
+    // Sort other categories by position number (ascending)
+    otherCategories.sort((a, b) => a.position - b.position);
+
+    // Add sorted categories to the main array
+    otherCategories.forEach(cat => {
+      categoriesWithProducts.push([cat.handle, cat.data]);
+    });
 
     // Generate HTML for categories
     categoriesWithProducts.forEach(([handle, data], index) => {

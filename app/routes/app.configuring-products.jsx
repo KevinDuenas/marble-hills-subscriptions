@@ -84,7 +84,7 @@ export default function ProductSetupPage() {
                 <div>
                   <Text variant="headingMd" color="text-info">Formato de Tags de Categoría:</Text>
                   <div style={{ marginTop: '8px' }}>
-                    <InlineCode>sb-category-[NombreCategoria]</InlineCode>
+                    <InlineCode>sb-category-[NombreCategoria]</InlineCode> o <InlineCode>sb-category-[NombreCategoria]-#[Posición]</InlineCode>
                   </div>
                 </div>
 
@@ -92,6 +92,7 @@ export default function ProductSetupPage() {
                   <Text variant="headingSm">Características:</Text>
                   <List type="bullet">
                     <List.Item><strong>Dinámico:</strong> Las categorías se crean automáticamente</List.Item>
+                    <List.Item><strong>Ordenamiento:</strong> Usa <InlineCode>-#[número]</InlineCode> para controlar el orden (ej: <InlineCode>-#1</InlineCode> aparece primero)</List.Item>
                     <List.Item><strong>Case-sensitive:</strong> <InlineCode>sb-category-Steak</InlineCode> ≠ <InlineCode>sb-category-steak</InlineCode></List.Item>
                     <List.Item><strong>Auto-formato:</strong> Los nombres se formatean automáticamente (mayúsculas, espacios)</List.Item>
                     <List.Item><strong>Múltiples categorías:</strong> Un producto puede tener varios tags <InlineCode>sb-category-</InlineCode></List.Item>
@@ -99,19 +100,20 @@ export default function ProductSetupPage() {
                 </div>
 
                 <div>
-                  <Text variant="headingSm">Ejemplo:</Text>
+                  <Text variant="headingSm">Ejemplo con Ordenamiento:</Text>
                   <div style={{ marginTop: '8px' }}>
                     Un producto con estos tags:
                   </div>
                   <div style={{ marginTop: '8px', marginLeft: '16px' }}>
                     • <InlineCode>sb-subscription</InlineCode><br/>
-                    • <InlineCode>sb-category-Steaks</InlineCode><br/>
-                    • <InlineCode>sb-category-Premium</InlineCode><br/>
+                    • <InlineCode>sb-category-Steaks-#1</InlineCode><br/>
+                    • <InlineCode>sb-category-Premium-#3</InlineCode><br/>
                     • <InlineCode>sb-category-BBQ</InlineCode><br/>
                     • <InlineCode>sb-best-seller</InlineCode>
                   </div>
                   <div style={{ marginTop: '8px' }}>
-                    <strong>Resultado:</strong> El producto aparecerá en 4 categorías: Steaks, Premium, BBQ y Best Sellers
+                    <strong>Resultado:</strong> El producto aparecerá en 4 categorías<br/>
+                    <strong>Orden de aparición:</strong> Best Sellers → Steaks → Premium → BBQ
                   </div>
                 </div>
               </BlockStack>
@@ -134,10 +136,24 @@ export default function ProductSetupPage() {
 
               <BlockStack gap="300">
                 <div>
+                  <Text variant="headingMd">Ordenamiento de Categorías</Text>
+                  <div style={{ marginTop: '8px' }}>
+                    <Text variant="bodyMd">
+                      Controla el orden en que aparecen las categorías usando números de posición:
+                    </Text>
+                    <List type="bullet" style={{ marginTop: '8px' }}>
+                      <List.Item><strong>Best Sellers:</strong> Siempre aparece primero (si tiene productos)</List.Item>
+                      <List.Item><strong>Categorías con posición:</strong> <InlineCode>-#1</InlineCode>, <InlineCode>-#2</InlineCode>, etc. aparecen en orden ascendente</List.Item>
+                      <List.Item><strong>Categorías sin posición:</strong> Aparecen al final (posición 999)</List.Item>
+                    </List>
+                  </div>
+                </div>
+
+                <div>
                   <Text variant="headingMd">Best Sellers</Text>
                   <div style={{ marginTop: '8px' }}>
                     <Text variant="bodyMd">
-                      Los productos con este tag aparecen en la categoría "Best Sellers" 
+                      Los productos con este tag aparecen en la categoría "Best Sellers"
                       (se muestra primera cuando tiene productos):
                     </Text>
                     <div style={{ marginTop: '8px' }}>
@@ -185,10 +201,11 @@ export default function ProductSetupPage() {
                 </div>
 
                 <div>
-                  <Text variant="headingSm">2. Crear categorías</Text>
+                  <Text variant="headingSm">2. Crear categorías con orden</Text>
                   <Text variant="bodyMd">
-                    Añade tags <InlineCode>sb-category-[Nombre]</InlineCode> para crear 
-                    las categorías que desees. Los productos pueden estar en múltiples categorías.
+                    Añade tags <InlineCode>sb-category-[Nombre]</InlineCode> o <InlineCode>sb-category-[Nombre]-#[Posición]</InlineCode> para crear
+                    las categorías que desees. Usa <InlineCode>-#1</InlineCode>, <InlineCode>-#2</InlineCode>, etc. para controlar el orden de aparición.
+                    Los productos pueden estar en múltiples categorías.
                   </Text>
                 </div>
 
