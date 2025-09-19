@@ -220,23 +220,36 @@ class OneTimeOfferManager {
   }
 
   toggleOffer(offerId) {
+    console.log('OneTimeOfferManager: Toggle offer called for:', offerId);
+
     const offer = this.offerProducts.find(p => p.id === offerId);
-    if (!offer) return;
+    if (!offer) {
+      console.error('OneTimeOfferManager: Offer not found:', offerId);
+      return;
+    }
+
+    console.log('OneTimeOfferManager: Found offer:', offer);
 
     const existingOfferIndex = this.selectedOffers.findIndex(selectedOffer => selectedOffer.id === offerId);
-    
+
     if (existingOfferIndex > -1) {
       // Remove offer
+      console.log('OneTimeOfferManager: Removing offer:', offer.title);
       this.selectedOffers.splice(existingOfferIndex, 1);
     } else {
       // SINGLE SELECTION: Remove any existing offers first
       this.selectedOffers = [];
-      
+
       // Add new offer
       const price = parseFloat(offer.price) || 0;
       const comparedAtPrice = parseFloat(offer.comparedAtPrice) || 0;
+
+      console.log('OneTimeOfferManager: Adding offer with price:', price, 'comparedAtPrice:', comparedAtPrice);
+
       const discountPercentage = this.calculateDiscountPercentage(price, comparedAtPrice);
       const savingsAmount = comparedAtPrice > price ? (comparedAtPrice - price) : 0;
+
+      console.log('OneTimeOfferManager: Calculated discount:', discountPercentage, '%, savings:', savingsAmount);
       
       // Use Shopify variant ID if available, otherwise generate a valid-looking ID
       // Convert database ID hash to numeric format for cart compatibility
@@ -275,6 +288,7 @@ class OneTimeOfferManager {
       }
 
       this.selectedOffers.push(offerData);
+      console.log('OneTimeOfferManager: Offer added! Selected offers now:', this.selectedOffers);
     }
 
     this.updateOfferUI(offerId);
@@ -398,20 +412,28 @@ class OneTimeOfferManager {
   }
 
   getSelectedOffers() {
+    console.log('OneTimeOfferManager: getSelectedOffers called, current selectedOffers:', this.selectedOffers);
+
     // Ensure variant IDs are in numeric format for cart API
-    return this.selectedOffers.map(offer => {
+    const processedOffers = this.selectedOffers.map(offer => {
       let variantId = offer.shopifyVariantId || offer.variantId;
-      
+
       // Extract numeric ID from GraphQL format if present
       if (variantId && variantId.includes('gid://')) {
         variantId = variantId.split('/').pop();
       }
-      
-      return {
+
+      const processedOffer = {
         ...offer,
         variantId: variantId
       };
+
+      console.log('OneTimeOfferManager: Processing offer for cart:', processedOffer);
+      return processedOffer;
     });
+
+    console.log('OneTimeOfferManager: Returning processed offers to cart:', processedOffers);
+    return processedOffers;
   }
 
   // Get selected variant from dropdown for a product
