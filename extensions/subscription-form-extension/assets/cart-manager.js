@@ -738,6 +738,26 @@ class CartManager {
       
       console.log('DEBUG: Cart items received:', cartItems);
 
+      // Debug: Check if $0 offers made it to this point
+      const zeroOffersReceived = allCartItems.filter(item => item.price === 0);
+      if (zeroOffersReceived.length > 0) {
+        const debugLog = JSON.parse(localStorage.getItem('zeroOfferDebug') || '[]');
+        debugLog.push({
+          timestamp: new Date().toISOString(),
+          action: 'ZERO_OFFERS_IN_ALL_CART_ITEMS',
+          data: {
+            zeroOffersCount: zeroOffersReceived.length,
+            zeroOffers: zeroOffersReceived.map(item => ({
+              id: item.id,
+              price: item.price,
+              title: item.title || 'no title',
+              quantity: item.quantity
+            }))
+          }
+        });
+        localStorage.setItem('zeroOfferDebug', JSON.stringify(debugLog));
+      }
+
       // Format cart items for Shopify Cart API
       const formattedCartItems = allCartItems.map(item => ({
         id: item.id,
@@ -748,8 +768,25 @@ class CartManager {
 
       // Add all items to cart (subscription products, Shopify offers, and custom offers)
       if (allCartItems.length > 0) {
-        
+
         console.log('DEBUG: Sending to Shopify Cart API:', formattedCartItems);
+
+        // Debug logging for $0 offers path
+        const debugLog = JSON.parse(localStorage.getItem('zeroOfferDebug') || '[]');
+        debugLog.push({
+          timestamp: new Date().toISOString(),
+          action: 'ABOUT_TO_SEND_TO_CART_API',
+          data: {
+            allCartItemsCount: allCartItems.length,
+            formattedCartItemsCount: formattedCartItems.length,
+            items: formattedCartItems.map(item => ({
+              id: item.id,
+              price: item.price || 'undefined',
+              quantity: item.quantity
+            }))
+          }
+        });
+        localStorage.setItem('zeroOfferDebug', JSON.stringify(debugLog));
 
         // Special logging for $0 offers
         const zeroOffers = formattedCartItems.filter(item => item.price === 0);
