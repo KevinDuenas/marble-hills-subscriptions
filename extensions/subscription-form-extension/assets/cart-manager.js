@@ -724,14 +724,16 @@ class CartManager {
       
       console.log('DEBUG: Cart items received:', cartItems);
 
+      // Format cart items for Shopify Cart API
+      const formattedCartItems = allCartItems.map(item => ({
+        id: item.id,
+        quantity: item.quantity,
+        properties: item.properties,
+        selling_plan: item.selling_plan // Keep selling plans for subscription products
+      }));
+
       // Add all items to cart (subscription products, Shopify offers, and custom offers)
       if (allCartItems.length > 0) {
-        const formattedCartItems = allCartItems.map(item => ({
-          id: item.id,
-          quantity: item.quantity,
-          properties: item.properties,
-          selling_plan: item.selling_plan // Keep selling plans for subscription products
-        }));
         
         console.log('DEBUG: Sending to Shopify Cart API:', formattedCartItems);
 
