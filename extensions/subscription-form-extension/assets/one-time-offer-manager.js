@@ -250,32 +250,49 @@ class OneTimeOfferManager {
       const savingsAmount = comparedAtPrice > price ? (comparedAtPrice - price) : 0;
 
       console.log('OneTimeOfferManager: Calculated discount:', discountPercentage, '%, savings:', savingsAmount);
-      
-      // Use Shopify variant ID if available, otherwise generate a valid-looking ID
-      // Convert database ID hash to numeric format for cart compatibility
-      let fallbackVariantId = offer.shopifyVariantId || this.generateVariantId(offerId);
-      
-      // Extract numeric ID from GraphQL format if present
-      if (fallbackVariantId && fallbackVariantId.includes('gid://')) {
-        fallbackVariantId = fallbackVariantId.split('/').pop();
+
+      // CRITICAL: Special logging for $0 offers
+      if (price === 0) {
+        console.log('🚨 ZERO DOLLAR OFFER DETECTED! 🚨');
+        console.log('OneTimeOfferManager: Processing $0 offer:', offer.title);
+        const debugLog = JSON.parse(localStorage.getItem('zeroOfferDebug') || '[]');
+        debugLog.push({
+          timestamp: new Date().toISOString(),
+          action: 'ZERO_OFFER_SELECTED',
+          offer: {
+            id: offerId,
+            title: offer.title,
+            price: price,
+            originalShopifyVariantId: offer.shopifyVariantId
+          }
+        });
+        localStorage.setItem('zeroOfferDebug', JSON.stringify(debugLog));
       }
       
+      // CRITICAL FIX: Always use unique generated ID for offers to avoid Shopify pricing conflicts
+      // This ensures each offer has its own identity regardless of the base Shopify product
+      const uniqueOfferVariantId = this.generateVariantId(offerId + '_' + price + '_' + Date.now());
+
       const offerData = {
         id: offerId, // Keep original ID for UI tracking
-        variantId: fallbackVariantId, // Store numeric variant ID for cart
+        variantId: uniqueOfferVariantId, // Use UNIQUE generated ID to avoid pricing conflicts
         title: offer.title,
         image: offer.imageUrl || "",
         price: price,
         quantity: 1,
-        type: offer.shopifyVariantId ? "shopify-product" : "one-time-offer",
+        type: "custom-one-time-offer", // Always treat as custom offer
         discountPercentage: discountPercentage,
+        originalShopifyVariantId: offer.shopifyVariantId, // Keep reference to original for product info
         properties: {
           _offer_position: offer.position,
           _offer_description: offer.description || '',
           _original_price: price,
           _savings_amount: savingsAmount,
           _discount_percentage: discountPercentage,
-          _is_one_time_offer: "true"
+          _is_one_time_offer: "true",
+          _custom_pricing: "true",
+          _product_title: offer.title, // Critical: Pass product title for virtual product creation
+          _base_shopify_variant: offer.shopifyVariantId || "none"
         }
       };
 
@@ -416,19 +433,50 @@ class OneTimeOfferManager {
 
     // Ensure variant IDs are in numeric format for cart API
     const processedOffers = this.selectedOffers.map(offer => {
-      let variantId = offer.shopifyVariantId || offer.variantId;
+      // For custom offers, ALWAYS use the unique variantId we generated
+      // This ensures we bypass Shopify's catalog pricing completely
+      let variantId = offer.variantId;
 
-      // Extract numeric ID from GraphQL format if present
+      // Extract numeric ID from GraphQL format if present (only for real Shopify variants)
       if (variantId && variantId.includes('gid://')) {
         variantId = variantId.split('/').pop();
       }
 
       const processedOffer = {
         ...offer,
+        id: variantId, // Use the unique variant ID as the item ID for cart
         variantId: variantId
       };
 
       console.log('OneTimeOfferManager: Processing offer for cart:', processedOffer);
+
+      // CRITICAL: Debug logging for $0 offers
+      if (offer.price === 0) {
+        console.log('🚨 ZERO DOLLAR OFFER BEING SENT TO CART! 🚨');
+        console.log('OneTimeOfferManager: $0 offer data for cart:', {
+          id: processedOffer.id,
+          variantId: processedOffer.variantId,
+          title: processedOffer.title,
+          price: processedOffer.price,
+          properties: processedOffer.properties
+        });
+
+        const debugLog = JSON.parse(localStorage.getItem('zeroOfferDebug') || '[]');
+        debugLog.push({
+          timestamp: new Date().toISOString(),
+          action: 'ZERO_OFFER_SENT_TO_CART',
+          offer: {
+            id: processedOffer.id,
+            variantId: processedOffer.variantId,
+            title: processedOffer.title,
+            price: processedOffer.price,
+            hasCustomPricing: processedOffer.properties?._custom_pricing === "true",
+            hasProductTitle: !!processedOffer.properties?._product_title
+          }
+        });
+        localStorage.setItem('zeroOfferDebug', JSON.stringify(debugLog));
+      }
+
       return processedOffer;
     });
 
