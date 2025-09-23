@@ -53,6 +53,9 @@ export async function action({ request }) {
         id: item.id,
         price: item.price,
         hasCustomPricing: isCustomOffer,
+        customPricingValue: item.properties?._custom_pricing,
+        customPricingType: typeof item.properties?._custom_pricing,
+        customPricingEqualsTrue: item.properties?._custom_pricing === "true",
         properties: item.properties
       });
 
