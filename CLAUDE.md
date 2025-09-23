@@ -182,11 +182,16 @@ The subscription form extension is a streamlined 3-step wizard:
 - `sb-suscripcion-elegible`
 
 **Dynamic Category System**:
-- **Format**: `sb-category-[CategoryName]`
-- **Examples**: 
-  - `sb-category-Steaks` → Creates "Steaks" category
-  - `sb-category-Premium-Cuts` → Creates "Premium Cuts" category
-  - `sb-category-chicken_wings` → Creates "Chicken Wings" category
+- **Format**: `sb-category-[CategoryName]` or `sb-category-[CategoryName]-#[Position]`
+- **Examples**:
+  - `sb-category-Steaks` → Creates "Steaks" category (position 999)
+  - `sb-category-Steaks-#1` → Creates "Steaks" category (position 1, appears first after Best Sellers)
+  - `sb-category-Premium-Cuts-#2` → Creates "Premium Cuts" category (position 2)
+  - `sb-category-chicken_wings-#5` → Creates "Chicken Wings" category (position 5)
+- **Category Ordering**: Use `-#[number]` suffix to control display order
+  - Best Sellers always appears first (if populated)
+  - Categories with `-#1`, `-#2`, etc. appear in ascending order
+  - Categories without position numbers appear last (position 999)
 - **Case Sensitive**: `sb-category-Steak` ≠ `sb-category-steak` (creates different categories)
 - **Multiple Categories**: Products can have multiple `sb-category-` tags to appear in multiple categories
 - **Auto-formatting**: Category names auto-format (capitalize first letters, replace dashes/underscores with spaces)
@@ -204,12 +209,13 @@ The subscription form extension is a streamlined 3-step wizard:
 ```
 Product with tags: [
   "sb-subscription",           // Required for eligibility
-  "sb-category-Steaks",       // Appears in Steaks category
-  "sb-category-Premium",      // Also appears in Premium category
-  "sb-category-BBQ",          // Also appears in BBQ category
-  "sb-best-seller"            // Also appears in Best Sellers
+  "sb-category-Steaks-#1",    // Appears in Steaks category (position 1)
+  "sb-category-Premium-#3",   // Also appears in Premium category (position 3)
+  "sb-category-BBQ",          // Also appears in BBQ category (position 999)
+  "sb-best-seller"            // Also appears in Best Sellers (always first)
 ]
-Result: Product appears in 4 categories: Steaks, Premium, BBQ, Best Sellers
+Result: Product appears in 4 categories
+Display order: Best Sellers → Steaks → Premium → BBQ
 ```
 
 **System Behavior**:
@@ -248,8 +254,82 @@ Result: Product appears in 4 categories: Steaks, Premium, BBQ, Best Sellers
 **Developer Guidelines**:
 - Always use `sb-` prefix for all Subscription Builder related tags
 - Use `sb-subscription` (or variants) for subscription eligibility
-- Use `sb-category-[Name]` format for categories (exact name will be used)
+- Use `sb-category-[Name]` or `sb-category-[Name]-#[Position]` format for categories
 - Use `sb-best-seller` (or variants) for best seller designation
 - Use `sb-one-time-offer` for promotional offers
 - Products can have multiple category tags to appear in multiple categories
 - Category names are case-sensitive and preserve exact formatting after prefix
+- **Category Ordering**: Add `-#[number]` to control category display order (1 = first after Best Sellers)
+
+### Critical System Architecture Changes (September 2025)
+
+#### One-Time Offers System Overhaul
+**MAJOR CHANGE**: Completely removed Draft Orders dependency and simplified to use only real $0 Shopify products.
+
+**Key System Changes**:
+1. **Removed Draft Orders API**: Eliminated all `createDraftOrder()` functions and related logic
+2. **Real $0 Products Only**: All one-time offers are now created as actual Shopify products with $0 pricing
+3. **Simplified Cart API Usage**: All products (subscription + offers) use standard Shopify Cart API
+4. **Admin Price Management**: GraphQL mutations automatically set variant prices to $0 on creation/update
+
+**Critical GraphQL Updates**:
+- **Deprecated Mutation Fixed**: Replaced `productVariantUpdate` with `productVariantsBulkUpdate`
+- **Proper Array Syntax**: Updated all mutations to use bulk update format:
+  ```graphql
+  mutation productVariantsBulkUpdate($productId: ID!, $variants: [ProductVariantsBulkInput!]!) {
+    productVariantsBulkUpdate(productId: $productId, variants: $variants) {
+      productVariants {
+        id
+        price
+      }
+      userErrors {
+        field
+        message
+      }
+    }
+  }
+  ```
+
+**Removed Functions from cart-manager.js**:
+- `createDraftOrder()` - Legacy Draft Orders API function
+- `createDraftOrderWithDiscounts()` - Draft Orders with discount codes
+- `createRegularSubscription()` - Unused wrapper function
+- `createSubscriptionWithOfferDiscounts()` - Unused discount code generator
+- `createRegularSubscriptionWithDiscountNote()` - Unused function
+- Virtual product detection and price override logic
+- Complex debugging systems for Draft Orders
+
+**Simplified Architecture Flow**:
+1. **Admin App**: Creates real $0 Shopify products using `productVariantsBulkUpdate`
+2. **Extension**: Uses real Shopify variant IDs from database
+3. **Cart Manager**: Adds all products using standard Cart API
+4. **Checkout**: Standard Shopify checkout with real products
+
+**Admin Interface Changes**:
+- **Removed Price Fields**: No price input in one-time offers admin (always $0)
+- **Real Product Creation**: Creates actual Shopify products with variants
+- **Automatic Pricing**: GraphQL mutations ensure $0 pricing on all variants
+- **Error Handling**: Proper validation for GraphQL mutation responses
+
+**UI/UX Improvements**:
+- **FREE Label**: One-time offer cards show "FREE" instead of "$0.00"
+- **Simplified Display**: Cleaner product cards without complex pricing logic
+- **Better Error Messages**: Clear feedback when product creation fails
+
+**Technical Benefits**:
+- **Reduced Complexity**: 50% less code in cart-manager.js
+- **Better Performance**: No Draft Orders API calls or virtual product generation
+- **Improved Reliability**: Uses standard Shopify Cart API throughout
+- **Easier Debugging**: Simpler data flow with real products only
+- **Future-Proof**: No dependency on deprecated APIs
+
+**Migration Notes**:
+- All existing Draft Orders logic has been removed
+- System now exclusively uses real Shopify products
+- No backward compatibility with virtual product IDs
+- All one-time offers must be created through admin app
+
+**Critical Code Locations**:
+- `app/routes/app.one-time-offers.jsx`: Admin interface with GraphQL mutations
+- `extensions/subscription-form-extension/assets/cart-manager.js`: Simplified Cart API logic
+- `extensions/subscription-form-extension/assets/one-time-offer-manager.js`: Real product handling
