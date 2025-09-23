@@ -129,7 +129,7 @@ class OneTimeOfferManager {
               <div class="product-title">${offer.title}</div>
               <div class="product-price-container">
                 ${hasDiscount ? `<div class="original-price">$${comparedAtPrice.toFixed(2)}</div>` : ''}
-                <div class="offer-price">$${currentPrice.toFixed(2)}</div>
+                <div class="offer-price">FREE</div>
               </div>
             </div>
             
