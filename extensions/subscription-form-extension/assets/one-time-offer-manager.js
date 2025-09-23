@@ -111,7 +111,7 @@ class OneTimeOfferManager {
       console.log('OneTimeOfferManager: Processing offer:', offer.title, 'variantId:', variantId);
       
       const isSelected = this.selectedOffers.some(selectedOffer => selectedOffer.id === offer.id);
-      const currentPrice = parseFloat(offer.price) || 0;
+      const currentPrice = 0; // Always $0 for one-time offers
       const comparedAtPrice = parseFloat(offer.comparedAtPrice) || 0;
       const discountPercentage = this.calculateDiscountPercentage(currentPrice, comparedAtPrice);
       const hasDiscount = discountPercentage > 0;
@@ -240,11 +240,10 @@ class OneTimeOfferManager {
       // SINGLE SELECTION: Remove any existing offers first
       this.selectedOffers = [];
 
-      // Add new offer
-      const price = parseFloat(offer.price) || 0;
+      // Add new offer - ALWAYS $0 for one-time offers
+      const price = 0; // Always free, regardless of what's in the database
       const comparedAtPrice = parseFloat(offer.comparedAtPrice) || 0;
 
-      console.log('OneTimeOfferManager: Adding offer with price:', price, 'comparedAtPrice:', comparedAtPrice);
 
       const discountPercentage = this.calculateDiscountPercentage(price, comparedAtPrice);
       const savingsAmount = comparedAtPrice > price ? (comparedAtPrice - price) : 0;
@@ -312,11 +311,11 @@ class OneTimeOfferManager {
         }
       };
 
+
       // One-time offers don't need selling plans - they are one-time purchases
       console.log('OneTimeOfferManager: Real $0 Shopify product configured for offer:', offer.title, 'variant:', variantIdToUse);
 
       this.selectedOffers.push(offerData);
-      console.log('OneTimeOfferManager: Offer added! Selected offers now:', this.selectedOffers);
     }
 
     this.updateOfferUI(offerId);
@@ -461,32 +460,30 @@ class OneTimeOfferManager {
 
       console.log('OneTimeOfferManager: Processing offer for cart:', processedOffer);
 
-      // CRITICAL: Debug logging for $0 offers
-      if (offer.price === 0) {
-        console.log('🚨 ZERO DOLLAR OFFER BEING SENT TO CART! 🚨');
-        console.log('OneTimeOfferManager: $0 offer data for cart:', {
+      // CRITICAL: Debug logging for $0 offers (all offers are now $0)
+      console.log('✅ FREE OFFER BEING SENT TO CART!');
+      console.log('OneTimeOfferManager: Free offer data for cart:', {
+        id: processedOffer.id,
+        variantId: processedOffer.variantId,
+        title: processedOffer.title,
+        price: processedOffer.price,
+        properties: processedOffer.properties
+      });
+
+      const debugLog = JSON.parse(localStorage.getItem('zeroOfferDebug') || '[]');
+      debugLog.push({
+        timestamp: new Date().toISOString(),
+        action: 'FREE_OFFER_SENT_TO_CART',
+        offer: {
           id: processedOffer.id,
           variantId: processedOffer.variantId,
           title: processedOffer.title,
           price: processedOffer.price,
-          properties: processedOffer.properties
-        });
-
-        const debugLog = JSON.parse(localStorage.getItem('zeroOfferDebug') || '[]');
-        debugLog.push({
-          timestamp: new Date().toISOString(),
-          action: 'ZERO_OFFER_SENT_TO_CART',
-          offer: {
-            id: processedOffer.id,
-            variantId: processedOffer.variantId,
-            title: processedOffer.title,
-            price: processedOffer.price,
-            hasCustomPricing: processedOffer.properties?._custom_pricing === "true",
-            hasProductTitle: !!processedOffer.properties?._product_title
-          }
-        });
-        localStorage.setItem('zeroOfferDebug', JSON.stringify(debugLog));
-      }
+          hasCustomPricing: processedOffer.properties?._custom_pricing === "false",
+          hasProductTitle: !!processedOffer.properties?._product_title
+        }
+      });
+      localStorage.setItem('zeroOfferDebug', JSON.stringify(debugLog));
 
       return processedOffer;
     });

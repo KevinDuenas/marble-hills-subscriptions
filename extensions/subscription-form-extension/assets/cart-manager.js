@@ -87,7 +87,6 @@ class CartManager {
     
     if (this.sellingPlans[discountTier] && this.sellingPlans[discountTier][frequency]) {
       const planId = this.sellingPlans[discountTier][frequency];
-      console.log('CartManager: ✅ Found selling plan:', planId, 'for tier:', discountTier, 'frequency:', frequency);
       
       // Validate that the plan ID is not empty or null
       if (!planId || planId.trim() === '') {
@@ -108,7 +107,11 @@ class CartManager {
 
   async createSubscription(subscriptionData) {
     try {
-      console.log('CartManager: Starting subscription creation with data:', subscriptionData);
+
+      // Check if there are one-time offers
+      if (subscriptionData.oneTimeOffers && subscriptionData.oneTimeOffers.length > 0) {
+        // Process one-time offers for inclusion in subscription
+      }
       
       // Disable cart protection during subscription creation
       if (window.cartProtection) {
@@ -176,7 +179,6 @@ class CartManager {
       console.log('CartManager: Draft order response:', draftOrderResponse);
 
       if (draftOrderResponse.success) {
-        console.log('CartManager: ✅ SUCCESS! Subscription created successfully');
         console.log('CartManager: Redirecting to checkout:', draftOrderResponse.checkout_url);
         // Successfully created subscription, redirect
         window.location.href = draftOrderResponse.checkout_url;
@@ -336,7 +338,6 @@ class CartManager {
   
   async prepareOfferProduct(offer) {
     try {
-      console.log('CartManager: Preparing real $0 Shopify product offer:', offer);
 
       // All offers are now real Shopify products with variant IDs
       let variantId = offer.variantId || offer.id;
@@ -346,7 +347,6 @@ class CartManager {
         variantId = variantId.split('/').pop();
       }
 
-      console.log('CartManager: Using real Shopify variant ID:', variantId);
 
       if (!variantId) {
         console.error('CartManager: No variant ID found for offer:', offer);
@@ -354,10 +354,30 @@ class CartManager {
         return null;
       }
 
+      // CRITICAL: Check actual Shopify product price via API
+      try {
+        const productResponse = await fetch(`/products.json?limit=250`);
+        const productsData = await productResponse.json();
+
+        // Find the variant in products
+        let foundVariant = null;
+        for (const product of productsData.products) {
+          foundVariant = product.variants.find(v => v.id.toString() === variantId.toString());
+          if (foundVariant) {
+            break;
+          }
+        }
+
+        if (!foundVariant) {
+        }
+      } catch (error) {
+      }
+
       // For real $0 Shopify products, we don't need to override pricing
       // The product's catalog price should already be $0
-      const originalPrice = parseFloat(offer.price) || 0;
+      const originalPrice = 0; // Always $0 for one-time offers, ignore database price
       const discountPercentage = offer.discountPercentage || 0;
+
 
       const cartItem = {
         id: variantId,
@@ -377,15 +397,10 @@ class CartManager {
         },
       };
 
+
       // Log real $0 Shopify products
       if (originalPrice === 0) {
-        console.log('✅ CartManager: Real $0 Shopify product prepared!');
-        console.log('✅ CartManager: Product details:', {
-          shopifyVariantId: cartItem.id,
-          title: offer.title,
-          isRealShopifyProduct: cartItem.properties._is_real_shopify_product === "true",
-          catalogPrice: '$0 (from Shopify catalog)'
-        });
+        // Real $0 Shopify product prepared successfully
 
         // Log the successful real product approach
         const debugLog = JSON.parse(localStorage.getItem('zeroOfferDebug') || '[]');
@@ -482,17 +497,7 @@ class CartManager {
 
   async createDraftOrder(cartItems, subscriptionData) {
     try {
-      console.log('🔍 CartManager: createDraftOrder called with:', {
-        cartItemsLength: cartItems.length,
-        allCartItems: cartItems.map(item => ({
-          id: item.id,
-          title: item.title,
-          price: item.price,
-          type: item.type,
-          properties: item.properties,
-          hasCustomPricing: item.properties?._custom_pricing === "true"
-        }))
-      });
+      // Process cart items for draft order creation
 
       const discountedOffers = cartItems.filter(item =>
         item.properties && item.properties._discount_applied === "true"
@@ -529,6 +534,7 @@ class CartManager {
 
       // Use Draft Order API ONLY for virtual products (should be rare/never now)
       // All $0 one-time offers are now real Shopify products and can use regular Cart API
+
       if (requiresDraftOrder.length > 0 || virtualProducts.length > 0) {
         console.log('CartManager: Using Draft Order API for virtual products');
         console.log('CartManager: Reasons for using Draft Order API:', {
@@ -577,7 +583,7 @@ class CartManager {
     
     if (result.success) {
       
-      // Redirect to checkout
+      // COMMENTED FOR DEBUGGING: Redirect to checkout
       window.location.href = "/checkout";
       
       return {
@@ -884,32 +890,16 @@ class CartManager {
       // Add all items to cart (subscription products, Shopify offers, and custom offers)
       if (allCartItems.length > 0) {
 
-        console.log('✅ CartManager: Sending real Shopify products to Cart API:', formattedCartItems);
 
-        // Log real $0 Shopify products being added
+        // Check for $0 Shopify products
         const realZeroProducts = allCartItems.filter(item =>
           item.properties && item.properties._is_shopify_zero_product === "true"
         );
 
         if (realZeroProducts.length > 0) {
-          console.log('✅ CartManager: Adding real $0 Shopify products to cart:', realZeroProducts.map(item => ({
-            shopifyVariantId: item.id,
-            title: item.properties._product_title,
-            catalogPrice: '$0'
-          })));
-
-          // Log the successful approach
-          const debugLog = JSON.parse(localStorage.getItem('zeroOfferDebug') || '[]');
-          debugLog.push({
-            timestamp: new Date().toISOString(),
-            action: 'ADDING_REAL_ZERO_SHOPIFY_PRODUCTS',
-            data: {
-              realZeroProductsCount: realZeroProducts.length,
-              approach: 'Real $0 Shopify catalog products via Cart API'
-            }
-          });
-          localStorage.setItem('zeroOfferDebug', JSON.stringify(debugLog));
+          // Real $0 Shopify products found in cart
         }
+
 
         const response = await fetch("/cart/add.js", {
           method: "POST",
@@ -933,22 +923,11 @@ class CartManager {
           throw new Error(`Failed to add products: ${errorData.message || 'Unknown error'}`);
         }
 
-        // Success with real $0 products
+        // Check success with $0 products
         if (realZeroProducts.length > 0) {
-          console.log('✅ CartManager: Cart API SUCCESS - Real $0 Shopify products added');
-
-          // Log success
-          const debugLog = JSON.parse(localStorage.getItem('zeroOfferDebug') || '[]');
-          debugLog.push({
-            timestamp: new Date().toISOString(),
-            action: 'CART_API_SUCCESS_REAL_PRODUCTS',
-            data: {
-              message: 'Real $0 Shopify products added successfully via Cart API',
-              realZeroProductsCount: realZeroProducts.length
-            }
-          });
-          localStorage.setItem('zeroOfferDebug', JSON.stringify(debugLog));
         }
+
+        // Get cart to verify what was actually added
       }
       
       // Get cart after adding all products  
@@ -975,7 +954,6 @@ class CartManager {
           const debugLog = JSON.parse(localStorage.getItem('zeroOfferDebug') || '[]');
 
           if (foundInCart) {
-            console.log(`🔥 CartManager: ✅ $0 offer found in cart:`, foundInCart);
             debugLog.push({
               timestamp: new Date().toISOString(),
               action: 'FOUND_IN_CART',
@@ -1008,6 +986,7 @@ class CartManager {
           localStorage.setItem('zeroOfferDebug', JSON.stringify(debugLog));
         });
       }
+
 
       // Calculate totals
       const selectedProducts = subscriptionData.selectedProducts || [];

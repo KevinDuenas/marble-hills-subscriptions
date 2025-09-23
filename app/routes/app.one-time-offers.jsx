@@ -87,15 +87,12 @@ export const loader = async ({ request }) => {
 };
 
 export const action = async ({ request }) => {
-  console.log('=== ONE TIME OFFERS ACTION CALLED ===');
   const { authenticate } = await import("../shopify.server");
   const prisma = (await import("../db.server")).default;
   const { session } = await authenticate.admin(request);
   const formData = await request.formData();
   const intent = formData.get("intent");
   
-  console.log('Action intent:', intent);
-  console.log('Session shop:', session.shop);
   
   try {
     if (intent === "create-missing-products") {
@@ -148,7 +145,6 @@ export const action = async ({ request }) => {
             }
           });
 
-          console.log('GraphQL Response for', offer.title, ':', JSON.stringify(createResult, null, 2));
 
           if (!createResult.data) {
             errors.push(`${offer.title}: Invalid GraphQL response - no data returned`);
@@ -169,10 +165,11 @@ export const action = async ({ request }) => {
           const shopifyVariantId = createResult.data.productCreate.product.variants.edges[0].node.id;
 
           // Now update the variant with price and compareAtPrice
-          const updateResult = await admin.graphql(`
-            mutation productVariantUpdate($input: ProductVariantInput!) {
-              productVariantUpdate(input: $input) {
-                productVariant {
+
+          const updateVariantResponse = await admin.graphql(`
+            mutation productVariantsBulkUpdate($productId: ID!, $variants: [ProductVariantsBulkInput!]!) {
+              productVariantsBulkUpdate(productId: $productId, variants: $variants) {
+                productVariants {
                   id
                   price
                   compareAtPrice
@@ -185,19 +182,26 @@ export const action = async ({ request }) => {
             }
           `, {
             variables: {
-              input: {
+              productId: shopifyProductId,
+              variants: [{
                 id: shopifyVariantId,
                 price: "0.00", // Always free for one-time offers
                 compareAtPrice: null, // No compare pricing for free offers
                 inventoryPolicy: 'CONTINUE'
-              }
+              }]
             }
           });
 
-          if (updateResult.data?.productVariantUpdate?.userErrors?.length > 0) {
-            errors.push(`${offer.title} (variant update): ${updateResult.data.productVariantUpdate.userErrors.map(e => e.message).join(', ')}`);
+          const updateResult = await updateVariantResponse.json();
+
+          if (updateResult.data?.productVariantsBulkUpdate?.userErrors?.length > 0) {
+            console.error(`Variant update failed for ${offer.title}:`, updateResult.data.productVariantsBulkUpdate.userErrors);
+            errors.push(`${offer.title} (variant update): ${updateResult.data.productVariantsBulkUpdate.userErrors.map(e => e.message).join(', ')}`);
             continue;
           }
+
+          const updatedVariants = updateResult.data?.productVariantsBulkUpdate?.productVariants || [];
+          const updatedPrice = updatedVariants[0]?.price;
 
           // Update the offer with Shopify IDs
           await prisma.oneTimeOffer.update({
@@ -209,7 +213,6 @@ export const action = async ({ request }) => {
           });
 
           created++;
-          console.log(`Created Shopify product for offer: ${offer.title} (${shopifyProductId})`);
 
         } catch (error) {
           console.error(`Error creating Shopify product for ${offer.title}:`, error);
@@ -241,7 +244,6 @@ export const action = async ({ request }) => {
         sourceVariantId: formData.get("sourceVariantId") || null,
       };
 
-      console.log('Form data to save:', JSON.stringify(data, null, 2));
 
       // Validate required fields
       if (!data.title) {
@@ -276,7 +278,6 @@ export const action = async ({ request }) => {
 
         if (existingOffer && existingOffer.shopifyProductId) {
           // Reuse existing Shopify product - just update it
-          console.log(`Reusing existing Shopify product for position ${position}:`, existingOffer.shopifyProductId);
           
           const updateProductResponse = await admin.graphql(`
             mutation productUpdate($input: ProductInput!) {
@@ -303,7 +304,7 @@ export const action = async ({ request }) => {
                 id: existingOffer.shopifyProductId,
                 title: data.title,
                 descriptionHtml: data.description || '',
-                tags: ['one-time-offer'],
+                tags: ['one-time-offer', 'sb-one-time-offer'],
               }
             }
           });
@@ -313,8 +314,44 @@ export const action = async ({ request }) => {
             console.error('Shopify product update errors:', updateResult.data.productUpdate.userErrors);
           }
 
-          // Skip variant updates for now - just use product-level changes
-          
+          // CRITICAL: Always update variant price to $0
+          const variantId = existingOffer.shopifyVariantId;
+
+          const updateVariantResponse = await admin.graphql(`
+            mutation productVariantsBulkUpdate($productId: ID!, $variants: [ProductVariantsBulkInput!]!) {
+              productVariantsBulkUpdate(productId: $productId, variants: $variants) {
+                productVariants {
+                  id
+                  price
+                  compareAtPrice
+                }
+                userErrors {
+                  field
+                  message
+                }
+              }
+            }
+          `, {
+            variables: {
+              productId: existingOffer.shopifyProductId,
+              variants: [{
+                id: variantId,
+                price: "0.00", // Always free for one-time offers
+                compareAtPrice: null,
+                inventoryPolicy: 'CONTINUE'
+              }]
+            }
+          });
+
+          const variantUpdateResult = await updateVariantResponse.json();
+
+          if (variantUpdateResult.data?.productVariantsBulkUpdate?.userErrors?.length > 0) {
+            console.error('Shopify variant update failed:', variantUpdateResult.data.productVariantsBulkUpdate.userErrors);
+          } else {
+            const updatedVariants = variantUpdateResult.data?.productVariantsBulkUpdate?.productVariants || [];
+            const updatedPrice = updatedVariants[0]?.price;
+          }
+
           shopifyProductId = existingOffer.shopifyProductId;
           shopifyVariantId = existingOffer.shopifyVariantId;
         } else {
@@ -346,7 +383,6 @@ export const action = async ({ request }) => {
           
           // Check if we have fewer than 3 products, if so create a new one
           if (oneTimeOfferProducts.length < 3) {
-            console.log(`Creating new Shopify product for position ${position} (${oneTimeOfferProducts.length}/3 products exist)`);
             
             const createProductResponse = await admin.graphql(`
               mutation productCreate($input: ProductInput!) {
@@ -372,7 +408,7 @@ export const action = async ({ request }) => {
                 input: {
                   title: data.title,
                   descriptionHtml: data.description || '',
-                  tags: ['one-time-offer'],
+                  tags: ['one-time-offer', 'sb-one-time-offer'],
                 }
               }
             });
@@ -386,10 +422,46 @@ export const action = async ({ request }) => {
 
             shopifyProductId = createResult.data.productCreate.product.id;
             shopifyVariantId = createResult.data.productCreate.product.variants.edges[0].node.id;
+
+            // CRITICAL: Update new variant price to $0
+
+            const updateNewVariantResponse = await admin.graphql(`
+              mutation productVariantsBulkUpdate($productId: ID!, $variants: [ProductVariantsBulkInput!]!) {
+                productVariantsBulkUpdate(productId: $productId, variants: $variants) {
+                  productVariants {
+                    id
+                    price
+                    compareAtPrice
+                  }
+                  userErrors {
+                    field
+                    message
+                  }
+                }
+              }
+            `, {
+              variables: {
+                productId: shopifyProductId,
+                variants: [{
+                  id: shopifyVariantId,
+                  price: "0.00", // Always free for one-time offers
+                  compareAtPrice: null,
+                  inventoryPolicy: 'CONTINUE'
+                }]
+              }
+            });
+
+            const newVariantUpdateResult = await updateNewVariantResponse.json();
+
+            if (newVariantUpdateResult.data?.productVariantsBulkUpdate?.userErrors?.length > 0) {
+              console.error('Shopify variant update failed:', newVariantUpdateResult.data.productVariantsBulkUpdate.userErrors);
+            } else {
+              const updatedVariants = newVariantUpdateResult.data?.productVariantsBulkUpdate?.productVariants || [];
+              const updatedPrice = updatedVariants[0]?.price;
+            }
           } else {
             // Reuse the oldest product (first in the list)
             const productToReuse = oneTimeOfferProducts[0].node;
-            console.log(`Reusing existing product (max 3 reached) for position ${position}:`, productToReuse.id);
             
             // Update the existing product
             const updateProductResponse = await admin.graphql(`
@@ -417,7 +489,7 @@ export const action = async ({ request }) => {
                   id: productToReuse.id,
                   title: data.title,
                   descriptionHtml: data.description || '',
-                  tags: ['one-time-offer'],
+                  tags: ['one-time-offer', 'sb-one-time-offer'],
                 }
               }
             });
@@ -429,35 +501,69 @@ export const action = async ({ request }) => {
 
             shopifyProductId = productToReuse.id;
             shopifyVariantId = productToReuse.variants.edges[0].node.id;
+
+            // CRITICAL: Always update variant price to $0 for reused products
+
+            const updateVariantResponse = await admin.graphql(`
+              mutation productVariantsBulkUpdate($productId: ID!, $variants: [ProductVariantsBulkInput!]!) {
+                productVariantsBulkUpdate(productId: $productId, variants: $variants) {
+                  productVariants {
+                    id
+                    price
+                    compareAtPrice
+                  }
+                  userErrors {
+                    field
+                    message
+                  }
+                }
+              }
+            `, {
+              variables: {
+                productId: shopifyProductId,
+                variants: [{
+                  id: shopifyVariantId,
+                  price: "0.00", // Always free for one-time offers
+                  compareAtPrice: null,
+                  inventoryPolicy: 'CONTINUE'
+                }]
+              }
+            });
+
+            const variantUpdateResult = await updateVariantResponse.json();
+
+            if (variantUpdateResult.data?.productVariantsBulkUpdate?.userErrors?.length > 0) {
+              console.error('Shopify variant update failed:', variantUpdateResult.data.productVariantsBulkUpdate.userErrors);
+            } else {
+              const updatedVariants = variantUpdateResult.data?.productVariantsBulkUpdate?.productVariants || [];
+              const updatedPrice = updatedVariants[0]?.price;
+            }
           }
 
-          // Skip variant updates for now - just use product-level changes
+          // All variants now guaranteed to be $0
         }
 
         // Add Shopify IDs to our data
         data.shopifyProductId = shopifyProductId;
         data.shopifyVariantId = shopifyVariantId;
-        
-        console.log(`One Time Offer for position ${position} linked to Shopify product:`, shopifyProductId);
+
 
       } catch (shopifyError) {
         console.error('Error managing Shopify product:', shopifyError);
-        console.error('Full error details:', shopifyError.message, shopifyError.stack);
-        // Continue without Shopify product - we'll handle this in the frontend
       }
 
+
       const upsertedOffer = await prisma.oneTimeOffer.upsert({
-        where: { 
-          shop_position: { 
-            shop: session.shop, 
-            position: position 
-          } 
+        where: {
+          shop_position: {
+            shop: session.shop,
+            position: position
+          }
         },
         update: data,
         create: data
       });
 
-      console.log('One Time Offer saved:', upsertedOffer.id, 'Shopify Product:', shopifyProductId);
 
       return { success: true };
     }
@@ -483,7 +589,6 @@ export const action = async ({ request }) => {
 };
 
 export default function OneTimeOffersPage() {
-  console.log('OneTimeOffersPage component mounting...');
   
   const { offers, storeProducts } = useLoaderData();
   const fetcher = useFetcher();
@@ -494,9 +599,6 @@ export default function OneTimeOffersPage() {
   const [showProductModal, setShowProductModal] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
   
-  console.log('OneTimeOffersPage state initialized');
-  console.log('offers:', offers);
-  console.log('storeProducts:', storeProducts);
 
   // Initialize offers array with 3 positions
   const offersArray = [1, 2, 3].map(position =>
@@ -514,40 +616,31 @@ export default function OneTimeOffersPage() {
   const [formData, setFormData] = useState(offersArray[0]);
 
   function handleEdit(position) {
-    console.log('handleEdit called with position:', position);
-    console.log('offersArray:', offersArray);
     try {
       const offer = offersArray.find(o => o.position === position);
-      console.log('Found offer:', offer);
       setFormData({
         ...offer,
         price: 0, // Always $0 for one-time offers
         comparedAtPrice: null
       });
-      console.log('Setting editingPosition to:', position);
       setEditingPosition(position);
-      console.log('handleEdit completed successfully');
     } catch (error) {
       console.error('Error in handleEdit:', error);
     }
   }
 
   const handleInputChange = (field) => (value) => {
-    console.log(`Field ${field} changed to:`, value);
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
   const handleSubmit = () => {
-    console.log('Form data before validation:', formData);
 
     // Only validate title
     if (!formData.title) {
-      console.log('Title is missing');
       alert('Title is required.');
       return;
     }
 
-    console.log('Validation passed, submitting...');
 
     const submitData = {
       ...formData,
@@ -584,8 +677,6 @@ export default function OneTimeOffersPage() {
 
   // Component mount effect
   useEffect(() => {
-    console.log('OneTimeOffersPage mounted with useEffect!');
-    console.log('DOM loaded, component is working');
   }, []);
 
   // Show toast after successful submission
