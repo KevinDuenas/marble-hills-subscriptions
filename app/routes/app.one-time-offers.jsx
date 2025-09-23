@@ -187,8 +187,8 @@ export const action = async ({ request }) => {
             variables: {
               input: {
                 id: shopifyVariantId,
-                price: offer.price.toString(),
-                compareAtPrice: offer.comparedAtPrice ? offer.comparedAtPrice.toString() : null,
+                price: "0.00", // Always free for one-time offers
+                compareAtPrice: null, // No compare pricing for free offers
                 inventoryPolicy: 'CONTINUE'
               }
             }
@@ -233,8 +233,8 @@ export const action = async ({ request }) => {
         position,
         title: formData.get("title"),
         description: formData.get("description") || null,
-        price: parseFloat(formData.get("price")),
-        comparedAtPrice: formData.get("comparedAtPrice") ? parseFloat(formData.get("comparedAtPrice")) : null,
+        price: 0, // Always $0 for one-time offers
+        comparedAtPrice: null, // No compare pricing needed for free offers
         imageUrl: formData.get("imageUrl") || null,
         active: formData.get("active") === "true",
         sourceProductId: formData.get("sourceProductId") || null,
@@ -246,16 +246,7 @@ export const action = async ({ request }) => {
       // Validate required fields
       if (!data.title) {
         return {
-          error: "Title and price are required (price can be $0).",
-          success: false
-        };
-      }
-
-      // Parse and validate price
-      const price = parseFloat(data.price);
-      if (isNaN(price) || price < 0) {
-        return {
-          error: "Title and price are required (price can be $0).",
+          error: "Title is required.",
           success: false
         };
       }
@@ -508,13 +499,13 @@ export default function OneTimeOffersPage() {
   console.log('storeProducts:', storeProducts);
 
   // Initialize offers array with 3 positions
-  const offersArray = [1, 2, 3].map(position => 
+  const offersArray = [1, 2, 3].map(position =>
     offers.find(offer => offer.position === position) || {
       position,
       title: "",
       description: "",
-      price: "",
-      comparedAtPrice: "",
+      price: 0, // Always $0 for one-time offers
+      comparedAtPrice: null,
       imageUrl: "",
       active: true
     }
@@ -530,8 +521,8 @@ export default function OneTimeOffersPage() {
       console.log('Found offer:', offer);
       setFormData({
         ...offer,
-        price: offer.price?.toString() || "",
-        comparedAtPrice: offer.comparedAtPrice?.toString() || ""
+        price: 0, // Always $0 for one-time offers
+        comparedAtPrice: null
       });
       console.log('Setting editingPosition to:', position);
       setEditingPosition(position);
@@ -549,31 +540,21 @@ export default function OneTimeOffersPage() {
   const handleSubmit = () => {
     console.log('Form data before validation:', formData);
 
-    // Check title first
+    // Only validate title
     if (!formData.title) {
       console.log('Title is missing');
-      alert('Title and price are required (price can be $0).');
-      return;
-    }
-
-    // Parse price and validate
-    const price = parseFloat(formData.price);
-    console.log('Price string:', formData.price, 'Parsed price:', price, 'isNaN:', isNaN(price), 'price < 0:', price < 0);
-
-    if (isNaN(price) || price < 0) {
-      console.log('Price validation failed');
-      alert('Title and price are required (price can be $0).');
+      alert('Title is required.');
       return;
     }
 
     console.log('Validation passed, submitting...');
-    
+
     const submitData = {
       ...formData,
       position: editingPosition,
       intent: "save"
     };
-    
+
     fetcher.submit(submitData, { method: "POST" });
   };
 
@@ -588,8 +569,8 @@ export default function OneTimeOffersPage() {
       ...prev,
       title: `${product.title} - ${variant.title}`,
       description: product.description || "",
-      price: variant.price || "",
-      comparedAtPrice: variant.compareAtPrice || "",
+      price: 0, // Always $0 for one-time offers
+      comparedAtPrice: null,
       imageUrl: product.images?.edges?.[0]?.node?.url || "",
       sourceProductId: product.id,
       sourceVariantId: variant.id
@@ -642,8 +623,8 @@ export default function OneTimeOffersPage() {
         <Layout.Section>
           <Banner title="Gestión de Ofertas Especiales" status="info">
             <p>
-              Configura hasta 3 productos especiales que aparecerán en el paso 3 del formulario de suscripción. 
-              Puedes crearlos manualmente o copiar datos de productos existentes de tu tienda.
+              Configura hasta 3 productos especiales <strong>GRATUITOS</strong> que aparecerán en el paso 3 del formulario de suscripción.
+              Estas ofertas siempre son gratis ($0) para los nuevos suscriptores.
             </p>
           </Banner>
         </Layout.Section>
@@ -659,7 +640,7 @@ export default function OneTimeOffersPage() {
               
               
               {offersArray.map((offer) => {
-                const hasData = offer.title && offer.price;
+                const hasData = offer.title; // Only title is required
                 
                 return (
                   <Card key={offer.position} sectioned>
@@ -680,12 +661,7 @@ export default function OneTimeOffersPage() {
                             {hasData && (
                               <BlockStack gap="050">
                                 <Text variant="bodyMd">
-                                  Precio: ${offer.price}
-                                  {offer.comparedAtPrice && (
-                                    <Text as="span" tone="subdued" textDecorationLine="line-through">
-                                      {" "}${offer.comparedAtPrice}
-                                    </Text>
-                                  )}
+                                  <Badge tone="success">FREE</Badge>
                                 </Text>
                                 <Badge tone={offer.active ? "success" : "critical"}>
                                   {offer.active ? "Activo" : "Inactivo"}
@@ -758,31 +734,7 @@ export default function OneTimeOffersPage() {
               helpText="Optional product description"
             />
             
-            <FormLayout.Group>
-              <TextField
-                label="Price"
-                type="number"
-                value={formData.price}
-                onChange={handleInputChange('price')}
-                prefix="$"
-                helpText="Sale price (can be $0)"
-                min="0"
-                step="0.01"
-                required={false}
-                autoComplete="off"
-              />
-              
-              <TextField
-                label="Compare at Price"
-                type="number"
-                value={formData.comparedAtPrice}
-                onChange={handleInputChange('comparedAtPrice')}
-                prefix="$"
-                helpText="Price before discount (optional)"
-                min="0"
-                step="0.01"
-              />
-            </FormLayout.Group>
+            {/* Price is automatically set to $0 for all one-time offers */}
             
             <TextField
               label="URL de Imagen"

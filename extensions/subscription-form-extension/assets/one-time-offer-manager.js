@@ -269,20 +269,33 @@ class OneTimeOfferManager {
         localStorage.setItem('zeroOfferDebug', JSON.stringify(debugLog));
       }
       
-      // CRITICAL FIX: Always use unique generated ID for offers to avoid Shopify pricing conflicts
-      // This ensures each offer has its own identity regardless of the base Shopify product
-      const uniqueOfferVariantId = this.generateVariantId(offerId + '_' + price + '_' + Date.now());
+      // SIMPLIFIED APPROACH: Always use real Shopify variant IDs
+      // All one-time offers are now real $0 products created in the admin
+      let variantIdToUse;
+
+      if (!offer.shopifyVariantId) {
+        console.error('OneTimeOfferManager: No Shopify variant ID found for offer:', offer.title);
+        console.error('OneTimeOfferManager: All one-time offers must be real $0 products created in Shopify admin');
+        return; // Skip offers without real Shopify variant IDs
+      }
+
+      // Extract numeric ID from GraphQL format if present
+      variantIdToUse = offer.shopifyVariantId.includes('gid://')
+        ? offer.shopifyVariantId.split('/').pop()
+        : offer.shopifyVariantId;
+
+      console.log('OneTimeOfferManager: Using real Shopify $0 product variant:', variantIdToUse, 'for offer:', offer.title);
 
       const offerData = {
         id: offerId, // Keep original ID for UI tracking
-        variantId: uniqueOfferVariantId, // Use UNIQUE generated ID to avoid pricing conflicts
+        variantId: variantIdToUse,
         title: offer.title,
         image: offer.imageUrl || "",
         price: price,
         quantity: 1,
-        type: "custom-one-time-offer", // Always treat as custom offer
+        type: "real-shopify-offer", // Real $0 Shopify product
         discountPercentage: discountPercentage,
-        originalShopifyVariantId: offer.shopifyVariantId, // Keep reference to original for product info
+        originalShopifyVariantId: offer.shopifyVariantId,
         properties: {
           _offer_position: offer.position,
           _offer_description: offer.description || '',
@@ -290,19 +303,17 @@ class OneTimeOfferManager {
           _savings_amount: savingsAmount,
           _discount_percentage: discountPercentage,
           _is_one_time_offer: "true",
-          _custom_pricing: "true",
-          _product_title: offer.title, // Critical: Pass product title for virtual product creation
-          _base_shopify_variant: offer.shopifyVariantId || "none"
+          _is_real_shopify_product: "true", // Always true now
+          _product_title: offer.title,
+          _shopify_variant_id: variantIdToUse,
+          // No custom pricing needed - these are real $0 products
+          _custom_pricing: "false",
+          _requires_draft_order: "false" // Never needed for real products
         }
       };
 
-      // Add selling plan if it's a real Shopify product
-      if (offer.shopifyVariantId) {
-        // No selling plan for one-time offers - they are one-time purchases
-        console.log('Using Shopify variant ID:', offer.shopifyVariantId, 'for offer:', offer.title);
-      } else {
-        console.log('Using custom offer ID:', offerId, 'for offer:', offer.title);
-      }
+      // One-time offers don't need selling plans - they are one-time purchases
+      console.log('OneTimeOfferManager: Real $0 Shopify product configured for offer:', offer.title, 'variant:', variantIdToUse);
 
       this.selectedOffers.push(offerData);
       console.log('OneTimeOfferManager: Offer added! Selected offers now:', this.selectedOffers);

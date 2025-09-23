@@ -336,34 +336,33 @@ class CartManager {
   
   async prepareOfferProduct(offer) {
     try {
-      console.log('CartManager: Preparing offer product:', offer);
-      
-      // Handle both Shopify variant IDs and generated IDs
+      console.log('CartManager: Preparing real $0 Shopify product offer:', offer);
+
+      // All offers are now real Shopify products with variant IDs
       let variantId = offer.variantId || offer.id;
-      
+
       // Extract numeric ID from GraphQL format if present
       if (variantId && variantId.includes('gid://')) {
         variantId = variantId.split('/').pop();
       }
-      
-      console.log('CartManager: Using variant ID:', variantId);
-      
+
+      console.log('CartManager: Using real Shopify variant ID:', variantId);
+
       if (!variantId) {
         console.error('CartManager: No variant ID found for offer:', offer);
+        console.error('CartManager: All one-time offers must be real $0 Shopify products');
         return null;
       }
 
-      // Calculate discount information from offer data
+      // For real $0 Shopify products, we don't need to override pricing
+      // The product's catalog price should already be $0
       const originalPrice = parseFloat(offer.price) || 0;
       const discountPercentage = offer.discountPercentage || 0;
-      const discountedPrice = discountPercentage > 0 
-        ? originalPrice * (1 - discountPercentage / 100) 
-        : originalPrice;
 
       const cartItem = {
         id: variantId,
         quantity: offer.quantity || 1,
-        price: Math.round(originalPrice * 100), // Price in cents for Shopify Cart API
+        // Don't set price - let Shopify use the catalog price ($0)
         properties: {
           _first_box_addon: "true",
           _offer_product: "true",
@@ -372,40 +371,31 @@ class CartManager {
           _quantity: (offer.quantity || 1).toString(),
           _original_price: originalPrice.toFixed(2),
           _discount_percentage: discountPercentage.toString(),
-          _discounted_price: discountedPrice.toFixed(2),
-          _savings_amount: (originalPrice - discountedPrice).toFixed(2),
-          _discount_applied: discountPercentage > 0 ? "true" : "false",
-          // CRITICAL: Add the custom pricing flag for Draft Order API detection
-          _custom_pricing: "true",
-          // Copy over any additional properties from the original offer
+          _is_shopify_zero_product: "true", // Mark as real $0 Shopify product
+          // Copy over properties from the offer
           ...(offer.properties || {})
         },
       };
 
-      // Special logging for $0 offers to debug the issue
+      // Log real $0 Shopify products
       if (originalPrice === 0) {
-        console.log('🚨 CartManager: $0 OFFER DETECTED IN PREPARE!');
-        console.log('🚨 CartManager: Original offer data:', offer);
-        console.log('🚨 CartManager: Price in dollars:', originalPrice);
-        console.log('🚨 CartManager: Price in cents:', Math.round(originalPrice * 100));
-        console.log('🚨 CartManager: Cart item with custom pricing flag:', {
-          id: cartItem.id,
-          price: cartItem.price,
-          hasCustomPricing: cartItem.properties._custom_pricing === "true",
-          productTitle: cartItem.properties._product_title
+        console.log('✅ CartManager: Real $0 Shopify product prepared!');
+        console.log('✅ CartManager: Product details:', {
+          shopifyVariantId: cartItem.id,
+          title: offer.title,
+          isRealShopifyProduct: cartItem.properties._is_real_shopify_product === "true",
+          catalogPrice: '$0 (from Shopify catalog)'
         });
-        console.log('🔥 CartManager: Final cart item:', cartItem);
 
-        // Persistent logging to survive redirects
+        // Log the successful real product approach
         const debugLog = JSON.parse(localStorage.getItem('zeroOfferDebug') || '[]');
         debugLog.push({
           timestamp: new Date().toISOString(),
-          action: '$0_OFFER_DETECTED',
+          action: 'REAL_ZERO_SHOPIFY_PRODUCT',
           data: {
-            offerId: offer.id,
+            shopifyVariantId: cartItem.id,
             title: offer.title,
-            variantId: cartItem.id,
-            priceInCents: Math.round(originalPrice * 100)
+            approach: 'Real $0 Shopify catalog product'
           }
         });
         localStorage.setItem('zeroOfferDebug', JSON.stringify(debugLog));
@@ -508,52 +498,56 @@ class CartManager {
         item.properties && item.properties._discount_applied === "true"
       );
 
-      const zeroOffers = cartItems.filter(item => item.price === 0);
-
-      const customOffers = cartItems.filter(item =>
-        item.properties && item.properties._custom_pricing === "true"
+      // Since all one-time offers are now real $0 Shopify products, we can use regular Cart API
+      const realShopifyProducts = cartItems.filter(item =>
+        item.properties && item.properties._is_real_shopify_product === "true"
       );
 
-      console.log('CartManager: Checking for special offers:', {
+      // Only virtual products (if any) would require Draft Orders now
+      const virtualProducts = cartItems.filter(item =>
+        item.properties && item.properties._is_virtual_product === "true"
+      );
+
+      // Check which items specifically require Draft Order API (should be none now)
+      const requiresDraftOrder = cartItems.filter(item =>
+        item.properties && item.properties._requires_draft_order === "true"
+      );
+
+      console.log('CartManager: Analyzing cart items for API selection:', {
         cartItemsCount: cartItems.length,
-        discountedOffersCount: discountedOffers.length,
-        zeroOffersCount: zeroOffers.length,
-        customOffersCount: customOffers.length,
+        realShopifyProductsCount: realShopifyProducts.length,
+        virtualProductsCount: virtualProducts.length,
+        requiresDraftOrderCount: requiresDraftOrder.length,
         firstItem: cartItems[0] ? {
           id: cartItems[0].id,
           price: cartItems[0].price,
-          hasCustomPricing: cartItems[0].properties?._custom_pricing === "true",
-          properties: cartItems[0].properties
+          isRealShopifyProduct: cartItems[0].properties?._is_real_shopify_product === "true",
+          requiresDraftOrder: cartItems[0].properties?._requires_draft_order === "true",
+          type: cartItems[0].type
         } : null
       });
 
-      // Use Draft Order API if we have $0 offers OR discounted offers OR custom pricing offers
-      if (discountedOffers.length > 0 || zeroOffers.length > 0 || customOffers.length > 0) {
-        console.log('CartManager: Using Draft Order API for custom pricing offers');
-
-        // Persistent logging
-        const debugLog = JSON.parse(localStorage.getItem('zeroOfferDebug') || '[]');
-        debugLog.push({
-          timestamp: new Date().toISOString(),
-          action: 'USING_DRAFT_ORDER_API',
-          data: {
-            zeroOffersCount: zeroOffers.length,
-            discountedOffersCount: discountedOffers.length,
-            customOffersCount: customOffers.length,
-            reason: customOffers.length > 0 ? 'custom pricing offers detected' :
-                   zeroOffers.length > 0 ? '$0 offers detected' : 'discounted offers detected'
-          }
+      // Use Draft Order API ONLY for virtual products (should be rare/never now)
+      // All $0 one-time offers are now real Shopify products and can use regular Cart API
+      if (requiresDraftOrder.length > 0 || virtualProducts.length > 0) {
+        console.log('CartManager: Using Draft Order API for virtual products');
+        console.log('CartManager: Reasons for using Draft Order API:', {
+          hasRequiresDraftOrder: requiresDraftOrder.length > 0,
+          hasVirtualProducts: virtualProducts.length > 0,
+          note: "All $0 one-time offers are now real Shopify products"
         });
-        localStorage.setItem('zeroOfferDebug', JSON.stringify(debugLog));
+
+        // Draft Orders should only be used for virtual products now (rare case)
+        console.log('CartManager: Note - Draft Orders now only used for virtual products, not $0 offers');
 
         return await this.createDraftOrderWithDiscounts(cartItems, subscriptionData);
       } else {
-        console.log('CartManager: Using regular subscription - no special offers detected');
-        console.log('CartManager: Cart items for regular subscription:', cartItems.map(item => ({
+        console.log('CartManager: Using regular Cart API - all items are real Shopify products');
+        console.log('CartManager: Cart items for regular cart:', cartItems.map(item => ({
           id: item.id,
           price: item.price,
-          hasProperties: !!item.properties,
-          hasCustomPricing: item.properties?._custom_pricing === "true"
+          type: item.type,
+          isRealShopifyProduct: item.properties?._is_real_shopify_product === "true"
         })));
         return await this.createRegularSubscription(cartItems, subscriptionData);
       }
@@ -882,7 +876,7 @@ class CartManager {
       const formattedCartItems = allCartItems.map(item => ({
         id: item.id,
         quantity: item.quantity,
-        price: item.price, // CRITICAL: Include price for $0 offers
+        // Don't set price for real $0 Shopify products - let catalog price be used
         properties: item.properties,
         selling_plan: item.selling_plan // Keep selling plans for subscription products
       }));
@@ -890,42 +884,28 @@ class CartManager {
       // Add all items to cart (subscription products, Shopify offers, and custom offers)
       if (allCartItems.length > 0) {
 
-        console.log('DEBUG: Sending to Shopify Cart API:', formattedCartItems);
+        console.log('✅ CartManager: Sending real Shopify products to Cart API:', formattedCartItems);
 
-        // Debug logging for $0 offers path
-        const debugLog = JSON.parse(localStorage.getItem('zeroOfferDebug') || '[]');
-        debugLog.push({
-          timestamp: new Date().toISOString(),
-          action: 'ABOUT_TO_SEND_TO_CART_API',
-          data: {
-            allCartItemsCount: allCartItems.length,
-            formattedCartItemsCount: formattedCartItems.length,
-            items: formattedCartItems.map(item => ({
-              id: item.id,
-              price: item.price || 'undefined',
-              quantity: item.quantity
-            }))
-          }
-        });
-        localStorage.setItem('zeroOfferDebug', JSON.stringify(debugLog));
+        // Log real $0 Shopify products being added
+        const realZeroProducts = allCartItems.filter(item =>
+          item.properties && item.properties._is_shopify_zero_product === "true"
+        );
 
-        // Special logging for $0 offers
-        const zeroOffers = formattedCartItems.filter(item => item.price === 0);
-        if (zeroOffers.length > 0) {
-          console.log('🔥 CartManager: SENDING $0 OFFERS TO CART API:', zeroOffers);
+        if (realZeroProducts.length > 0) {
+          console.log('✅ CartManager: Adding real $0 Shopify products to cart:', realZeroProducts.map(item => ({
+            shopifyVariantId: item.id,
+            title: item.properties._product_title,
+            catalogPrice: '$0'
+          })));
 
-          // Persistent logging
+          // Log the successful approach
           const debugLog = JSON.parse(localStorage.getItem('zeroOfferDebug') || '[]');
           debugLog.push({
             timestamp: new Date().toISOString(),
-            action: 'SENDING_TO_CART_API',
+            action: 'ADDING_REAL_ZERO_SHOPIFY_PRODUCTS',
             data: {
-              zeroOffersCount: zeroOffers.length,
-              zeroOffers: zeroOffers.map(item => ({
-                id: item.id,
-                price: item.price,
-                quantity: item.quantity
-              }))
+              realZeroProductsCount: realZeroProducts.length,
+              approach: 'Real $0 Shopify catalog products via Cart API'
             }
           });
           localStorage.setItem('zeroOfferDebug', JSON.stringify(debugLog));
@@ -945,25 +925,26 @@ class CartManager {
           const errorData = await response.json();
           console.error('Cart API Error:', errorData);
 
-          // Special error handling for $0 offers
-          if (zeroOffers.length > 0) {
-            console.log('🔥 CartManager: CART API FAILED WITH $0 OFFERS - Error:', errorData);
+          // Special error handling for real $0 products
+          if (realZeroProducts.length > 0) {
+            console.error('❌ CartManager: Cart API failed with real $0 Shopify products - Error:', errorData);
           }
 
           throw new Error(`Failed to add products: ${errorData.message || 'Unknown error'}`);
         }
 
-        // Success - check if $0 offers were actually added
-        if (zeroOffers.length > 0) {
-          console.log('🔥 CartManager: CART API SUCCESS - $0 offers should be added');
+        // Success with real $0 products
+        if (realZeroProducts.length > 0) {
+          console.log('✅ CartManager: Cart API SUCCESS - Real $0 Shopify products added');
 
-          // Persistent logging
+          // Log success
           const debugLog = JSON.parse(localStorage.getItem('zeroOfferDebug') || '[]');
           debugLog.push({
             timestamp: new Date().toISOString(),
-            action: 'CART_API_SUCCESS',
+            action: 'CART_API_SUCCESS_REAL_PRODUCTS',
             data: {
-              message: '$0 offers sent successfully to Cart API'
+              message: 'Real $0 Shopify products added successfully via Cart API',
+              realZeroProductsCount: realZeroProducts.length
             }
           });
           localStorage.setItem('zeroOfferDebug', JSON.stringify(debugLog));
