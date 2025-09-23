@@ -175,6 +175,7 @@ class MainSubscriptionManager {
     const addToCartBtn = document.getElementById('final-add-to-cart-btn');
     if (addToCartBtn) {
       addToCartBtn.addEventListener('click', () => {
+        this.showButtonLoading(addToCartBtn, 'Adding to cart...');
         this.handleFinalAddToCart(false); // Include offers
       });
     }
@@ -184,6 +185,7 @@ class MainSubscriptionManager {
     if (skipOfferLink) {
       skipOfferLink.addEventListener('click', (e) => {
         e.preventDefault();
+        this.showButtonLoading(skipOfferLink, 'Adding to cart...');
         this.handleFinalAddToCart(true); // Skip offers
       });
     }
@@ -218,6 +220,10 @@ class MainSubscriptionManager {
             const selectedFrequency = document.querySelector('input[name="frequency"]:checked');
             if (selectedFrequency) {
               this.subscriptionData.frequency = selectedFrequency.value;
+
+              // Show loading state on Next button
+              this.showButtonLoading(nextBtn, 'Checking offers...');
+
               this.goToStep(3);
             }
           }
@@ -251,6 +257,8 @@ class MainSubscriptionManager {
 
     if (addToCartBtn) {
       addToCartBtn.addEventListener('click', () => {
+        // Show loading state on Add to Cart button
+        this.showButtonLoading(addToCartBtn, 'Adding to cart...');
         this.handleFinalAddToCart();
       });
     }
@@ -258,6 +266,8 @@ class MainSubscriptionManager {
     if (skipOfferBtn) {
       skipOfferBtn.addEventListener('click', (e) => {
         e.preventDefault();
+        // Show loading state on Skip Offer button
+        this.showButtonLoading(skipOfferBtn, 'Adding to cart...');
         this.handleFinalAddToCart(true); // Skip offers
       });
     }
@@ -279,17 +289,17 @@ class MainSubscriptionManager {
   async checkOneTimeOffersAndProceed() {
     try {
       console.log('MainSubscriptionManager: Checking for one-time offers...');
-      
+
       // Get shop name from current URL
       let shopName = window.Shopify?.shop || window.location.hostname;
-      
+
       // Ensure we have the shop name without .myshopify.com
       if (shopName.includes('.myshopify.com')) {
         shopName = shopName.replace('.myshopify.com', '');
       }
-      
+
       console.log('MainSubscriptionManager: Fetching offers for shop:', shopName);
-      
+
       // Check our dedicated one-time offers API
       const response = await fetch(`/apps/subscription/api/one-time-offers?shop=${shopName}`);
       const data = await response.json();
@@ -302,6 +312,12 @@ class MainSubscriptionManager {
         console.log('MainSubscriptionManager: Found', data.offers.length, 'one-time offers');
       }
 
+      // Hide loading state from Step 2 Next button
+      const nextBtn = document.getElementById('frequency-next-btn');
+      if (nextBtn) {
+        this.hideButtonLoading(nextBtn, 'Next');
+      }
+
       if (hasOfferProducts) {
         console.log('MainSubscriptionManager: Proceeding to Step 3 with offers');
         this.showStep(3);
@@ -312,6 +328,13 @@ class MainSubscriptionManager {
     } catch (error) {
       console.error('MainSubscriptionManager: Failed to load one-time offers:', error);
       console.log('MainSubscriptionManager: Error occurred, skipping to checkout');
+
+      // Hide loading state on error
+      const nextBtn = document.getElementById('frequency-next-btn');
+      if (nextBtn) {
+        this.hideButtonLoading(nextBtn, 'Next');
+      }
+
       this.skipOffersAndCheckout();
     }
   }
@@ -478,6 +501,34 @@ class MainSubscriptionManager {
   hideLoadingState() {
     document.querySelector('.loading-state').style.display = 'none';
     this.showStep(this.currentStep);
+  }
+
+  showButtonLoading(button, loadingText = 'Loading...') {
+    if (!button) return;
+
+    // Store original text and state
+    button.dataset.originalText = button.textContent;
+    button.dataset.originalDisabled = button.disabled;
+
+    // Show loading state
+    button.textContent = loadingText;
+    button.disabled = true;
+    button.style.opacity = '0.7';
+    button.style.cursor = 'not-allowed';
+  }
+
+  hideButtonLoading(button, originalText = null) {
+    if (!button) return;
+
+    // Restore original state
+    button.textContent = originalText || button.dataset.originalText || 'Next';
+    button.disabled = button.dataset.originalDisabled === 'true';
+    button.style.opacity = '';
+    button.style.cursor = '';
+
+    // Clean up data attributes
+    delete button.dataset.originalText;
+    delete button.dataset.originalDisabled;
   }
 }
 
