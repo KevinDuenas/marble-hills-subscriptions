@@ -47,15 +47,23 @@ export async function action({ request }) {
 
     // Prepare line items for draft order
     const lineItems = items.map((item, index) => {
-      const isCustomOffer = item.properties && item.properties._custom_pricing === "true";
+      // Multiple detection methods for custom offers
+      const hasCustomPricingFlag = item.properties && item.properties._custom_pricing === "true";
+      const isGeneratedId = item.id && item.id.toString().startsWith('9999');
+      const hasProductTitle = item.properties && item.properties._product_title;
+
+      // Use ANY indicator that this is a custom offer
+      const isCustomOffer = hasCustomPricingFlag || (isGeneratedId && hasProductTitle);
 
       console.log(`Processing line item ${index + 1}:`, {
         id: item.id,
         price: item.price,
         hasCustomPricing: isCustomOffer,
+        hasCustomPricingFlag,
+        isGeneratedId,
+        hasProductTitle,
         customPricingValue: item.properties?._custom_pricing,
         customPricingType: typeof item.properties?._custom_pricing,
-        customPricingEqualsTrue: item.properties?._custom_pricing === "true",
         properties: item.properties
       });
 
@@ -67,7 +75,9 @@ export async function action({ request }) {
       if (isCustomOffer) {
         // For custom one-time offers, create a virtual product
         console.log(`🔥 CREATING VIRTUAL PRODUCT for item ${item.id}`);
-        lineItem.title = item.properties._product_title || "One-Time Offer";
+        console.log(`🔥 Virtual product reason: hasCustomPricingFlag=${hasCustomPricingFlag}, isGeneratedId=${isGeneratedId}, hasProductTitle=${hasProductTitle}`);
+
+        lineItem.title = item.properties?._product_title || item.properties?.title || "One-Time Offer";
         lineItem.price = (item.price / 100).toFixed(2); // Convert cents to dollars
         lineItem.requires_shipping = true;
         console.log(`Creating virtual product for custom offer: ${lineItem.title} at $${lineItem.price}`);
