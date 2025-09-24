@@ -14,7 +14,8 @@ class ProductManager {
   async loadAllProducts() {
     const productsGrid = document.querySelector(".products-grid");
     if (productsGrid) {
-      productsGrid.innerHTML = '<div class="loading-products"><p>Loading products...</p></div>';
+      productsGrid.innerHTML =
+        '<div class="loading-products"><p>Loading products...</p></div>';
     }
 
     try {
@@ -24,23 +25,23 @@ class ProductManager {
     } catch (error) {
       console.error("Product Manager Error: Failed to load products:", error);
       if (productsGrid) {
-        productsGrid.innerHTML = '<div class="loading-products"><p>Error loading products. Please try again.</p></div>';
+        productsGrid.innerHTML =
+          '<div class="loading-products"><p>Error loading products. Please try again.</p></div>';
       }
     }
   }
 
   // Load all products from "subscriptions" collection with metafield filtering
   async loadSubscriptionProducts() {
-
     try {
       // Fetch products (tags are included by default)
       const apiUrl = "/collections/subscriptions/products.json";
       const response = await fetch(apiUrl);
-      
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      
+
       const data = await response.json();
 
       if (data.products && data.products.length > 0) {
@@ -55,7 +56,9 @@ class ProductManager {
           // Show priority category (Best Sellers first, then first non-empty category)
           const priorityCategory = this.getDefaultCategory();
           if (priorityCategory) {
-            this.displayProducts(this.productsByCollection[priorityCategory].products);
+            this.displayProducts(
+              this.productsByCollection[priorityCategory].products,
+            );
             this.selectCategoryInSidebar(priorityCategory);
           }
         } else {
@@ -65,21 +68,28 @@ class ProductManager {
         throw new Error("No products found in subscriptions collection");
       }
     } catch (error) {
-      console.error("Product Manager Error: Failed to load subscription products:", error);
-      
+      console.error(
+        "Product Manager Error: Failed to load subscription products:",
+        error,
+      );
+
       // Fallback to general products (tags included by default)
       try {
         const fallbackUrl = "/products.json?limit=50";
         const generalResponse = await fetch(fallbackUrl);
-        
+
         if (!generalResponse.ok) {
-          throw new Error(`Fallback HTTP error! status: ${generalResponse.status}`);
+          throw new Error(
+            `Fallback HTTP error! status: ${generalResponse.status}`,
+          );
         }
         const generalData = await generalResponse.json();
 
         if (generalData.products && generalData.products.length > 0) {
           // Also filter fallback products
-          const filteredFallback = this.filterSubscriptionProducts(generalData.products);
+          const filteredFallback = this.filterSubscriptionProducts(
+            generalData.products,
+          );
           this.allProducts = filteredFallback;
           this.createProductCategories(this.allProducts);
           this.displayProducts(this.allProducts);
@@ -87,8 +97,13 @@ class ProductManager {
           throw new Error("No products found in general products either");
         }
       } catch (fallbackError) {
-        console.error("Product Manager Error: Fallback also failed:", fallbackError);
-        this.displayErrorMessage("Unable to load products. Please refresh the page.");
+        console.error(
+          "Product Manager Error: Fallback also failed:",
+          fallbackError,
+        );
+        this.displayErrorMessage(
+          "Unable to load products. Please refresh the page.",
+        );
       }
     }
   }
@@ -110,10 +125,10 @@ class ProductManager {
 
   // Filter products that are eligible for subscriptions based on metafields
   filterSubscriptionProducts(products) {
-    const filteredProducts = products.filter(product => {
+    const filteredProducts = products.filter((product) => {
       // Check if product has subscription eligibility metafield
       const isSubscriptionEligible = this.hasSubscriptionMetafield(product);
-      
+
       return isSubscriptionEligible;
     });
 
@@ -122,24 +137,25 @@ class ProductManager {
 
   // Check if product has subscription eligibility based on tags
   hasSubscriptionMetafield(product) {
-    
     // Primary method: Check for subscription tags
     if (product.tags && Array.isArray(product.tags)) {
-      const lowerTags = product.tags.map(tag => tag.toLowerCase());
-      
+      const lowerTags = product.tags.map((tag) => tag.toLowerCase());
+
       // Check for subscription eligibility tags with sb- prefix
       const subscriptionTags = [
-        'sb-subscription',
-        'sb-subscription-eligible', 
-        'sb-eligible',
-        'sb-suscripcion',
-        'sb-suscripcion-elegible'
+        "sb-subscription",
+        "sb-subscription-eligible",
+        "sb-eligible",
+        "sb-suscripcion",
+        "sb-suscripcion-elegible",
       ];
-      
-      const hasEligibilityTag = subscriptionTags.some(eligibleTag => 
-        lowerTags.some(tag => tag === eligibleTag || tag.includes(eligibleTag))
+
+      const hasEligibilityTag = subscriptionTags.some((eligibleTag) =>
+        lowerTags.some(
+          (tag) => tag === eligibleTag || tag.includes(eligibleTag),
+        ),
       );
-      
+
       if (hasEligibilityTag) {
         return true;
       } else {
@@ -152,10 +168,9 @@ class ProductManager {
 
   // Create categories dynamically from sb-category- tags
   createProductCategories(products) {
-    
     // Start with Best Sellers category
     const categories = {
-      "best-sellers": { title: "Best Sellers", products: [] }
+      "best-sellers": { title: "Best Sellers", products: [] },
     };
 
     products.forEach((product) => {
@@ -163,13 +178,13 @@ class ProductManager {
       const productCategories = this.getProductCategories(product);
 
       // Add to each category (create if doesn't exist)
-      productCategories.forEach(categoryKey => {
+      productCategories.forEach((categoryKey) => {
         if (!categories[categoryKey]) {
           // Create new category dynamically
           const categoryTitle = this.formatCategoryTitle(categoryKey);
           categories[categoryKey] = { title: categoryTitle, products: [] };
         }
-        
+
         categories[categoryKey].products.push(product);
       });
 
@@ -180,24 +195,26 @@ class ProductManager {
     });
 
     this.productsByCollection = categories;
-    
+
     this.updateCategoriesSidebar();
   }
 
   // Check if product should be in Best Sellers category
   isProductBestSeller(product) {
     if (product.tags && Array.isArray(product.tags)) {
-      const lowerTags = product.tags.map(tag => tag.toLowerCase());
-      
+      const lowerTags = product.tags.map((tag) => tag.toLowerCase());
+
       const bestSellerTags = [
-        'sb-best-seller',
-        'sb-popular', 
-        'sb-bestseller',
-        'sb-mejor-vendido'
+        "sb-best-seller",
+        "sb-popular",
+        "sb-bestseller",
+        "sb-mejor-vendido",
       ];
-      
-      return bestSellerTags.some(tag => 
-        lowerTags.some(productTag => productTag === tag || productTag.includes(tag))
+
+      return bestSellerTags.some((tag) =>
+        lowerTags.some(
+          (productTag) => productTag === tag || productTag.includes(tag),
+        ),
       );
     }
     return false;
@@ -205,51 +222,55 @@ class ProductManager {
 
   // Get the default category to display (Best Sellers first, then first non-empty)
   getDefaultCategory() {
-    
     // Priority 1: Best Sellers if it has products
-    if (this.productsByCollection["best-sellers"] && 
-        this.productsByCollection["best-sellers"].products.length > 0) {
+    if (
+      this.productsByCollection["best-sellers"] &&
+      this.productsByCollection["best-sellers"].products.length > 0
+    ) {
       return "best-sellers";
     }
-    
+
     // Priority 2: First category with products (excluding best-sellers)
-    const categoryWithProducts = Object.keys(this.productsByCollection).find(key => 
-      key !== "best-sellers" && this.productsByCollection[key].products.length > 0
+    const categoryWithProducts = Object.keys(this.productsByCollection).find(
+      (key) =>
+        key !== "best-sellers" &&
+        this.productsByCollection[key].products.length > 0,
     );
-    
+
     if (categoryWithProducts) {
       return categoryWithProducts;
     }
-    
+
     return null;
   }
 
   // Select category in sidebar visually
   selectCategoryInSidebar(categoryKey) {
     // Remove active class from all categories
-    const allCategoryItems = document.querySelectorAll('.category-item');
-    allCategoryItems.forEach(item => {
-      item.classList.remove('active');
+    const allCategoryItems = document.querySelectorAll(".category-item");
+    allCategoryItems.forEach((item) => {
+      item.classList.remove("active");
     });
-    
+
     // Add active class to selected category
-    const selectedCategory = document.querySelector(`[data-collection="${categoryKey}"]`);
+    const selectedCategory = document.querySelector(
+      `[data-collection="${categoryKey}"]`,
+    );
     if (selectedCategory) {
-      selectedCategory.classList.add('active');
+      selectedCategory.classList.add("active");
     }
   }
 
   // Get all categories this product belongs to from sb-category- tags
   getProductCategories(product) {
-
     const categories = [];
 
     if (product.tags && Array.isArray(product.tags)) {
       // Look for sb-category- tags
-      product.tags.forEach(tag => {
-        if (tag.startsWith('sb-category-')) {
+      product.tags.forEach((tag) => {
+        if (tag.startsWith("sb-category-")) {
           // Extract category name after sb-category-
-          const categoryName = tag.substring('sb-category-'.length);
+          const categoryName = tag.substring("sb-category-".length);
           if (categoryName) {
             categories.push(categoryName);
           }
@@ -271,15 +292,15 @@ class ProductManager {
     if (match) {
       return {
         name: match[1],
-        position: parseInt(match[2], 10)
+        position: parseInt(match[2], 10),
       };
     }
     return {
       name: categoryName,
-      position: 999 // Default high position for categories without explicit order
+      position: 999, // Default high position for categories without explicit order
     };
   }
-  
+
   // Format category key into a display title
   formatCategoryTitle(categoryKey) {
     // Parse category to remove position number if present
@@ -287,10 +308,10 @@ class ProductManager {
 
     // Simply capitalize first letter and replace dashes/underscores with spaces
     return parsed.name
-      .replace(/[-_]/g, ' ')
-      .split(' ')
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-      .join(' ');
+      .replace(/[-_]/g, " ")
+      .split(" ")
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(" ");
   }
 
   updateCategoriesSidebar() {
@@ -305,7 +326,10 @@ class ProductManager {
 
     // First add Best Sellers if it has products
     if (this.productsByCollection["best-sellers"]?.products.length > 0) {
-      categoriesWithProducts.push(["best-sellers", this.productsByCollection["best-sellers"]]);
+      categoriesWithProducts.push([
+        "best-sellers",
+        this.productsByCollection["best-sellers"],
+      ]);
     }
 
     // Then add other categories with products, sorted by position number
@@ -317,7 +341,7 @@ class ProductManager {
           handle,
           data,
           position: parsed.position,
-          name: parsed.name
+          name: parsed.name,
         });
       }
     }
@@ -326,7 +350,7 @@ class ProductManager {
     otherCategories.sort((a, b) => a.position - b.position);
 
     // Add sorted categories to the main array
-    otherCategories.forEach(cat => {
+    otherCategories.forEach((cat) => {
       categoriesWithProducts.push([cat.handle, cat.data]);
     });
 
@@ -342,7 +366,7 @@ class ProductManager {
 
     sidebar.innerHTML = categoriesHTML;
     this.initializeCategoryHandlers();
-    
+
     // Also create mobile popup categories
     this.createMobileCategoriesPopup(categoriesWithProducts, defaultCategory);
   }
@@ -352,75 +376,90 @@ class ProductManager {
 
     if (!products || products.length === 0) {
       if (productsGrid) {
-        productsGrid.innerHTML = '<div class="no-products"><h3>No products found</h3><p>No products available in this category.</p></div>';
+        productsGrid.innerHTML =
+          '<div class="no-products"><h3>No products found</h3><p>No products available in this category.</p></div>';
       }
       return;
     }
 
     const productCards = products
       .map((product) => {
-        const selectedProduct = this.selectedProducts.find(p => p.id === product.id);
+        const selectedProduct = this.selectedProducts.find(
+          (p) => p.id === product.id,
+        );
         const isSelected = !!selectedProduct;
-        const selectedVariant = selectedProduct ? selectedProduct.selectedVariant : 
-                               (this.preSelectedVariants?.[product.id] || product.variants[0]);
+        const selectedVariant = selectedProduct
+          ? selectedProduct.selectedVariant
+          : this.preSelectedVariants?.[product.id] || product.variants[0];
         const imageSrc = (product.images && product.images[0]?.src) || "";
-        const price = selectedVariant ? `$${parseFloat(selectedVariant.price).toFixed(2)}` : "$0.00";
+        const price = selectedVariant
+          ? `$${parseFloat(selectedVariant.price).toFixed(2)}`
+          : "$0.00";
 
         // Check if product has multiple variants (more than 1 variant means real variant options)
-        const hasMultipleVariants = product.variants && product.variants.length > 1;
-        
+        const hasMultipleVariants =
+          product.variants && product.variants.length > 1;
+
         // Generate variant options only if there are multiple variants
-        const variantOptions = hasMultipleVariants ? 
-          product.variants.map((variant, index) => {
-            // Build descriptive variant name with option names
-            let variantLabel = '';
-            
-            // Try to build from product options and variant values
-            if (product.options && product.options.length > 0) {
-              const options = [];
-              product.options.forEach((option, optionIndex) => {
-                let optionValue = '';
-                if (optionIndex === 0 && variant.option1) optionValue = variant.option1;
-                else if (optionIndex === 1 && variant.option2) optionValue = variant.option2;
-                else if (optionIndex === 2 && variant.option3) optionValue = variant.option3;
-                
-                if (optionValue) {
-                  options.push(`${option.name} ${optionValue}`);
+        const variantOptions = hasMultipleVariants
+          ? product.variants
+              .map((variant, index) => {
+                // Build descriptive variant name with option names
+                let variantLabel = "";
+
+                // Try to build from product options and variant values
+                if (product.options && product.options.length > 0) {
+                  const options = [];
+                  product.options.forEach((option, optionIndex) => {
+                    let optionValue = "";
+                    if (optionIndex === 0 && variant.option1)
+                      optionValue = variant.option1;
+                    else if (optionIndex === 1 && variant.option2)
+                      optionValue = variant.option2;
+                    else if (optionIndex === 2 && variant.option3)
+                      optionValue = variant.option3;
+
+                    if (optionValue) {
+                      options.push(`${option.name} ${optionValue}`);
+                    }
+                  });
+
+                  if (options.length > 0) {
+                    variantLabel = options.join(" / ");
+                  }
                 }
-              });
-              
-              if (options.length > 0) {
-                variantLabel = options.join(' / ');
-              }
-            }
-            
-            // Fallback to just option values if no option names
-            if (!variantLabel && (variant.option1 || variant.option2 || variant.option3)) {
-              const options = [];
-              if (variant.option1) options.push(variant.option1);
-              if (variant.option2) options.push(variant.option2);
-              if (variant.option3) options.push(variant.option3);
-              variantLabel = options.join(' / ');
-            }
-            
-            // Final fallback to variant title
-            if (!variantLabel) {
-              variantLabel = variant.title || 'Default';
-            }
-            
-            return `<option value="${variant.id}" ${selectedVariant && selectedVariant.id === variant.id ? 'selected' : ''}>
+
+                // Fallback to just option values if no option names
+                if (
+                  !variantLabel &&
+                  (variant.option1 || variant.option2 || variant.option3)
+                ) {
+                  const options = [];
+                  if (variant.option1) options.push(variant.option1);
+                  if (variant.option2) options.push(variant.option2);
+                  if (variant.option3) options.push(variant.option3);
+                  variantLabel = options.join(" / ");
+                }
+
+                // Final fallback to variant title
+                if (!variantLabel) {
+                  variantLabel = variant.title || "Default";
+                }
+
+                return `<option value="${variant.id}" ${selectedVariant && selectedVariant.id === variant.id ? "selected" : ""}>
               ${variantLabel}
             </option>`;
-          }).join('') : 
-          null;
+              })
+              .join("")
+          : null;
 
         // Generate button styles based on selection state
-        const buttonStyle = isSelected ? 
-          'background: #dc3545 !important; color: white !important; border: 1px solid #dc3545 !important; display: block !important; visibility: visible !important; opacity: 1 !important;' :
-          'background: #f7931e !important; color: white !important; border: 1px solid #f7931e !important;';
+        const buttonStyle = isSelected
+          ? "background: #dc3545 !important; color: white !important; border: 1px solid #dc3545 !important; display: block !important; visibility: visible !important; opacity: 1 !important;"
+          : "background: #f7931e !important; color: white !important; border: 1px solid #f7931e !important;";
 
         return `
-          <div class="product-card ${isSelected ? 'selected' : ''}" data-product-id="${product.id}">
+          <div class="product-card ${isSelected ? "selected" : ""}" data-product-id="${product.id}">
 
             <div class="product-image">
               ${imageSrc ? `<img src="${imageSrc}" alt="${product.title}">` : '<div style="color: #999; font-size: 0.9rem;">No image</div>'}
@@ -431,34 +470,44 @@ class ProductManager {
                 <div class="product-title">${product.title}</div>
                 <div class="product-price">${price}</div>
               </div>
-              <div class="product-description">${product.body_html?.replace(/<[^>]*>/g, '').substring(0, 100) || 'Product description'}</div>
+              <div class="product-description"
+                   data-product-id="${product.id}"
+                   onmouseover="window.productManager.showDescriptionTooltip(event, ${product.id})"
+                   onmouseout="window.productManager.hideDescriptionTooltip(${product.id})"
+                   ontouchstart="window.productManager.toggleDescriptionTooltip(event, ${product.id})">
+                ${product.body_html?.replace(/<[^>]*>/g, "") || ""}
+                <div class="product-description-tooltip" id="tooltip-${product.id}">
+                  ${product.body_html?.replace(/<[^>]*>/g, "") || ""}
+                </div>
+              </div>
             </div>
 
             <div class="product-bottom-section">
               <div class="variant-selector">
-                ${hasMultipleVariants ?
-                  `<select onchange="window.productManager.updateVariant(${product.id}, this.value)">
+                ${
+                  hasMultipleVariants
+                    ? `<select onchange="window.productManager.updateVariant(${product.id}, this.value)">
                     ${variantOptions}
-                  </select>` :
-                  `<div class="no-variants-placeholder"></div>`
+                  </select>`
+                    : `<div class="no-variants-placeholder"></div>`
                 }
               </div>
 
               <div class="product-controls">
-                <button class="add-to-cart-btn ${isSelected ? 'remove-mode' : ''}" style="${buttonStyle}" onclick="window.productManager.addProduct(${product.id})">
-                  ${isSelected ? 'Remove from Box' : 'Add to Box'}
+                <button class="add-to-cart-btn ${isSelected ? "remove-mode" : ""}" style="${buttonStyle}" onclick="window.productManager.addProduct(${product.id})">
+                  ${isSelected ? "Remove from Box" : "Add to Box"}
                 </button>
               </div>
             </div>
           </div>
         `;
       })
-      .join('');
+      .join("");
 
     if (productsGrid) {
       productsGrid.innerHTML = productCards;
     }
-    
+
     this.updateProgressBar();
     this.updateFloatingCart();
   }
@@ -467,24 +516,31 @@ class ProductManager {
     const product = this.findProductById(productId);
     if (!product) return;
 
-    const existingProduct = this.selectedProducts.find(p => p.id === productId);
-    
+    const existingProduct = this.selectedProducts.find(
+      (p) => p.id === productId,
+    );
+
     if (existingProduct) {
       // Product already selected - remove it instead
       this.removeProduct(productId);
       return;
     }
-    
+
     // Add new product with quantity 1 (fixed)
     // Use pre-selected variant if available, otherwise use first variant
-    const selectedVariant = this.preSelectedVariants?.[productId] || 
-                           ((product.variants && product.variants.length > 0) ? product.variants[0] : null);
-    
+    const selectedVariant =
+      this.preSelectedVariants?.[productId] ||
+      (product.variants && product.variants.length > 0
+        ? product.variants[0]
+        : null);
+
     if (!selectedVariant) {
-      console.error(`Product Manager Error: No variants found for product ${productId}`);
+      console.error(
+        `Product Manager Error: No variants found for product ${productId}`,
+      );
       return;
     }
-    
+
     // Add the product (no inventory check needed since quantity is always 1)
     this.selectedProducts.push({
       id: productId,
@@ -493,7 +549,7 @@ class ProductManager {
       price: selectedVariant.price,
       selectedVariant: selectedVariant,
       quantity: 1, // Always 1 - variants define the pieces
-      type: "individual"
+      type: "individual",
     });
 
     // Clear pre-selected variant since product is now added
@@ -504,21 +560,25 @@ class ProductManager {
     this.updateProductUI(productId);
     this.updateProgressBar();
     this.updateFloatingCart();
-    
+
     // Notify main manager
     if (window.mainSubscriptionManager) {
-      window.mainSubscriptionManager.updateSelectedProducts(this.selectedProducts);
+      window.mainSubscriptionManager.updateSelectedProducts(
+        this.selectedProducts,
+      );
     }
   }
 
   updateVariant(productId, variantId) {
     const product = this.findProductById(productId);
-    const variant = product?.variants.find(v => v.id == variantId);
-    
+    const variant = product?.variants.find((v) => v.id == variantId);
+
     if (!product || !variant) return;
 
-    const selectedProduct = this.selectedProducts.find(p => p.id === productId);
-    
+    const selectedProduct = this.selectedProducts.find(
+      (p) => p.id === productId,
+    );
+
     if (selectedProduct) {
       // Update existing product's variant
       selectedProduct.selectedVariant = variant;
@@ -543,11 +603,16 @@ class ProductManager {
     try {
       const product = this.findProductById(productId);
       if (!product) return null;
-      
+
       // Try to get product handle from the product object or construct it
-      const handle = product.handle || product.title.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-');
+      const handle =
+        product.handle ||
+        product.title
+          .toLowerCase()
+          .replace(/[^a-z0-9]/g, "-")
+          .replace(/-+/g, "-");
       const response = await fetch(`/products/${handle}.js`);
-      
+
       if (response.ok) {
         const fullProduct = await response.json();
         return fullProduct;
@@ -561,48 +626,57 @@ class ProductManager {
   // Get available inventory for a variant
   async getAvailableInventory(variant, productId = null) {
     // First check the simple 'available' field from Shopify
-    if (variant.hasOwnProperty('available') && !variant.available) {
+    if (variant.hasOwnProperty("available") && !variant.available) {
       return 0; // Out of stock
     }
-    
+
     // If we have inventory management fields, use them
-    if (variant.hasOwnProperty('inventory_management')) {
+    if (variant.hasOwnProperty("inventory_management")) {
       // Return null if inventory tracking is disabled
-      if (!variant.inventory_management || variant.inventory_policy === 'continue') {
+      if (
+        !variant.inventory_management ||
+        variant.inventory_policy === "continue"
+      ) {
         return null; // Unlimited inventory
       }
-      
+
       // Return available quantity
       const quantity = variant.inventory_quantity || 0;
       return quantity;
     }
-    
+
     // If no inventory management data and product is marked as available, assume unlimited
     if (variant.available !== false) {
       return null; // Unlimited
     }
-    
+
     return null; // Default to unlimited if we can't determine
   }
 
   // Update inventory status in the UI
   updateInventoryStatus(productId, availableInventory, productTitle) {
-    const placeholder = document.querySelector(`.inventory-status-placeholder[data-product-id="${productId}"]`);
-    const addButton = document.querySelector(`.product-card[data-product-id="${productId}"] .add-to-cart-btn`);
-    const quantityStepper = document.querySelector(`.product-card[data-product-id="${productId}"] .quantity-stepper`);
-    
+    const placeholder = document.querySelector(
+      `.inventory-status-placeholder[data-product-id="${productId}"]`,
+    );
+    const addButton = document.querySelector(
+      `.product-card[data-product-id="${productId}"] .add-to-cart-btn`,
+    );
+    const quantityStepper = document.querySelector(
+      `.product-card[data-product-id="${productId}"] .quantity-stepper`,
+    );
+
     if (placeholder) {
-      let statusHtml = '';
+      let statusHtml = "";
       let buttonDisabled = false;
-      let buttonText = 'Add to Box';
+      let buttonText = "Add to Box";
       let hideQuantityElements = false;
-      
+
       if (availableInventory !== null) {
         if (availableInventory <= 0) {
           // Don't show the red out of stock badge - only update button and hide quantity elements
           placeholder.remove(); // Remove placeholder without replacement
           buttonDisabled = true;
-          buttonText = 'Out of Stock';
+          buttonText = "Out of Stock";
           hideQuantityElements = true;
         } else if (availableInventory <= 5) {
           statusHtml = `<div class="inventory-status low-stock">Only ${availableInventory} left</div>`;
@@ -614,30 +688,31 @@ class ProductManager {
         // Remove placeholder if inventory is unlimited
         placeholder.remove();
       }
-      
+
       if (statusHtml) {
         placeholder.outerHTML = statusHtml;
       } else if (availableInventory <= 0) {
         placeholder.remove(); // Just remove placeholder for out of stock
       }
-      
+
       // Update button state
       if (addButton) {
         addButton.disabled = buttonDisabled;
         addButton.textContent = buttonText;
         if (buttonDisabled) {
-          addButton.style.cssText = 'background: #E8DCC6 !important; color: #8B7355 !important; cursor: not-allowed !important;';
+          addButton.style.cssText =
+            "background: #E8DCC6 !important; color: #8B7355 !important; cursor: not-allowed !important;";
         } else {
-          addButton.style.cssText = '';
+          addButton.style.cssText = "";
         }
       }
-      
+
       // For quantity stepper: only add inline style when out of stock to override CSS
       if (quantityStepper && hideQuantityElements) {
-        quantityStepper.style.cssText = 'display: none !important;';
+        quantityStepper.style.cssText = "display: none !important;";
       } else if (quantityStepper) {
         // Remove any inline display style to let CSS take control
-        quantityStepper.style.display = '';
+        quantityStepper.style.display = "";
       }
     }
   }
@@ -646,21 +721,23 @@ class ProductManager {
   showInventoryChecking(productId) {
     const card = document.querySelector(`[data-product-id="${productId}"]`);
     if (!card) return;
-    
+
     // Remove any existing inventory status
-    const existingStatus = card.querySelector('.inventory-status, .inventory-status-placeholder');
+    const existingStatus = card.querySelector(
+      ".inventory-status, .inventory-status-placeholder",
+    );
     if (existingStatus) {
       existingStatus.remove();
     }
-    
+
     // Add checking placeholder after variant selector
-    const variantSelector = card.querySelector('.variant-selector');
+    const variantSelector = card.querySelector(".variant-selector");
     if (variantSelector) {
-      const placeholder = document.createElement('div');
-      placeholder.className = 'inventory-status-placeholder';
-      placeholder.setAttribute('data-product-id', productId);
-      placeholder.textContent = 'Checking availability...';
-      variantSelector.insertAdjacentElement('afterend', placeholder);
+      const placeholder = document.createElement("div");
+      placeholder.className = "inventory-status-placeholder";
+      placeholder.setAttribute("data-product-id", productId);
+      placeholder.textContent = "Checking availability...";
+      variantSelector.insertAdjacentElement("afterend", placeholder);
     }
   }
 
@@ -668,24 +745,25 @@ class ProductManager {
   showInventoryWarning(productId, availableInventory) {
     const card = document.querySelector(`[data-product-id="${productId}"]`);
     if (!card) return;
-    
+
     // Create or update warning message
-    let warning = card.querySelector('.inventory-warning');
+    let warning = card.querySelector(".inventory-warning");
     if (!warning) {
-      warning = document.createElement('div');
-      warning.className = 'inventory-warning';
-      const productControls = card.querySelector('.product-controls');
+      warning = document.createElement("div");
+      warning.className = "inventory-warning";
+      const productControls = card.querySelector(".product-controls");
       if (productControls) {
         productControls.appendChild(warning);
       }
     }
-    
-    const message = availableInventory <= 0 
-      ? 'Out of stock' 
-      : `Only ${availableInventory} available`;
-      
+
+    const message =
+      availableInventory <= 0
+        ? "Out of stock"
+        : `Only ${availableInventory} available`;
+
     warning.textContent = message;
-    
+
     // Auto-hide after 3 seconds
     setTimeout(() => {
       if (warning && warning.parentNode) {
@@ -698,69 +776,90 @@ class ProductManager {
   updateVariant(productId, variantId) {
     const product = this.findProductById(productId);
     if (!product || !product.variants) return;
-    
-    const newVariant = product.variants.find(v => v.id.toString() === variantId.toString());
+
+    const newVariant = product.variants.find(
+      (v) => v.id.toString() === variantId.toString(),
+    );
     if (!newVariant) return;
-    
+
     // If product is selected, update the selected variant and check inventory
-    const selectedProduct = this.selectedProducts.find(p => p.id === productId);
+    const selectedProduct = this.selectedProducts.find(
+      (p) => p.id === productId,
+    );
     if (selectedProduct) {
       const currentQuantity = selectedProduct.quantity;
-      
+
       // Show checking status immediately
       this.showInventoryChecking(productId);
-      
+
       // Check inventory asynchronously
-      this.getAvailableInventory(newVariant, productId).then(availableInventory => {
-        // Check if current quantity exceeds new variant's inventory
-        if (availableInventory !== null && currentQuantity > availableInventory) {
-          // Adjust quantity to available inventory or remove if none available
-          if (availableInventory <= 0) {
-            this.removeProduct(productId);
-            this.showInventoryWarning(productId, availableInventory);
-            return;
-          } else {
-            selectedProduct.quantity = availableInventory;
-            this.showInventoryWarning(productId, availableInventory);
+      this.getAvailableInventory(newVariant, productId).then(
+        (availableInventory) => {
+          // Check if current quantity exceeds new variant's inventory
+          if (
+            availableInventory !== null &&
+            currentQuantity > availableInventory
+          ) {
+            // Adjust quantity to available inventory or remove if none available
+            if (availableInventory <= 0) {
+              this.removeProduct(productId);
+              this.showInventoryWarning(productId, availableInventory);
+              return;
+            } else {
+              selectedProduct.quantity = availableInventory;
+              this.showInventoryWarning(productId, availableInventory);
+            }
           }
-        }
-        
-        // Update the selected variant and price
-        selectedProduct.selectedVariant = newVariant;
-        selectedProduct.price = newVariant.price;
-        
-        this.updateProductUI(productId);
-        this.updateFloatingCart();
-        
-        // Update inventory status in UI
-        this.updateInventoryStatus(productId, availableInventory, product.title);
-      });
+
+          // Update the selected variant and price
+          selectedProduct.selectedVariant = newVariant;
+          selectedProduct.price = newVariant.price;
+
+          this.updateProductUI(productId);
+          this.updateFloatingCart();
+
+          // Update inventory status in UI
+          this.updateInventoryStatus(
+            productId,
+            availableInventory,
+            product.title,
+          );
+        },
+      );
     } else {
       // Store variant selection for when product is added
       if (!this.preSelectedVariants) {
         this.preSelectedVariants = {};
       }
       this.preSelectedVariants[productId] = newVariant;
-      
+
       // Show checking status immediately
       this.showInventoryChecking(productId);
-      
+
       // Update price in the card UI for non-selected products
       this.updateProductPriceInCard(productId, newVariant.price);
-      
+
       // Update inventory status for the new variant selection
       const product = this.findProductById(productId);
-      this.getAvailableInventory(newVariant, productId).then(availableInventory => {
-        this.updateInventoryStatus(productId, availableInventory, product.title);
-      });
+      this.getAvailableInventory(newVariant, productId).then(
+        (availableInventory) => {
+          this.updateInventoryStatus(
+            productId,
+            availableInventory,
+            product.title,
+          );
+        },
+      );
     }
   }
 
   // Update only the price in a product card (for non-selected products when variant changes)
   updateProductPriceInCard(productId, newPrice) {
-    const productCard = document.querySelector(`.product-card[data-product-id="${productId}"]`);
+    const productCard = document.querySelector(
+      `.product-card[data-product-id="${productId}"]`,
+    );
     if (productCard) {
-      const priceElement = productCard.querySelector('.product-price');
+      const priceElement = productCard.querySelector(".product-price");
       if (priceElement) {
         priceElement.textContent = `$${parseFloat(newPrice).toFixed(2)}`;
       }
@@ -768,49 +867,53 @@ class ProductManager {
   }
 
   removeProduct(productId) {
-    const index = this.selectedProducts.findIndex(p => p.id === productId);
+    const index = this.selectedProducts.findIndex((p) => p.id === productId);
 
     if (index > -1) {
       this.selectedProducts.splice(index, 1);
       this.updateProductUI(productId);
       this.updateProgressBar();
       this.updateFloatingCart();
-      
+
       // Notify main manager
       if (window.mainSubscriptionManager) {
-        window.mainSubscriptionManager.updateSelectedProducts(this.selectedProducts);
+        window.mainSubscriptionManager.updateSelectedProducts(
+          this.selectedProducts,
+        );
       }
     }
   }
 
   findProductById(productId) {
-    return this.allProducts.find(p => p.id === productId);
+    return this.allProducts.find((p) => p.id === productId);
   }
 
   updateProductUI(productId) {
-    const card = document.querySelector(`.product-card[data-product-id="${productId}"]`);
+    const card = document.querySelector(
+      `.product-card[data-product-id="${productId}"]`,
+    );
     if (!card) return;
 
-    const product = this.selectedProducts.find(p => p.id === productId);
+    const product = this.selectedProducts.find((p) => p.id === productId);
     const isSelected = !!product;
-    
+
     // Update card selection state
-    card.classList.toggle('selected', isSelected);
-    
+    card.classList.toggle("selected", isSelected);
+
     // Update price display
-    const priceDisplay = card.querySelector('.product-price');
+    const priceDisplay = card.querySelector(".product-price");
     if (priceDisplay && product && product.selectedVariant) {
       const formattedPrice = `$${parseFloat(product.selectedVariant.price).toFixed(2)}`;
       priceDisplay.textContent = formattedPrice;
     }
-    
+
     // Update button text and state
-    const addButton = card.querySelector('.add-to-cart-btn');
-    
+    const addButton = card.querySelector(".add-to-cart-btn");
+
     if (addButton) {
       if (isSelected) {
-        addButton.textContent = 'Remove from Cart';
-        addButton.classList.add('remove-mode');
+        addButton.textContent = "Remove from Cart";
+        addButton.classList.add("remove-mode");
         // Style as red remove button
         addButton.style.cssText = `
           background: #dc3545 !important;
@@ -821,8 +924,8 @@ class ProductManager {
           opacity: 1 !important;
         `;
       } else {
-        addButton.textContent = 'Add to Box';
-        addButton.classList.remove('remove-mode');
+        addButton.textContent = "Add to Box";
+        addButton.classList.remove("remove-mode");
         // Reset to default orange styles
         addButton.style.cssText = `
           background: #f7931e !important;
@@ -834,20 +937,21 @@ class ProductManager {
   }
 
   updateProgressBar() {
-    const progressFill = document.querySelector('.progress-fill');
-    const milestones = document.querySelectorAll('.milestone');
-    const progressText = document.querySelector('.progress-text');
+    const progressFill = document.querySelector(".progress-fill");
+    const milestones = document.querySelectorAll(".milestone");
+    const progressText = document.querySelector(".progress-text");
 
     const totalCount = this.selectedProducts.length; // Count products, not quantities
-    
+
     // Get milestone configuration (use config from main manager or fallback to defaults)
-    const config = this.milestoneConfig || window.mainSubscriptionManager?.milestoneConfig || {
-      milestone1Items: 6,
-      milestone1Discount: 5.0,
-      milestone2Items: 10,
-      milestone2Discount: 10.0,
-    };
-    
+    const config = this.milestoneConfig ||
+      window.mainSubscriptionManager?.milestoneConfig || {
+        milestone1Items: 6,
+        milestone1Discount: 5.0,
+        milestone2Items: 10,
+        milestone2Discount: 10.0,
+      };
+
     // Update progress bar fill based on dynamic configuration
     let percentage = 0;
     if (totalCount >= config.milestone2Items) {
@@ -860,7 +964,7 @@ class ProductManager {
       // 0 to milestone1: 0% to 50%
       percentage = (totalCount / config.milestone1Items) * 50;
     }
-    
+
     if (progressFill) {
       // Force styles directly
       progressFill.style.cssText = `
@@ -875,18 +979,20 @@ class ProductManager {
         z-index: 10 !important;
       `;
     } else {
-      console.error('Product Manager Error: Progress fill element not found');
+      console.error("Product Manager Error: Progress fill element not found");
     }
 
     // Update milestones with dynamic configuration
     milestones.forEach((milestone, index) => {
-      const threshold = index === 0 ? config.milestone1Items : config.milestone2Items;
-      const discount = index === 0 ? config.milestone1Discount : config.milestone2Discount;
+      const threshold =
+        index === 0 ? config.milestone1Items : config.milestone2Items;
+      const discount =
+        index === 0 ? config.milestone1Discount : config.milestone2Discount;
       const isActive = totalCount >= threshold;
-      
-      milestone.classList.toggle('active', isActive);
-      
-      const milestoneText = milestone.querySelector('.milestone-text');
+
+      milestone.classList.toggle("active", isActive);
+
+      const milestoneText = milestone.querySelector(".milestone-text");
       if (milestoneText) {
         if (isActive) {
           milestoneText.textContent = `You've got ${discount}% OFF`;
@@ -903,24 +1009,27 @@ class ProductManager {
   }
 
   updateFloatingCart() {
-    const cartMessage = document.getElementById('cart-message');
-    const cartDetails = document.getElementById('cart-details');
+    const cartMessage = document.getElementById("cart-message");
+    const cartDetails = document.getElementById("cart-details");
 
     const totalCount = this.selectedProducts.length; // Count products, not quantities
     const totalPrice = this.selectedProducts.reduce((sum, product) => {
       // Always use the price from selectedVariant to ensure accuracy
-      const price = product.selectedVariant ? product.selectedVariant.price : product.price;
+      const price = product.selectedVariant
+        ? product.selectedVariant.price
+        : product.price;
       return sum + parseFloat(price); // Convert to number before adding
     }, 0);
-    
+
     // Calculate discount using milestone configuration
-    const milestoneConfig = this.milestoneConfig || window.mainSubscriptionManager?.milestoneConfig || {
-      milestone1Items: 6,
-      milestone1Discount: 5.0,
-      milestone2Items: 10,
-      milestone2Discount: 10.0,
-    };
-    
+    const milestoneConfig = this.milestoneConfig ||
+      window.mainSubscriptionManager?.milestoneConfig || {
+        milestone1Items: 6,
+        milestone1Discount: 5.0,
+        milestone2Items: 10,
+        milestone2Discount: 10.0,
+      };
+
     let discount = 0;
     if (totalCount >= milestoneConfig.milestone2Items) {
       discount = milestoneConfig.milestone2Discount;
@@ -936,10 +1045,18 @@ class ProductManager {
       // Get messages from configuration or use defaults with dynamic values
       const config = window.subscriptionConfig?.messages || {};
       const messages = {
-        noItems: config.noItems || `Choose at least ${milestoneConfig.milestone1Items} items for ${milestoneConfig.milestone1Discount}% recurring savings`,
-        building: config.building || `Add {remaining} more for ${milestoneConfig.milestone1Discount}% recurring savings`, 
-        firstMilestone: config.fivePercent || `Great! Add {remaining} more for ${milestoneConfig.milestone2Discount}% recurring savings`,
-        maxDiscount: config.tenPercent || `Amazing! You've unlocked ${milestoneConfig.milestone2Discount}% recurring savings`
+        noItems:
+          config.noItems ||
+          `Choose at least ${milestoneConfig.milestone1Items} items for ${milestoneConfig.milestone1Discount}% recurring savings`,
+        building:
+          config.building ||
+          `Add {remaining} more for ${milestoneConfig.milestone1Discount}% recurring savings`,
+        firstMilestone:
+          config.fivePercent ||
+          `Great! Add {remaining} more for ${milestoneConfig.milestone2Discount}% recurring savings`,
+        maxDiscount:
+          config.tenPercent ||
+          `Amazing! You've unlocked ${milestoneConfig.milestone2Discount}% recurring savings`,
       };
 
       if (totalCount >= milestoneConfig.milestone2Items) {
@@ -949,12 +1066,18 @@ class ProductManager {
       } else if (totalCount >= milestoneConfig.milestone1Items) {
         // State 2: First discount achieved, show progress to next level
         const remaining = milestoneConfig.milestone2Items - totalCount;
-        cartMessage.textContent = messages.firstMilestone.replace('{remaining}', remaining);
+        cartMessage.textContent = messages.firstMilestone.replace(
+          "{remaining}",
+          remaining,
+        );
         cartDetails.innerHTML = `${totalCount} selected: <span class="original-price">$${parseFloat(totalPrice).toFixed(2)}</span> <span class="discount-price">$${parseFloat(discountedPrice).toFixed(2)} (${milestoneConfig.milestone1Discount}% OFF)</span>`;
       } else if (totalCount >= 1) {
         // State 1: Building towards first discount
         const remaining = milestoneConfig.milestone1Items - totalCount;
-        cartMessage.textContent = messages.building.replace('{remaining}', remaining);
+        cartMessage.textContent = messages.building.replace(
+          "{remaining}",
+          remaining,
+        );
         cartDetails.textContent = `${totalCount} selected: $${parseFloat(totalPrice).toFixed(2)}`;
       } else {
         // State 0: No items selected
@@ -968,20 +1091,22 @@ class ProductManager {
 
   // Mobile Categories Popup Functions
   createMobileCategoriesPopup(categoriesWithProducts, defaultCategory) {
-    const popupList = document.querySelector('.categories-popup-list');
-    const categoriesButton = document.getElementById('categories-toggle');
-    const selectedCategoryDisplay = document.getElementById('selected-category-display');
-    
+    const popupList = document.querySelector(".categories-popup-list");
+    const categoriesButton = document.getElementById("categories-toggle");
+    const selectedCategoryDisplay = document.getElementById(
+      "selected-category-display",
+    );
+
     if (!popupList) return;
 
     let popupHTML = "";
-    
+
     categoriesWithProducts.forEach(([handle, data]) => {
       const isActive = handle === defaultCategory;
       const badgeCount = data.products.length;
-      
-      const activeClass = isActive ? 'active' : '';
-      
+
+      const activeClass = isActive ? "active" : "";
+
       popupHTML += `
         <button class="category-item ${activeClass}" data-collection="${handle}" onclick="window.productManager.selectCategoryFromPopup('${handle}')">
           ${data.title}
@@ -991,102 +1116,109 @@ class ProductManager {
     });
 
     popupList.innerHTML = popupHTML;
-    
+
     // Update button text with current category
     if (selectedCategoryDisplay && this.productsByCollection[defaultCategory]) {
-      selectedCategoryDisplay.textContent = this.productsByCollection[defaultCategory].title;
+      selectedCategoryDisplay.textContent =
+        this.productsByCollection[defaultCategory].title;
     }
-    
+
     // Store current selected category for mobile
     this.currentMobileCategory = defaultCategory;
-    
+
     // Force update active state after DOM insertion
     setTimeout(() => {
-      const popupItems = document.querySelectorAll('.categories-popup-list .category-item');
-      popupItems.forEach(item => {
-        item.classList.remove('active');
+      const popupItems = document.querySelectorAll(
+        ".categories-popup-list .category-item",
+      );
+      popupItems.forEach((item) => {
+        item.classList.remove("active");
         if (item.dataset.collection === defaultCategory) {
-          item.classList.add('active');
+          item.classList.add("active");
         }
       });
     }, 50);
-    
+
     // Initialize popup handlers
     this.initializeMobilePopupHandlers();
   }
 
   initializeMobilePopupHandlers() {
-    const categoriesToggle = document.getElementById('categories-toggle');
-    const categoriesClose = document.getElementById('categories-close');
-    const popup = document.getElementById('categories-popup');
-    const overlay = document.getElementById('popup-overlay');
+    const categoriesToggle = document.getElementById("categories-toggle");
+    const categoriesClose = document.getElementById("categories-close");
+    const popup = document.getElementById("categories-popup");
+    const overlay = document.getElementById("popup-overlay");
 
     if (categoriesToggle) {
-      categoriesToggle.addEventListener('click', () => {
+      categoriesToggle.addEventListener("click", () => {
         this.openCategoriesPopup();
       });
     }
 
     if (categoriesClose) {
-      categoriesClose.addEventListener('click', () => {
+      categoriesClose.addEventListener("click", () => {
         this.closeCategoriesPopup();
       });
     }
 
     if (overlay) {
-      overlay.addEventListener('click', () => {
+      overlay.addEventListener("click", () => {
         this.closeCategoriesPopup();
       });
     }
   }
 
   openCategoriesPopup() {
-    const popup = document.getElementById('categories-popup');
-    const overlay = document.getElementById('popup-overlay');
-    
+    const popup = document.getElementById("categories-popup");
+    const overlay = document.getElementById("popup-overlay");
+
     if (popup && overlay) {
-      overlay.classList.add('active');
-      popup.classList.add('active');
-      document.body.style.overflow = 'hidden'; // Prevent background scroll
+      overlay.classList.add("active");
+      popup.classList.add("active");
+      document.body.style.overflow = "hidden"; // Prevent background scroll
     }
   }
 
   closeCategoriesPopup() {
-    const popup = document.getElementById('categories-popup');
-    const overlay = document.getElementById('popup-overlay');
-    
+    const popup = document.getElementById("categories-popup");
+    const overlay = document.getElementById("popup-overlay");
+
     if (popup && overlay) {
-      popup.classList.remove('active');
-      overlay.classList.remove('active');
-      document.body.style.overflow = ''; // Restore scroll
+      popup.classList.remove("active");
+      overlay.classList.remove("active");
+      document.body.style.overflow = ""; // Restore scroll
     }
   }
 
   selectCategoryFromPopup(categoryHandle) {
-    
     // Update products display
     if (this.productsByCollection[categoryHandle]) {
       this.displayProducts(this.productsByCollection[categoryHandle].products);
       this.selectCategoryInSidebar(categoryHandle);
-      
+
       // Update mobile button text
-      const selectedCategoryDisplay = document.getElementById('selected-category-display');
+      const selectedCategoryDisplay = document.getElementById(
+        "selected-category-display",
+      );
       if (selectedCategoryDisplay) {
-        selectedCategoryDisplay.textContent = this.productsByCollection[categoryHandle].title;
+        selectedCategoryDisplay.textContent =
+          this.productsByCollection[categoryHandle].title;
       }
-      
+
       // Update active states in popup
-      const popupItems = document.querySelectorAll('.categories-popup-list .category-item');
-      popupItems.forEach(item => {
-        item.classList.remove('active');
+      const popupItems = document.querySelectorAll(
+        ".categories-popup-list .category-item",
+      );
+      popupItems.forEach((item) => {
+        item.classList.remove("active");
         if (item.dataset.collection === categoryHandle) {
-          item.classList.add('active');
+          item.classList.add("active");
         }
       });
-      
+
       // Store current selected category
       this.currentMobileCategory = categoryHandle;
-      
+
       // Close popup
       this.closeCategoriesPopup();
     }
@@ -1094,43 +1226,127 @@ class ProductManager {
 
   // Also update desktop category selection to sync with mobile
   initializeCategoryHandlers() {
-    const categoryItems = document.querySelectorAll('.categories-sidebar .category-item');
-    categoryItems.forEach(item => {
-      item.addEventListener('click', () => {
-        
+    const categoryItems = document.querySelectorAll(
+      ".categories-sidebar .category-item",
+    );
+    categoryItems.forEach((item) => {
+      item.addEventListener("click", () => {
         const collection = item.dataset.collection;
         if (this.productsByCollection[collection]) {
           this.displayProducts(this.productsByCollection[collection].products);
-          
+
           // Update desktop sidebar active states
-          document.querySelectorAll('.categories-sidebar .category-item').forEach(sidebarItem => {
-            sidebarItem.classList.remove('active');
-          });
-          item.classList.add('active');
-          
+          document
+            .querySelectorAll(".categories-sidebar .category-item")
+            .forEach((sidebarItem) => {
+              sidebarItem.classList.remove("active");
+            });
+          item.classList.add("active");
+
           // Update mobile button text when desktop category changes
-          const selectedCategoryDisplay = document.getElementById('selected-category-display');
-          if (selectedCategoryDisplay && this.productsByCollection[collection]) {
-            selectedCategoryDisplay.textContent = this.productsByCollection[collection].title;
+          const selectedCategoryDisplay = document.getElementById(
+            "selected-category-display",
+          );
+          if (
+            selectedCategoryDisplay &&
+            this.productsByCollection[collection]
+          ) {
+            selectedCategoryDisplay.textContent =
+              this.productsByCollection[collection].title;
           }
-          
+
           // Update mobile popup active states
-          const popupItems = document.querySelectorAll('.categories-popup-list .category-item');
-          popupItems.forEach(popupItem => {
-            popupItem.classList.remove('active');
+          const popupItems = document.querySelectorAll(
+            ".categories-popup-list .category-item",
+          );
+          popupItems.forEach((popupItem) => {
+            popupItem.classList.remove("active");
             if (popupItem.dataset.collection === collection) {
-              popupItem.classList.add('active');
+              popupItem.classList.add("active");
             }
           });
-          
+
           this.currentMobileCategory = collection;
         }
       });
     });
   }
+
+  // Tooltip methods for product descriptions
+  showDescriptionTooltip(event, productId) {
+    const tooltip = document.getElementById(`tooltip-${productId}`);
+    if (tooltip) {
+      // Check if text has content and might be truncated
+      const descElement = event.currentTarget;
+      const textContent = descElement.textContent.trim();
+
+      // Show tooltip if there's meaningful text (more than a few characters)
+      if (textContent && textContent.length > 50) {
+        // Position the tooltip near the mouse or element
+        const rect = descElement.getBoundingClientRect();
+        tooltip.style.left = rect.left + 'px';
+        tooltip.style.top = (rect.top - 10) + 'px';
+        tooltip.style.transform = 'translateY(-100%)';
+        tooltip.style.width = rect.width + 'px';
+
+        tooltip.classList.add('show');
+      }
+    }
+  }
+
+  hideDescriptionTooltip(productId) {
+    const tooltip = document.getElementById(`tooltip-${productId}`);
+    if (tooltip) {
+      tooltip.classList.remove('show');
+    }
+  }
+
+  toggleDescriptionTooltip(event, productId) {
+    event.preventDefault();
+    const tooltip = document.getElementById(`tooltip-${productId}`);
+
+    if (tooltip) {
+      const descElement = event.currentTarget;
+      const textContent = descElement.textContent.trim();
+
+      // Show tooltip if there's meaningful text
+      if (textContent && textContent.length > 50) {
+        // Position the tooltip if showing
+        if (!tooltip.classList.contains('show')) {
+          const rect = descElement.getBoundingClientRect();
+          tooltip.style.left = rect.left + 'px';
+          tooltip.style.top = (rect.top - 10) + 'px';
+          tooltip.style.transform = 'translateY(-100%)';
+          tooltip.style.width = rect.width + 'px';
+        }
+
+        tooltip.classList.toggle('show');
+
+        // Hide other tooltips
+        document.querySelectorAll('.product-description-tooltip').forEach(t => {
+          if (t.id !== `tooltip-${productId}`) {
+            t.classList.remove('show');
+          }
+        });
+
+        // Add click outside listener to close tooltip
+        if (tooltip.classList.contains('show')) {
+          setTimeout(() => {
+            const closeHandler = (e) => {
+              if (!descElement.contains(e.target)) {
+                tooltip.classList.remove('show');
+                document.removeEventListener('click', closeHandler);
+              }
+            };
+            document.addEventListener('click', closeHandler);
+          }, 100);
+        }
+      }
+    }
+  }
 }
 
 // Initialize when DOM is loaded
-document.addEventListener("DOMContentLoaded", function() {
+document.addEventListener("DOMContentLoaded", function () {
   window.productManager = new ProductManager();
 });
