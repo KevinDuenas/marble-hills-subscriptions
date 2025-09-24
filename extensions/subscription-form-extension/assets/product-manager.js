@@ -960,9 +960,19 @@ class ProductManager {
       const milestoneText = milestone.querySelector(".milestone-text");
       if (milestoneText) {
         if (isActive) {
-          milestoneText.textContent = `You've got ${discount}% OFF`;
+          // Check if mobile
+          if (window.innerWidth <= 768) {
+            milestoneText.innerHTML = `You've got<br>${discount}% OFF`;
+          } else {
+            milestoneText.textContent = `You've got ${discount}% OFF`;
+          }
         } else {
-          milestoneText.textContent = `Add ${threshold}, get ${discount}% OFF`;
+          // Check if mobile
+          if (window.innerWidth <= 768) {
+            milestoneText.innerHTML = `Add ${threshold},<br>get ${discount}% OFF`;
+          } else {
+            milestoneText.textContent = `Add ${threshold}, get ${discount}% OFF`;
+          }
         }
       }
     });

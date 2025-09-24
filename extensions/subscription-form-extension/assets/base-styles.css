@@ -941,6 +941,37 @@
     font-size: 1.3rem !important; /* Larger discount display on mobile */
   }
 
+  /* Fix milestone positioning on mobile */
+  .milestone {
+    width: auto; /* Auto width */
+  }
+
+  .milestone:first-child {
+    position: absolute;
+    left: 50%; /* Center at 50% */
+    transform: translateX(-50%); /* Center the element */
+  }
+
+  .milestone:last-child {
+    position: absolute;
+    right: 0; /* At the end */
+    left: auto;
+    transform: none;
+  }
+
+  .milestone-text {
+    font-size: 0.9rem; /* Slightly smaller on mobile */
+    white-space: normal; /* Allow normal wrapping */
+    text-align: center;
+    width: auto; /* Auto width */
+    line-height: 1.2;
+    min-width: 70px; /* Minimum width */
+  }
+
+  .milestone-dot {
+    margin-bottom: 0.3rem; /* Less space on mobile */
+  }
+
   .offer-products {
     grid-template-columns: 1fr;
   }
