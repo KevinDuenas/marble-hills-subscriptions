@@ -455,9 +455,17 @@
     margin-bottom: 0.8rem;
   }
 
+  .product-info-row {
+    flex-direction: column; /* Stack title and price vertically on mobile */
+    align-items: flex-start; /* Align to the left */
+    gap: 0.3rem;
+  }
+
   .product-title {
-    font-size: 1rem;
+    font-size: 1.8rem; /* Almost double the size for mobile */
     line-height: 1.2;
+    font-weight: 700;
+    width: 100%;
   }
 
   .product-description {
@@ -473,7 +481,9 @@
   }
 
   .product-price {
-    font-size: 0.95rem;
+    font-size: 1.2rem; /* Larger price on mobile */
+    font-weight: 700;
+    margin-top: 0.2rem;
   }
 
   /* Hide desktop categories sidebar */
@@ -484,6 +494,7 @@
   /* Show mobile elements */
   .mobile-categories-button {
     display: block !important;
+    margin-top: 2rem; /* Add spacing from milestones above */
     margin-bottom: 1.5rem;
     width: 100%;
   }
