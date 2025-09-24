@@ -265,7 +265,7 @@ class SubscriptionManager {
       if (titleElement) titleElement.textContent = "Select Cuts";
       if (descriptionElement)
         descriptionElement.textContent =
-          "Add more, save more. You can change your cuts month to month";
+          "Build My Box!";
       if (discountContainer) discountContainer.style.display = "block";
       if (counterText) counterText.textContent = "selected";
     }

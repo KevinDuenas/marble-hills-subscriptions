@@ -68,10 +68,9 @@
   transition: all 0.3s ease;
   position: relative;
   box-shadow: 0 2px 6px rgba(91, 75, 65, 0.1);
-  min-height: 340px; /* Further reduced for less spacing */
+  min-height: 280px; /* Reduced from 340px since no description */
   display: flex;
   flex-direction: column;
-  /* Removed overflow: hidden to allow tooltip visibility */
 }
 
 
@@ -140,46 +139,7 @@
   flex-shrink: 0;
 }
 
-.product-description {
-  font-size: 1.15rem; /* Increased from 1.05rem */
-  color: #8B7355;
-  margin-bottom: 0.5rem; /* Reduced from 1rem */
-  line-height: 1.5;
-  max-height: 4.5em; /* Limit to ~3 lines (1.5 line-height * 3) */
-  overflow: hidden;
-  text-overflow: ellipsis;
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;
-  position: relative;
-  cursor: help; /* Show help cursor for tooltip */
-}
-
-/* Tooltip for full description */
-.product-description-tooltip {
-  position: fixed; /* Changed to fixed positioning */
-  background: #fff;
-  border: 1px solid #E8DCC6;
-  border-radius: 8px;
-  padding: 12px;
-  box-shadow: 0 4px 12px rgba(139, 115, 85, 0.4);
-  z-index: 99999; /* Even higher z-index */
-  font-size: 1rem;
-  line-height: 1.5;
-  color: #4A3F36;
-  max-width: 300px;
-  max-height: 200px;
-  overflow-y: auto;
-  display: none; /* Use display instead of visibility */
-  pointer-events: none;
-}
-
-.product-description-tooltip.show {
-  display: block; /* Show with display */
-  pointer-events: auto;
-}
-
-/* Removed arrow for fixed positioned tooltip */
+/* Product description styles removed - descriptions no longer displayed */
 
 /* Variant Selector */
 .variant-selector {

@@ -404,45 +404,20 @@ class ProductManager {
         const variantOptions = hasMultipleVariants
           ? product.variants
               .map((variant, index) => {
-                // Build descriptive variant name with option names
+                // Build variant label from option values only (no labels)
                 let variantLabel = "";
 
-                // Try to build from product options and variant values
-                if (product.options && product.options.length > 0) {
-                  const options = [];
-                  product.options.forEach((option, optionIndex) => {
-                    let optionValue = "";
-                    if (optionIndex === 0 && variant.option1)
-                      optionValue = variant.option1;
-                    else if (optionIndex === 1 && variant.option2)
-                      optionValue = variant.option2;
-                    else if (optionIndex === 2 && variant.option3)
-                      optionValue = variant.option3;
+                // Collect just the option values without labels
+                const optionValues = [];
+                if (variant.option1) optionValues.push(variant.option1);
+                if (variant.option2) optionValues.push(variant.option2);
+                if (variant.option3) optionValues.push(variant.option3);
 
-                    if (optionValue) {
-                      options.push(`${option.name} ${optionValue}`);
-                    }
-                  });
-
-                  if (options.length > 0) {
-                    variantLabel = options.join(" / ");
-                  }
-                }
-
-                // Fallback to just option values if no option names
-                if (
-                  !variantLabel &&
-                  (variant.option1 || variant.option2 || variant.option3)
-                ) {
-                  const options = [];
-                  if (variant.option1) options.push(variant.option1);
-                  if (variant.option2) options.push(variant.option2);
-                  if (variant.option3) options.push(variant.option3);
-                  variantLabel = options.join(" / ");
-                }
-
-                // Final fallback to variant title
-                if (!variantLabel) {
+                // Join option values with comma and space for clean display
+                if (optionValues.length > 0) {
+                  variantLabel = optionValues.join(", ");
+                } else {
+                  // Fallback to variant title or "Default" if no options
                   variantLabel = variant.title || "Default";
                 }
 
@@ -469,16 +444,6 @@ class ProductManager {
               <div class="product-info-row">
                 <div class="product-title">${product.title}</div>
                 <div class="product-price">${price}</div>
-              </div>
-              <div class="product-description"
-                   data-product-id="${product.id}"
-                   onmouseover="window.productManager.showDescriptionTooltip(event, ${product.id})"
-                   onmouseout="window.productManager.hideDescriptionTooltip(${product.id})"
-                   ontouchstart="window.productManager.toggleDescriptionTooltip(event, ${product.id})">
-                ${product.body_html?.replace(/<[^>]*>/g, "") || ""}
-                <div class="product-description-tooltip" id="tooltip-${product.id}">
-                  ${product.body_html?.replace(/<[^>]*>/g, "") || ""}
-                </div>
               </div>
             </div>
 
@@ -912,7 +877,7 @@ class ProductManager {
 
     if (addButton) {
       if (isSelected) {
-        addButton.textContent = "Remove from Cart";
+        addButton.textContent = "Remove from Box";
         addButton.classList.add("remove-mode");
         // Style as red remove button
         addButton.style.cssText = `
@@ -1004,7 +969,7 @@ class ProductManager {
 
     // Update progress text (always the same)
     if (progressText) {
-      progressText.textContent = "Add more, save more";
+      progressText.textContent = "Build My Box!";
     }
   }
 
