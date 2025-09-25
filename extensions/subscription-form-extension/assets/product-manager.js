@@ -45,10 +45,8 @@ class ProductManager {
       const data = await response.json();
 
       if (data.products && data.products.length > 0) {
-        console.log('Total products fetched:', data.products.length);
         // Filter products that have subscription metafield
         const filteredProducts = this.filterSubscriptionProducts(data.products);
-        console.log('Products after filtering:', filteredProducts.length);
         this.allProducts = filteredProducts;
 
         if (this.allProducts.length > 0) {
@@ -130,10 +128,6 @@ class ProductManager {
     const filteredProducts = products.filter((product) => {
       // Check if product has subscription eligibility metafield
       const isSubscriptionEligible = this.hasSubscriptionMetafield(product);
-
-      if (!isSubscriptionEligible) {
-        console.log('Filtered out product:', product.title, 'Tags:', product.tags);
-      }
 
       return isSubscriptionEligible;
     });
