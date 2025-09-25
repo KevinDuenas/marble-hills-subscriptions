@@ -407,18 +407,32 @@ class ProductManager {
                 // Build variant label from option values only (no labels)
                 let variantLabel = "";
 
-                // Collect just the option values without labels
-                const optionValues = [];
-                if (variant.option1) optionValues.push(variant.option1);
-                if (variant.option2) optionValues.push(variant.option2);
-                if (variant.option3) optionValues.push(variant.option3);
+                // Collect and organize option values (pack first, then weight)
+                const packOptions = [];
+                const weightOptions = [];
+                const otherOptions = [];
 
-                // Join option values with comma and space for clean display
-                if (optionValues.length > 0) {
-                  variantLabel = optionValues.join(", ");
+                if (variant.option1) {
+                  const cleaned1 = this.cleanVariantLabel(variant.option1, product.options?.[0]?.name);
+                  this.categorizeOption(cleaned1, packOptions, weightOptions, otherOptions);
+                }
+                if (variant.option2) {
+                  const cleaned2 = this.cleanVariantLabel(variant.option2, product.options?.[1]?.name);
+                  this.categorizeOption(cleaned2, packOptions, weightOptions, otherOptions);
+                }
+                if (variant.option3) {
+                  const cleaned3 = this.cleanVariantLabel(variant.option3, product.options?.[2]?.name);
+                  this.categorizeOption(cleaned3, packOptions, weightOptions, otherOptions);
+                }
+
+                // Join in order: pack first, then weight, then other
+                const orderedOptions = [...packOptions, ...weightOptions, ...otherOptions];
+                if (orderedOptions.length > 0) {
+                  variantLabel = orderedOptions.join(", ");
                 } else {
-                  // Fallback to variant title or "Default" if no options
-                  variantLabel = variant.title || "Default";
+                  // Fallback to variant title (also clean it) or "Default" if no options
+                  const fallbackLabel = variant.title || "Default";
+                  variantLabel = this.cleanVariantLabel(fallbackLabel);
                 }
 
                 return `<option value="${variant.id}" ${selectedVariant && selectedVariant.id === variant.id ? "selected" : ""}>
@@ -1318,6 +1332,74 @@ class ProductManager {
         }
       }
     }
+  }
+
+  // Categorize options by type to ensure correct order (pack first, weight second)
+  categorizeOption(option, packOptions, weightOptions, otherOptions) {
+    if (option.includes('-pack')) {
+      packOptions.push(option);
+    } else if (option.includes('oz each') || option.includes('lb each') || option.includes('g each') || option.includes('kg each')) {
+      weightOptions.push(option);
+    } else {
+      otherOptions.push(option);
+    }
+  }
+
+  // Clean up variant labels to use simplified terms
+  cleanVariantLabel(label, optionName) {
+    if (!label || typeof label !== 'string') return label;
+
+    let cleaned = label.trim();
+
+    // Handle patterns like "4 Count" or "Count: 4"
+    cleaned = cleaned.replace(/\b(count|quantity|qty|pieces?|pcs|items?)\s*:?\s*(\d+)/gi, '$2-pack');
+    cleaned = cleaned.replace(/(\d+)\s*-?\s*(count|quantity|qty|pieces?|pcs|items?)/gi, '$1-pack');
+
+    // Handle patterns like "Weight 14oz" or "14oz Weight"
+    cleaned = cleaned.replace(/\b(weight|wt)\s*:?\s*(\d+\s*(?:oz|lb|g|kg))/gi, '$2');
+    cleaned = cleaned.replace(/(\d+\s*(?:oz|lb|g|kg))\s*-?\s*(weight|wt)/gi, '$1');
+
+    // Remove standalone quantity/weight words
+    cleaned = cleaned.replace(/\b(quantity|qty|count|pieces|pcs|items?|weight|wt)\b/gi, '');
+
+    // Standardize weight units
+    cleaned = cleaned.replace(/\b(ounces?|oz\.?)\b/gi, 'oz');
+    cleaned = cleaned.replace(/\b(pounds?|lbs?|lb\.?)\b/gi, 'lb');
+    cleaned = cleaned.replace(/\b(grams?|g\.?)\b/gi, 'g');
+    cleaned = cleaned.replace(/\b(kilograms?|kg\.?)\b/gi, 'kg');
+
+    // Use option name to determine format for standalone numbers
+    if (/^\d+$/.test(cleaned.trim()) && optionName) {
+      const optionLower = optionName.toLowerCase();
+
+      // Check if option name indicates quantity/count
+      if (/\b(quantity|qty|count|pieces?|pcs|items?|pack)\b/i.test(optionLower)) {
+        cleaned = cleaned + '-pack';
+      }
+      // Check if option name indicates weight
+      else if (/\b(weight|wt|oz|ounce|lb|pound|gram|kg|kilogram)\b/i.test(optionLower)) {
+        cleaned = cleaned + 'oz each';
+      }
+      // Fallback: small numbers = pack, large numbers = oz
+      else {
+        const num = parseInt(cleaned);
+        if (num <= 12) {
+          cleaned = cleaned + '-pack';
+        } else {
+          cleaned = cleaned + 'oz each';
+        }
+      }
+    }
+
+    // Add "each" for clarity when we have weight per item (but not if already there)
+    if (/^\d+\s*(oz|lb|g|kg)$/i.test(cleaned) && !/each$/i.test(cleaned)) {
+      cleaned += ' each';
+    }
+
+    // Clean up extra spaces and normalize (but keep hyphens in -pack)
+    cleaned = cleaned.replace(/\s+/g, ' ').trim();
+
+    return cleaned;
   }
 }
 
