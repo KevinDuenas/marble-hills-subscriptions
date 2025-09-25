@@ -145,6 +145,7 @@
   display: flex;
   justify-content: space-between;
   position: relative;
+  padding-bottom: 1.5rem; /* Add space between milestones and product cards */
 }
 
 .milestone:first-child {
@@ -519,6 +520,20 @@
   margin: 1rem auto 0 auto;
   max-width: 400px;
   line-height: 1.4;
+}
+
+.offer-terms-text a,
+.offer-terms-text a:link,
+.offer-terms-text a:visited {
+  color: #3A2F28 !important;
+  text-decoration: underline !important;
+  font-weight: 500 !important;
+}
+
+.offer-terms-text a:hover,
+.offer-terms-text a:active {
+  color: #2A1F18 !important;
+  text-decoration: underline !important;
 }
 
 .offer-actions {

@@ -34,8 +34,8 @@ class ProductManager {
   // Load all products from "subscriptions" collection with metafield filtering
   async loadSubscriptionProducts() {
     try {
-      // Fetch products (tags are included by default)
-      const apiUrl = "/collections/subscriptions/products.json";
+      // Fetch products with higher limit (default is often 50)
+      const apiUrl = "/collections/subscriptions/products.json?limit=250";
       const response = await fetch(apiUrl);
 
       if (!response.ok) {
@@ -45,8 +45,10 @@ class ProductManager {
       const data = await response.json();
 
       if (data.products && data.products.length > 0) {
+        console.log('Total products fetched:', data.products.length);
         // Filter products that have subscription metafield
         const filteredProducts = this.filterSubscriptionProducts(data.products);
+        console.log('Products after filtering:', filteredProducts.length);
         this.allProducts = filteredProducts;
 
         if (this.allProducts.length > 0) {
@@ -75,7 +77,7 @@ class ProductManager {
 
       // Fallback to general products (tags included by default)
       try {
-        const fallbackUrl = "/products.json?limit=50";
+        const fallbackUrl = "/products.json?limit=250";
         const generalResponse = await fetch(fallbackUrl);
 
         if (!generalResponse.ok) {
@@ -128,6 +130,10 @@ class ProductManager {
     const filteredProducts = products.filter((product) => {
       // Check if product has subscription eligibility metafield
       const isSubscriptionEligible = this.hasSubscriptionMetafield(product);
+
+      if (!isSubscriptionEligible) {
+        console.log('Filtered out product:', product.title, 'Tags:', product.tags);
+      }
 
       return isSubscriptionEligible;
     });
