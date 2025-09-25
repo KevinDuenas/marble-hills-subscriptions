@@ -209,8 +209,8 @@
   bottom: 0 !important;
   left: 50% !important;
   transform: translateX(-50%) !important;
-  background: #F9F2E8 !important;
-  border: 1px solid #D4C5A9 !important;
+  background: #3A2F28 !important;  /* Dark brown background */
+  border: 1px solid #2A1F18 !important;  /* Even darker border */
   border-radius: 0.8rem 0.8rem 0 0 !important;
   padding: 1.5rem 2rem !important;
   display: flex !important;
@@ -219,7 +219,7 @@
   align-items: center !important;
   width: calc(100% - 4rem) !important;
   max-width: 1160px !important;
-  box-shadow: 0 -4px 12px rgba(91, 75, 65, 0.15) !important;
+  box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.25) !important;
   z-index: 100 !important;
 }
 
@@ -239,25 +239,26 @@
 .cart-message {
   font-size: 1.8rem; /* Increased from 1.1rem for desktop */
   font-weight: 600;
-  color: #5B4B41;
+  color: #F9F2E8 !important;  /* Light cream color for text */
   margin-bottom: 0.25rem;
 }
 
 .cart-details {
   font-size: 1.6rem; /* Increased from 1.3rem for much better visibility */
-  color: #8B7355;
+  color: #F9F2E8 !important;  /* Light cream color for regular text */
   font-weight: 600; /* Increased weight for better readability */
 }
 
 .cart-details .original-price {
   text-decoration: line-through;
   margin-right: 0.5rem;
+  color: #D4C5A9 !important;  /* Lighter muted color for struck-through price */
   font-size: 1.4rem; /* Increased proportionally */
   opacity: 0.8; /* Subtle visual hierarchy */
 }
 
 .cart-details .discount-price {
-  color: #EFAC52;
+  color: #E74C3C !important;  /* Red color for discount price */
   font-weight: 700; /* Bold */
   font-size: 1.7rem; /* Even larger to highlight savings */
 }
