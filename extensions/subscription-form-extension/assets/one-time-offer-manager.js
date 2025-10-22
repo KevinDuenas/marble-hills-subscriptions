@@ -119,28 +119,25 @@ class OneTimeOfferManager {
       return `
         <div class="product-card offer-product-card ${isSelected ? 'selected' : ''}" data-product-id="${offer.id}">
           ${hasDiscount ? `<div class="discount-badge">${discountPercentage}% OFF</div>` : ''}
-          
+
           <div class="product-image">
             ${offer.imageUrl ? `<img src="${offer.imageUrl}" alt="${offer.title}">` : '<div class="no-image">No image</div>'}
           </div>
-          
+
           <div class="product-info">
-            <div class="product-info-row">
+            <div class="product-content">
               <div class="product-title">${offer.title}</div>
-              <div class="product-price-container">
-                ${hasDiscount ? `<div class="original-price">$${comparedAtPrice.toFixed(2)}</div>` : ''}
-                <div class="offer-price">FREE</div>
+              ${offer.description ? `<p class="product-description">${offer.description}</p>` : ''}
+              <div class="offer-pricing">
+                ${hasDiscount ? `<span class="original-price">$${comparedAtPrice.toFixed(2)}</span>` : ''}
+                <span class="offer-price">FREE</span>
               </div>
             </div>
-            
-            ${offer.description ? `<p class="product-description">${offer.description}</p>` : ''}
-            
-            <div class="product-actions">
-              <button class="add-offer-btn ${isSelected ? 'selected' : ''}" 
-                      onclick="window.oneTimeOfferManager.toggleOffer('${offer.id}')">
-                ${isSelected ? 'Added ✓' : 'Add to First Box'}
-              </button>
-            </div>
+
+            <button class="add-offer-btn ${isSelected ? 'selected' : ''}"
+                    onclick="window.oneTimeOfferManager.toggleOffer('${offer.id}')">
+              ${isSelected ? 'Added ✓' : 'Add to First Box'}
+            </button>
           </div>
         </div>
       `;

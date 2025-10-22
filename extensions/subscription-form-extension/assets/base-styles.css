@@ -357,6 +357,7 @@
   margin-bottom: 3rem !important;
   visibility: visible !important;
   min-height: 200px !important;
+  align-items: stretch !important; /* Make all cards equal height */
 }
 
 .offer-product-card {
@@ -364,9 +365,11 @@
   border-radius: 0.8rem !important;
   overflow: hidden !important;
   transition: all 0.3s ease !important;
-  display: block !important;
+  display: flex !important;
+  flex-direction: column !important;
   visibility: visible !important;
   min-height: 300px !important;
+  height: 100% !important;
   background: #F9F2E8 !important;
   box-shadow: 0 2px 6px rgba(91, 75, 65, 0.1) !important;
 }
@@ -402,13 +405,33 @@
 
 .offer-product-card .product-info {
   padding: 1.5rem;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.offer-product-card .product-content {
+  flex-grow: 1;
 }
 
 .offer-product-card .product-title {
   font-size: 1.2rem;
   font-weight: 600;
   color: #5B4B41;
+  margin-bottom: 0.5rem;
+}
+
+.offer-product-card .product-description {
+  font-size: 0.9rem;
+  color: #8B7355;
   margin-bottom: 1rem;
+  line-height: 1.4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 3; /* Limit to 3 lines */
+  -webkit-box-orient: vertical;
 }
 
 .offer-product-card .variant-select {
@@ -453,6 +476,8 @@
   cursor: pointer;
   transition: all 0.3s ease;
   box-shadow: 0 2px 6px rgba(91, 75, 65, 0.2);
+  margin-top: 1rem; /* Consistent spacing from content */
+  flex-shrink: 0; /* Don't let button shrink */
 }
 
 .offer-product-card .add-offer-btn:hover {
@@ -475,6 +500,7 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  padding-bottom: 0.5rem; /* Consistent spacing */
 }
 
 .offer-product-card .original-price {
