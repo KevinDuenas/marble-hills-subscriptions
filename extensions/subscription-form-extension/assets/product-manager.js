@@ -166,6 +166,22 @@ class ProductManager {
     }
   }
 
+  // Extract fictitious variant from sb-novariant tag
+  getFictitiousVariant(product) {
+    if (product.tags && Array.isArray(product.tags)) {
+      const novVariantTag = product.tags.find(tag =>
+        tag.startsWith('sb-novariant-')
+      );
+
+      if (novVariantTag) {
+        // Extract the variant description after 'sb-novariant-'
+        const variantDescription = novVariantTag.substring('sb-novariant-'.length);
+        return variantDescription.trim();
+      }
+    }
+    return null;
+  }
+
   // Create categories dynamically from sb-category- tags
   createProductCategories(products) {
     // Start with Best Sellers category
@@ -400,47 +416,56 @@ class ProductManager {
         const hasMultipleVariants =
           product.variants && product.variants.length > 1;
 
-        // Generate variant options only if there are multiple variants
-        const variantOptions = hasMultipleVariants
-          ? product.variants
-              .map((variant, index) => {
-                // Build variant label from option values only (no labels)
-                let variantLabel = "";
+        // Check for fictitious variant from sb-novariant tag
+        const fictitiousVariant = this.getFictitiousVariant(product);
 
-                // Collect and organize option values (pack first, then weight)
-                const packOptions = [];
-                const weightOptions = [];
-                const otherOptions = [];
+        // Generate variant options - prioritize real variants over fictitious ones
+        let variantOptions = null;
+        if (hasMultipleVariants) {
+          // Real variants take priority
+          variantOptions = product.variants
+            .map((variant, index) => {
+              // Build variant label from option values only (no labels)
+              let variantLabel = "";
 
-                if (variant.option1) {
-                  const cleaned1 = this.cleanVariantLabel(variant.option1, product.options?.[0]?.name);
-                  this.categorizeOption(cleaned1, packOptions, weightOptions, otherOptions);
-                }
-                if (variant.option2) {
-                  const cleaned2 = this.cleanVariantLabel(variant.option2, product.options?.[1]?.name);
-                  this.categorizeOption(cleaned2, packOptions, weightOptions, otherOptions);
-                }
-                if (variant.option3) {
-                  const cleaned3 = this.cleanVariantLabel(variant.option3, product.options?.[2]?.name);
-                  this.categorizeOption(cleaned3, packOptions, weightOptions, otherOptions);
-                }
+              // Collect and organize option values (pack first, then weight)
+              const packOptions = [];
+              const weightOptions = [];
+              const otherOptions = [];
 
-                // Join in order: pack first, then weight, then other
-                const orderedOptions = [...packOptions, ...weightOptions, ...otherOptions];
-                if (orderedOptions.length > 0) {
-                  variantLabel = orderedOptions.join(", ");
-                } else {
-                  // Fallback to variant title (also clean it) or "Default" if no options
-                  const fallbackLabel = variant.title || "Default";
-                  variantLabel = this.cleanVariantLabel(fallbackLabel);
-                }
+              if (variant.option1) {
+                const cleaned1 = this.cleanVariantLabel(variant.option1, product.options?.[0]?.name);
+                this.categorizeOption(cleaned1, packOptions, weightOptions, otherOptions);
+              }
+              if (variant.option2) {
+                const cleaned2 = this.cleanVariantLabel(variant.option2, product.options?.[1]?.name);
+                this.categorizeOption(cleaned2, packOptions, weightOptions, otherOptions);
+              }
+              if (variant.option3) {
+                const cleaned3 = this.cleanVariantLabel(variant.option3, product.options?.[2]?.name);
+                this.categorizeOption(cleaned3, packOptions, weightOptions, otherOptions);
+              }
 
-                return `<option value="${variant.id}" ${selectedVariant && selectedVariant.id === variant.id ? "selected" : ""}>
-              ${variantLabel}
-            </option>`;
-              })
-              .join("")
-          : null;
+              // Join in order: pack first, then weight, then other
+              const orderedOptions = [...packOptions, ...weightOptions, ...otherOptions];
+              if (orderedOptions.length > 0) {
+                variantLabel = orderedOptions.join(", ");
+              } else {
+                // Fallback to variant title (also clean it) or "Default" if no options
+                const fallbackLabel = variant.title || "Default";
+                variantLabel = this.cleanVariantLabel(fallbackLabel);
+              }
+
+              return `<option value="${variant.id}" ${selectedVariant && selectedVariant.id === variant.id ? "selected" : ""}>
+                ${variantLabel}
+              </option>`;
+            })
+            .join("");
+        } else if (fictitiousVariant) {
+          // Show fictitious variant only if no real variants exist
+          const defaultVariantId = product.variants?.[0]?.id || '';
+          variantOptions = `<option value="${defaultVariantId}" selected>${fictitiousVariant}</option>`;
+        }
 
         // Generate button styles based on selection state
         const buttonStyle = isSelected
@@ -464,8 +489,8 @@ class ProductManager {
             <div class="product-bottom-section">
               <div class="variant-selector">
                 ${
-                  hasMultipleVariants
-                    ? `<select onchange="window.productManager.updateVariant(${product.id}, this.value)">
+                  variantOptions
+                    ? `<select ${hasMultipleVariants ? `onchange="window.productManager.updateVariant(${product.id}, this.value)"` : 'disabled'}>
                     ${variantOptions}
                   </select>`
                     : `<div class="no-variants-placeholder"></div>`
