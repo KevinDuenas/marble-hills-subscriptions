@@ -47,7 +47,7 @@
 /* Products Grid Container */
 .products-grid-container {
   flex: 1;
-  max-height: 450px;
+  max-height: 680px; /* Increased further to show 3+ cards vertically with more comfortable spacing */
   overflow-y: auto;
   padding: 0 1rem;
   margin-bottom: 4rem; /* Increased space to prevent milestone overlap */
@@ -427,6 +427,11 @@
 @media (max-width: 1024px) {
   .products-grid {
     grid-template-columns: repeat(2, 1fr);
+  }
+
+  /* Ensure tablets also have enough height for 3+ cards vertically */
+  .products-grid-container {
+    max-height: 680px;
   }
 }
 
