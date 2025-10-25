@@ -43,12 +43,10 @@ class MainSubscriptionManager {
         shopName = `${shopName}.myshopify.com`;
       }
       
-      console.log('MainSubscriptionManager: Attempting to load milestone config from API for shop:', shopName);
       const response = await fetch(`/apps/subscription/api/milestone-config?shop=${shopName}`);
       
       if (response.ok) {
         const config = await response.json();
-        console.log('MainSubscriptionManager: Successfully loaded milestone config from API:', config);
         this.milestoneConfig = config;
         
         // Update any existing managers with new config
@@ -60,36 +58,27 @@ class MainSubscriptionManager {
           window.cartManager.updateMilestoneConfig(this.milestoneConfig);
         }
         
-        console.log('MainSubscriptionManager: Updated all managers with new config');
       } else {
-        console.warn('MainSubscriptionManager: Could not load milestone config from API (status:', response.status, '), using defaults');
-        console.warn('MainSubscriptionManager: Default config being used:', this.milestoneConfig);
         
         // Ensure CartManager gets the default config too
         if (window.cartManager) {
           window.cartManager.updateMilestoneConfig(this.milestoneConfig);
-          console.log('MainSubscriptionManager: Updated CartManager with default config');
         }
       }
     } catch (error) {
-      console.warn('MainSubscriptionManager: Error loading milestone config:', error, 'Using defaults');
-      console.warn('MainSubscriptionManager: Default config being used:', this.milestoneConfig);
       
       // Ensure CartManager gets the default config even on error
       if (window.cartManager) {
         window.cartManager.updateMilestoneConfig(this.milestoneConfig);
-        console.log('MainSubscriptionManager: Updated CartManager with default config after error');
       }
     }
   }
 
   showStep(stepNumber) {
     if (stepNumber < 1 || stepNumber > this.maxSteps) {
-      console.error('Subscription Error: Invalid step number:', stepNumber);
       return;
     }
 
-    console.log(`MainSubscriptionManager: Transitioning to step ${stepNumber}`);
     this.currentStep = stepNumber;
 
     // Hide all steps
@@ -100,7 +89,6 @@ class MainSubscriptionManager {
     // Show current step
     const currentStepElement = document.querySelector(`.form-step[data-step="${stepNumber}"]`);
     if (currentStepElement) {
-      console.log(`MainSubscriptionManager: Found and showing step ${stepNumber} element`);
       currentStepElement.classList.add('active');
       
       // Show/hide floating carts based on step - both use same class now
@@ -117,7 +105,6 @@ class MainSubscriptionManager {
       // Initialize step-specific functionality
       this.initializeStepLogic(stepNumber);
     } else {
-      console.error(`Step element not found: ${stepNumber}`);
     }
   }
 
@@ -150,18 +137,15 @@ class MainSubscriptionManager {
   }
 
   initializeOfferStep() {
-    console.log('MainSubscriptionManager: Initializing offer step');
     
     // Add delay to ensure Step 3 DOM is ready
     setTimeout(() => {
       if (window.oneTimeOfferManager) {
-        console.log('MainSubscriptionManager: OneTimeOfferManager found, loading offers');
         window.oneTimeOfferManager.loadOfferProducts();
         
         // Initialize Step 3 navigation
         this.initializeStep3Navigation();
       } else {
-        console.log('MainSubscriptionManager: OneTimeOfferManager not found, waiting...');
         // Wait for OneTimeOfferManager to initialize
         setTimeout(() => {
           this.initializeOfferStep();
@@ -288,7 +272,6 @@ class MainSubscriptionManager {
 
   async checkOneTimeOffersAndProceed() {
     try {
-      console.log('MainSubscriptionManager: Checking for one-time offers...');
 
       // Get shop name from current URL
       let shopName = window.Shopify?.shop || window.location.hostname;
@@ -298,18 +281,15 @@ class MainSubscriptionManager {
         shopName = shopName.replace('.myshopify.com', '');
       }
 
-      console.log('MainSubscriptionManager: Fetching offers for shop:', shopName);
 
       // Check our dedicated one-time offers API
       const response = await fetch(`/apps/subscription/api/one-time-offers?shop=${shopName}`);
       const data = await response.json();
 
-      console.log('MainSubscriptionManager: One-time offers response:', data);
 
       let hasOfferProducts = false;
       if (data.offers && Array.isArray(data.offers)) {
         hasOfferProducts = data.offers.length > 0;
-        console.log('MainSubscriptionManager: Found', data.offers.length, 'one-time offers');
       }
 
       // Hide loading state from Step 2 Next button
@@ -319,15 +299,11 @@ class MainSubscriptionManager {
       }
 
       if (hasOfferProducts) {
-        console.log('MainSubscriptionManager: Proceeding to Step 3 with offers');
         this.showStep(3);
       } else {
-        console.log('MainSubscriptionManager: No offers found, skipping to checkout');
         this.skipOffersAndCheckout();
       }
     } catch (error) {
-      console.error('MainSubscriptionManager: Failed to load one-time offers:', error);
-      console.log('MainSubscriptionManager: Error occurred, skipping to checkout');
 
       // Hide loading state on error
       const nextBtn = document.getElementById('frequency-next-btn');
@@ -467,11 +443,9 @@ class MainSubscriptionManager {
           await window.cartManager.createSubscription(this.subscriptionData);
           break; // Success, exit loop
         } else {
-          console.log(`MainSubscriptionManager: CartManager not ready, attempt ${retryCount + 1}/${maxRetries}`);
 
           if (retryCount === maxRetries - 1) {
             // Last attempt - try to initialize manually
-            console.warn('MainSubscriptionManager: Last attempt - initializing CartManager...');
             if (typeof CartManager !== 'undefined') {
               window.cartManager = new CartManager();
               await window.cartManager.createSubscription(this.subscriptionData);
@@ -489,7 +463,6 @@ class MainSubscriptionManager {
       }
 
     } catch (error) {
-      console.error('Subscription Error: Failed to create subscription:', error);
     }
   }
 
@@ -539,7 +512,6 @@ document.addEventListener('DOMContentLoaded', function() {
   // Ensure CartManager is initialized with default config if it exists
   setTimeout(() => {
     if (window.cartManager && window.mainSubscriptionManager) {
-      console.log('MainSubscriptionManager: Initializing CartManager with config on DOM load');
       window.cartManager.updateMilestoneConfig(window.mainSubscriptionManager.milestoneConfig);
     }
   }, 100); // Small delay to ensure CartManager is loaded

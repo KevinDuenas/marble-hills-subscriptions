@@ -23,7 +23,6 @@ class ProductManager {
       this.updateProgressBar();
       this.updateFloatingCart();
     } catch (error) {
-      console.error("Product Manager Error: Failed to load products:", error);
       if (productsGrid) {
         productsGrid.innerHTML =
           '<div class="loading-products"><p>Error loading products. Please try again.</p></div>';
@@ -68,10 +67,7 @@ class ProductManager {
         throw new Error("No products found in subscriptions collection");
       }
     } catch (error) {
-      console.error(
-        "Product Manager Error: Failed to load subscription products:",
-        error,
-      );
+      // Error loading subscription products
 
       // Fallback to general products (tags included by default)
       try {
@@ -97,10 +93,7 @@ class ProductManager {
           throw new Error("No products found in general products either");
         }
       } catch (fallbackError) {
-        console.error(
-          "Product Manager Error: Fallback also failed:",
-          fallbackError,
-        );
+        // Fallback also failed
         this.displayErrorMessage(
           "Unable to load products. Please refresh the page.",
         );
@@ -539,9 +532,7 @@ class ProductManager {
         : null);
 
     if (!selectedVariant) {
-      console.error(
-        `Product Manager Error: No variants found for product ${productId}`,
-      );
+      // No variants found for product
       return;
     }
 
@@ -983,7 +974,6 @@ class ProductManager {
         z-index: 10 !important;
       `;
     } else {
-      console.error("Product Manager Error: Progress fill element not found");
     }
 
     // Update milestones with dynamic configuration

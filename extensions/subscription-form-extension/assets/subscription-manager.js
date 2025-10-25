@@ -9,7 +9,6 @@ class SubscriptionManager {
   }
 
   init() {
-    console.log("Initializing Subscription Manager");
     this.findFormContainer();
     if (this.form) {
       this.initializeNavigation();
@@ -31,19 +30,15 @@ class SubscriptionManager {
     }
 
     if (!this.form) {
-      console.error("Could not find subscription form container");
       return;
     }
 
-    console.log("Using form container:", this.form);
   }
 
   showStep(stepNumber) {
-    console.log("Showing step:", stepNumber);
     this.currentStep = stepNumber;
 
     const allSteps = document.querySelectorAll(".form-step");
-    console.log("Total steps found:", allSteps.length);
 
     // Hide all steps
     allSteps.forEach((step, index) => {
@@ -58,9 +53,7 @@ class SubscriptionManager {
     if (currentStep) {
       currentStep.classList.add("active");
       currentStep.style.display = "flex";
-      console.log("Successfully activated step:", stepNumber, currentStep);
     } else {
-      console.error("Step not found:", stepNumber);
     }
   }
 
@@ -131,11 +124,9 @@ class SubscriptionManager {
       selectedProducts: this.selectedProducts,
     };
 
-    console.log("Updated subscription data:", this.subscriptionData);
   }
 
   initializeNavigation() {
-    console.log("Initializing navigation buttons");
 
     // Next buttons
     document.querySelectorAll(".next-step").forEach((button, index) => {
@@ -144,7 +135,6 @@ class SubscriptionManager {
 
       newButton.addEventListener("click", (e) => {
         e.preventDefault();
-        console.log("NEXT BUTTON CLICKED - DEBUG START");
 
         const currentStepElement = newButton.closest(".form-step");
         const currentStep = parseInt(currentStepElement.dataset.step);
@@ -152,30 +142,22 @@ class SubscriptionManager {
           'input[name="subscription_type"]:checked',
         )?.value;
 
-        console.log(`STEP ELEMENT:`, currentStepElement);
-        console.log(
           `CURRENT STEP: ${currentStep} (type: ${typeof currentStep})`,
         );
-        console.log(`SUBSCRIPTION TYPE: ${subscriptionType}`);
 
         if (this.validateCurrentStep(currentStep)) {
-          console.log(`VALIDATION PASSED FOR STEP ${currentStep}`);
           this.updateSubscriptionData();
 
           let nextStep;
 
           // NUEVA LÓGICA DE NAVEGACIÓN - FORZADA
-          console.log(`CHECKING NAVIGATION FOR STEP ${currentStep}`);
 
           if (currentStep === 1) {
             nextStep = 2;
-            console.log(`FORCED NAVIGATION: Step 1 → Step 2 (BOTH TYPES)`);
           } else if (currentStep === 2) {
             nextStep = 3;
-            console.log(`NAVIGATION: Step 2 → Step 3 (FREQUENCY)`);
           } else if (currentStep === 3 && subscriptionType === "custom") {
             nextStep = 4;
-            console.log(`NAVIGATION: Step 3 → Step 4 (CUSTOM PRODUCTS)`);
             this.showStep(nextStep);
             this.setupProductStep("custom");
             if (window.productManager) {
@@ -185,7 +167,6 @@ class SubscriptionManager {
             return;
           } else if (currentStep === 3 && subscriptionType === "curated") {
             nextStep = 4;
-            console.log(`NAVIGATION: Step 3 → Step 4 (CURATED PRODUCTS)`);
             this.showStep(nextStep);
             this.setupProductStep("curated");
             if (window.productManager) {
@@ -195,13 +176,10 @@ class SubscriptionManager {
             return;
           } else {
             nextStep = parseInt(newButton.dataset.next);
-            console.log(`FALLBACK NAVIGATION TO: ${nextStep}`);
           }
 
-          console.log(`FINAL NEXT STEP: ${nextStep}`);
           this.showStep(nextStep);
         } else {
-          console.log(`VALIDATION FAILED FOR STEP ${currentStep}`);
         }
       });
     });
@@ -213,14 +191,12 @@ class SubscriptionManager {
 
       newButton.addEventListener("click", (e) => {
         e.preventDefault();
-        console.log("Previous button clicked");
 
         const currentStep = parseInt(
           newButton.closest(".form-step").dataset.step,
         );
         let prevStep = parseInt(newButton.dataset.prev);
 
-        console.log(`Going back from step ${currentStep} to step ${prevStep}`);
         this.showStep(prevStep);
       });
     });
@@ -233,7 +209,6 @@ class SubscriptionManager {
 
       newCreateButton.addEventListener("click", (e) => {
         e.preventDefault();
-        console.log("Create subscription clicked");
 
         if (this.validateCurrentStep(4)) {
           if (window.cartManager) {
@@ -270,7 +245,6 @@ class SubscriptionManager {
       if (counterText) counterText.textContent = "selected";
     }
 
-    console.log(`Product step configured for: ${subscriptionType}`);
   }
 
   clearAllSelections() {

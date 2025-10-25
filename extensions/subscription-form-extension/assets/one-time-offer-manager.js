@@ -23,23 +23,18 @@ class OneTimeOfferManager {
       const shopDomain = window.location.hostname;
       const shopName = shopDomain.replace('.myshopify.com', '');
       
-      console.log('OneTimeOfferManager: Loading offers for shop:', shopName, 'from domain:', shopDomain);
       
       // Fetch offers from our app proxy API
       const apiUrl = `/apps/subscription/api/one-time-offers?shop=${shopName}`;
-      console.log('OneTimeOfferManager: Fetching from API:', apiUrl);
       
       const response = await fetch(apiUrl);
       const data = await response.json();
       
-      console.log('OneTimeOfferManager: API response:', data);
 
       if (data.offers && data.offers.length > 0) {
-        console.log('OneTimeOfferManager: Found', data.offers.length, 'offers');
         this.offerProducts = data.offers;
         this.displayOfferProducts();
       } else {
-        console.log('OneTimeOfferManager: No offers found, displaying demo offers');
         this.displayDemoOffers();
       }
       
@@ -49,7 +44,6 @@ class OneTimeOfferManager {
       }, 100);
       
     } catch (error) {
-      console.error('Error loading One Time Offers:', error);
       this.displayDemoOffers();
       
       setTimeout(() => {
@@ -99,7 +93,6 @@ class OneTimeOfferManager {
     const offerProductsContainer = document.getElementById('offer-products-grid');
     if (!offerProductsContainer) return;
 
-    console.log('OneTimeOfferManager: Displaying', this.offerProducts.length, 'offer products');
 
     const offerCards = this.offerProducts.map(offer => {
       // Extract numeric variant ID from GraphQL ID if present
@@ -108,7 +101,6 @@ class OneTimeOfferManager {
         variantId = variantId.split('/').pop();
       }
       
-      console.log('OneTimeOfferManager: Processing offer:', offer.title, 'variantId:', variantId);
       
       const isSelected = this.selectedOffers.some(selectedOffer => selectedOffer.id === offer.id);
       const currentPrice = 0; // Always $0 for one-time offers
@@ -217,21 +209,17 @@ class OneTimeOfferManager {
   }
 
   toggleOffer(offerId) {
-    console.log('OneTimeOfferManager: Toggle offer called for:', offerId);
 
     const offer = this.offerProducts.find(p => p.id === offerId);
     if (!offer) {
-      console.error('OneTimeOfferManager: Offer not found:', offerId);
       return;
     }
 
-    console.log('OneTimeOfferManager: Found offer:', offer);
 
     const existingOfferIndex = this.selectedOffers.findIndex(selectedOffer => selectedOffer.id === offerId);
 
     if (existingOfferIndex > -1) {
       // Remove offer
-      console.log('OneTimeOfferManager: Removing offer:', offer.title);
       this.selectedOffers.splice(existingOfferIndex, 1);
     } else {
       // SINGLE SELECTION: Remove any existing offers first
@@ -245,12 +233,9 @@ class OneTimeOfferManager {
       const discountPercentage = this.calculateDiscountPercentage(price, comparedAtPrice);
       const savingsAmount = comparedAtPrice > price ? (comparedAtPrice - price) : 0;
 
-      console.log('OneTimeOfferManager: Calculated discount:', discountPercentage, '%, savings:', savingsAmount);
 
       // CRITICAL: Special logging for $0 offers
       if (price === 0) {
-        console.log('🚨 ZERO DOLLAR OFFER DETECTED! 🚨');
-        console.log('OneTimeOfferManager: Processing $0 offer:', offer.title);
         const debugLog = JSON.parse(localStorage.getItem('zeroOfferDebug') || '[]');
         debugLog.push({
           timestamp: new Date().toISOString(),
@@ -270,8 +255,6 @@ class OneTimeOfferManager {
       let variantIdToUse;
 
       if (!offer.shopifyVariantId) {
-        console.error('OneTimeOfferManager: No Shopify variant ID found for offer:', offer.title);
-        console.error('OneTimeOfferManager: All one-time offers must be real $0 products created in Shopify admin');
         return; // Skip offers without real Shopify variant IDs
       }
 
@@ -280,7 +263,6 @@ class OneTimeOfferManager {
         ? offer.shopifyVariantId.split('/').pop()
         : offer.shopifyVariantId;
 
-      console.log('OneTimeOfferManager: Using real Shopify $0 product variant:', variantIdToUse, 'for offer:', offer.title);
 
       const offerData = {
         id: offerId, // Keep original ID for UI tracking
@@ -310,7 +292,6 @@ class OneTimeOfferManager {
 
 
       // One-time offers don't need selling plans - they are one-time purchases
-      console.log('OneTimeOfferManager: Real $0 Shopify product configured for offer:', offer.title, 'variant:', variantIdToUse);
 
       this.selectedOffers.push(offerData);
     }
@@ -375,8 +356,6 @@ class OneTimeOfferManager {
     const skipOfferBtn = document.getElementById('skip-offer-btn');
     const emailInput = document.getElementById('customer-email');
     
-    console.log('OneTimeOfferManager: Updating button state');
-    console.log('OneTimeOfferManager: Add to cart button found:', !!addToCartBtn);
     
     if (!addToCartBtn) return;
     
@@ -387,14 +366,10 @@ class OneTimeOfferManager {
     // Check if at least one offer is selected
     const hasSelectedOffer = this.selectedOffers.length > 0;
     
-    console.log('OneTimeOfferManager: Email valid:', isEmailValid);
-    console.log('OneTimeOfferManager: Has selected offer:', hasSelectedOffer);
-    console.log('OneTimeOfferManager: Selected offers count:', this.selectedOffers.length);
     
     // Enable button only if BOTH conditions are met: valid email AND selected offer
     const shouldEnable = isEmailValid && hasSelectedOffer;
     
-    console.log('OneTimeOfferManager: Should enable button:', shouldEnable);
     
     addToCartBtn.disabled = !shouldEnable;
     
@@ -436,7 +411,6 @@ class OneTimeOfferManager {
   }
 
   getSelectedOffers() {
-    console.log('OneTimeOfferManager: getSelectedOffers called, current selectedOffers:', this.selectedOffers);
 
     // Ensure variant IDs are in numeric format for cart API
     const processedOffers = this.selectedOffers.map(offer => {
@@ -451,21 +425,13 @@ class OneTimeOfferManager {
 
       const processedOffer = {
         ...offer,
-        id: variantId, // Use the unique variant ID as the item ID for cart
+        // DO NOT override id - keep the original offer ID for tracking
+        // The cart-manager will use variantId for the actual Shopify cart
         variantId: variantId
       };
 
-      console.log('OneTimeOfferManager: Processing offer for cart:', processedOffer);
 
-      // CRITICAL: Debug logging for $0 offers (all offers are now $0)
-      console.log('✅ FREE OFFER BEING SENT TO CART!');
-      console.log('OneTimeOfferManager: Free offer data for cart:', {
-        id: processedOffer.id,
-        variantId: processedOffer.variantId,
-        title: processedOffer.title,
-        price: processedOffer.price,
-        properties: processedOffer.properties
-      });
+      // Store debug info for $0 offers
 
       const debugLog = JSON.parse(localStorage.getItem('zeroOfferDebug') || '[]');
       debugLog.push({
@@ -485,7 +451,6 @@ class OneTimeOfferManager {
       return processedOffer;
     });
 
-    console.log('OneTimeOfferManager: Returning processed offers to cart:', processedOffers);
     return processedOffers;
   }
 

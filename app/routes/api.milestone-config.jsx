@@ -33,7 +33,6 @@ export const loader = async ({ request }) => {
 
     return json(config);
   } catch (error) {
-    console.error("Error loading milestone config:", error);
     // Return default configuration on error
     return json({
       milestone1Items: 6,

@@ -40,7 +40,6 @@ export const loader = async ({ request }) => {
     });
 
   } catch (error) {
-    console.error('Error fetching one time offers:', error);
     return json({ error: 'Failed to fetch offers' }, { status: 500 });
   }
 };

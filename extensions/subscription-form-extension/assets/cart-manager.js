@@ -58,11 +58,9 @@ class CartManager {
       }
     };
     
-    console.log('CartManager: Updated milestone config and selling plans:', this.milestoneConfig, this.sellingPlans);
   }
 
   getSellingPlanId(totalCount, frequency) {
-    console.log('CartManager: Getting selling plan for count:', totalCount, 'frequency:', frequency);
     
     let discountTier = "0";
     
@@ -73,7 +71,6 @@ class CartManager {
       milestone2Discount: 10.0,
     };
     
-    console.log('CartManager: Milestone config:', config);
     
     if (totalCount >= config.milestone2Items) {
       discountTier = config.milestone2Discount.toString();
@@ -81,26 +78,19 @@ class CartManager {
       discountTier = config.milestone1Discount.toString();
     }
     
-    console.log('CartManager: Discount tier:', discountTier);
-    console.log('CartManager: Available selling plans:', this.sellingPlans);
-    console.log('CartManager: Looking for selling plan with tier:', discountTier, 'and frequency:', frequency);
     
     if (this.sellingPlans[discountTier] && this.sellingPlans[discountTier][frequency]) {
       const planId = this.sellingPlans[discountTier][frequency];
       
       // Validate that the plan ID is not empty or null
       if (!planId || planId.trim() === '') {
-        console.warn('CartManager: ⚠️ Selling plan ID is empty for tier:', discountTier, 'frequency:', frequency);
         return null;
       }
       
       return planId;
     }
     
-    console.warn('CartManager: ❌ No selling plan found for tier:', discountTier, 'frequency:', frequency);
-    console.warn('CartManager: Available tiers:', Object.keys(this.sellingPlans));
     if (this.sellingPlans[discountTier]) {
-      console.warn('CartManager: Available frequencies for tier', discountTier + ':', Object.keys(this.sellingPlans[discountTier]));
     }
     return null;
   }
@@ -121,8 +111,6 @@ class CartManager {
       const selectedProducts = subscriptionData.selectedProducts || [];
       const oneTimeOffers = subscriptionData.oneTimeOffers || [];
       
-      console.log('CartManager: Selected products:', selectedProducts.length);
-      console.log('CartManager: One time offers:', oneTimeOffers.length);
       
       // Calculate discount
       const totalCount = selectedProducts.reduce((sum, product) => sum + product.quantity, 0);
@@ -140,50 +128,40 @@ class CartManager {
         discount = config.milestone1Discount;
       }
 
-      console.log('CartManager: Calculated discount:', discount);
 
       // Prepare all cart items
       const allCartItems = [];
       
       // Add individual subscription products with selling plans
       for (const product of selectedProducts) {
-        console.log('CartManager: Preparing subscription product:', product.title);
         const cartItem = await this.prepareSubscriptionProduct(product, subscriptionData, totalCount);
         if (cartItem) {
           allCartItems.push(cartItem);
-          console.log('CartManager: Added subscription product to cart:', cartItem.id);
         }
       }
       
       // Add one-time offers
       for (const offer of oneTimeOffers) {
-        console.log('CartManager: Preparing one-time offer:', offer.title);
         const cartItem = await this.prepareOfferProduct(offer);
         if (cartItem) {
           allCartItems.push(cartItem);
-          console.log('CartManager: Added one-time offer to cart:', cartItem.id);
         }
       }
       
-      console.log('CartManager: Total cart items prepared:', allCartItems.length);
 
       if (allCartItems.length === 0) {
-        console.error('CartManager: No products to add to cart');
         throw new Error("No products to add to cart");
       }
 
       // Add all items to cart using regular Cart API
-      console.log('CartManager: Adding items to cart using Cart API...');
       const result = await this.addToCartWithSubscription(allCartItems, discount, subscriptionData);
 
       if (result.success) {
-        console.log('CartManager: Successfully added items to cart, redirecting to checkout');
         window.location.href = "/checkout";
       } else {
         throw new Error(result.error || "Failed to add products to cart");
       }
     } catch (error) {
-      console.error('CartManager: Subscription creation failed:', error);
       // Re-enable cart protection on error
       if (window.cartProtection) {
         setTimeout(() => {
@@ -269,40 +247,34 @@ class CartManager {
       return bundleItem;
       
     } catch (error) {
-      console.error("Cart Manager Error:", error);
       return null;
     }
   }
 
   async prepareSubscriptionProduct(product, subscriptionData, totalCount) {
     try {
-      console.log('CartManager: Preparing subscription product:', product.title);
       
       // Use the selected variant directly
       const variantId = product.selectedVariant?.id;
       
-      console.log('CartManager: Variant ID for subscription:', variantId);
       
       if (!variantId) {
-        console.error('CartManager: No variant ID found for subscription product:', product);
         return null;
       }
 
       // Get the appropriate selling plan
       const sellingPlanId = this.getSellingPlanId(totalCount, subscriptionData.frequency);
       
-      console.log('CartManager: Selling plan ID:', sellingPlanId);
-      console.log('CartManager: Total count:', totalCount, 'Frequency:', subscriptionData.frequency);
       
       const cartItem = {
-        id: variantId,
-        quantity: product.quantity,
+        id: parseInt(variantId), // Ensure numeric ID for Shopify Cart API
+        quantity: parseInt(product.quantity),
         properties: {
           _subscription_type: "custom",
           _frequency: subscriptionData.frequency,
           _frequency_text: this.frequencyText[subscriptionData.frequency] || subscriptionData.frequency,
-          _product_title: product.title,
-          _selected_variant: product.selectedVariant.title,
+          _product_title: product.title || "Unknown Product",
+          _selected_variant: product.selectedVariant?.title || "Default",
           _quantity: product.quantity.toString(),
           _custom_selection: "true",
           _protected_item: "true", // Mark for cart protection
@@ -313,21 +285,31 @@ class CartManager {
 
       // Add selling plan if available (THIS IS CRITICAL FOR SUBSCRIPTIONS)
       if (sellingPlanId) {
-        cartItem.selling_plan = sellingPlanId;
-        console.log('CartManager: Added selling plan to subscription product:', sellingPlanId);
-        
+        cartItem.selling_plan = sellingPlanId.toString(); // Ensure string for Shopify API
+
         // Add selling plan info to properties for tracking
-        cartItem.properties._selling_plan_id = sellingPlanId;
+        cartItem.properties._selling_plan_id = sellingPlanId.toString();
         cartItem.properties._has_selling_plan = "true";
       } else {
-        console.warn('CartManager: No selling plan found for subscription product - this will be a one-time purchase!');
         cartItem.properties._has_selling_plan = "false";
       }
 
-      console.log('CartManager: Final subscription cart item:', cartItem);
+      // Validate cart item before returning
+      if (!cartItem.id || cartItem.quantity <= 0) {
+        return null;
+      }
+
+      // Clean up any undefined properties that could cause cart errors
+      if (cartItem.properties) {
+        Object.keys(cartItem.properties).forEach(key => {
+          if (cartItem.properties[key] === undefined || cartItem.properties[key] === null) {
+            delete cartItem.properties[key];
+          }
+        });
+      }
+
       return cartItem;
     } catch (error) {
-      console.error("CartManager: Error preparing subscription product:", error);
       return null;
     }
   }
@@ -335,21 +317,28 @@ class CartManager {
   async prepareOfferProduct(offer) {
     try {
       // All offers are now real $0 Shopify products with variant IDs
-      let variantId = offer.variantId || offer.id;
+      // IMPORTANT: Use variantId, NOT id - the id is for tracking, variantId is for Shopify
+      let variantId = offer.variantId;
+
+      // Validate that variantId exists
+      if (!variantId) {
+        return null;
+      }
 
       // Extract numeric ID from GraphQL format if present
-      if (variantId && variantId.includes('gid://')) {
+      if (variantId.includes('gid://')) {
         variantId = variantId.split('/').pop();
       }
 
-      if (!variantId) {
-        console.error('CartManager: No variant ID found for offer:', offer);
+      // Validate variantId is a valid number
+      const numericVariantId = parseInt(variantId);
+      if (isNaN(numericVariantId)) {
         return null;
       }
 
       const cartItem = {
-        id: variantId,
-        quantity: offer.quantity || 1,
+        id: parseInt(variantId), // Ensure numeric ID for Shopify Cart API
+        quantity: parseInt(offer.quantity || 1),
         properties: {
           _first_box_addon: "true",
           _offer_product: "true",
@@ -361,9 +350,22 @@ class CartManager {
         },
       };
 
+      // Validate cart item before returning
+      if (!cartItem.id || cartItem.quantity <= 0) {
+        return null;
+      }
+
+      // Clean up any undefined properties that could cause cart errors
+      if (cartItem.properties) {
+        Object.keys(cartItem.properties).forEach(key => {
+          if (cartItem.properties[key] === undefined || cartItem.properties[key] === null) {
+            delete cartItem.properties[key];
+          }
+        });
+      }
+
       return cartItem;
     } catch (error) {
-      console.error("CartManager: Error preparing offer product:", error);
       return null;
     }
   }
@@ -401,7 +403,6 @@ class CartManager {
       }
       return null;
     } catch (error) {
-      console.error("Cart Manager Error:", error);
       return null;
     }
   }
@@ -417,7 +418,6 @@ class CartManager {
 
       return null;
     } catch (error) {
-      console.error("Cart Manager Error:", error);
       return null;
     }
   }
@@ -434,7 +434,6 @@ class CartManager {
 
       return null;
     } catch (error) {
-      console.error("Cart Manager Error:", error);
       return null;
     }
   }
@@ -476,7 +475,7 @@ class CartManager {
 
       // Add all items to cart
       if (allCartItems.length > 0) {
-
+        // Debug: Log exact payload being sent to Shopify
 
         const response = await fetch("/cart/add.js", {
           method: "POST",
@@ -490,8 +489,15 @@ class CartManager {
 
         if (!response.ok) {
           const errorData = await response.json();
-          console.error('Cart API Error:', errorData);
-          throw new Error(`Failed to add products: ${errorData.message || 'Unknown error'}`);
+
+          // Try to get more specific error information
+          if (errorData.description) {
+          }
+          if (errorData.errors) {
+          }
+
+          const errorMessage = errorData.description || errorData.message || errorData.errors || 'Unknown cart error';
+          throw new Error(`Failed to add products to cart: ${errorMessage}`);
         }
       }
       
@@ -547,7 +553,6 @@ class CartManager {
 
       return { success: true, cart: cartData };
     } catch (error) {
-      console.error("Cart Manager Error:", error);
       // Re-enable protection even on error
       if (window.cartProtection) {
         window.cartProtection.isProtectionActive = false;

@@ -48,7 +48,6 @@ class CartProtection {
         this.isProtectionActive = hasSubscriptionItems && cart.items.length > 0;
       }
     } catch (error) {
-      console.error("Error checking subscription cart:", error);
     }
   }
 
@@ -142,7 +141,6 @@ class CartProtection {
       
       return false;
     } catch (error) {
-      console.error("Error checking subscription modification:", error);
       return false;
     }
   }
@@ -187,7 +185,6 @@ class CartProtection {
       
       return response;
     } catch (error) {
-      console.error("Error clearing cart:", error);
       return new Response(JSON.stringify({ 
         success: false, 
         error: "Failed to clear cart" 

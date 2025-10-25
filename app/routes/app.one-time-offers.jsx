@@ -76,12 +76,10 @@ export const loader = async ({ request }) => {
       const productsData = await productsResponse.json();
       storeProducts = productsData.data?.products?.edges?.map(edge => edge.node) || [];
     } catch (error) {
-      console.error('Error fetching products:', error);
     }
 
     return { offers, storeProducts };
   } catch (error) {
-    console.error('Error loading One Time Offers:', error);
     return { offers: [], storeProducts: [] };
   }
 };
@@ -195,7 +193,6 @@ export const action = async ({ request }) => {
           const updateResult = await updateVariantResponse.json();
 
           if (updateResult.data?.productVariantsBulkUpdate?.userErrors?.length > 0) {
-            console.error(`Variant update failed for ${offer.title}:`, updateResult.data.productVariantsBulkUpdate.userErrors);
             errors.push(`${offer.title} (variant update): ${updateResult.data.productVariantsBulkUpdate.userErrors.map(e => e.message).join(', ')}`);
             continue;
           }
@@ -215,7 +212,6 @@ export const action = async ({ request }) => {
           created++;
 
         } catch (error) {
-          console.error(`Error creating Shopify product for ${offer.title}:`, error);
           errors.push(`${offer.title}: ${error.message}`);
         }
       }
@@ -311,7 +307,6 @@ export const action = async ({ request }) => {
 
           const updateResult = await updateProductResponse.json();
           if (updateResult.data?.productUpdate?.userErrors?.length > 0) {
-            console.error('Shopify product update errors:', updateResult.data.productUpdate.userErrors);
           }
 
           // CRITICAL: Always update variant price to $0
@@ -346,7 +341,6 @@ export const action = async ({ request }) => {
           const variantUpdateResult = await updateVariantResponse.json();
 
           if (variantUpdateResult.data?.productVariantsBulkUpdate?.userErrors?.length > 0) {
-            console.error('Shopify variant update failed:', variantUpdateResult.data.productVariantsBulkUpdate.userErrors);
           } else {
             const updatedVariants = variantUpdateResult.data?.productVariantsBulkUpdate?.productVariants || [];
             const updatedPrice = updatedVariants[0]?.price;
@@ -359,7 +353,7 @@ export const action = async ({ request }) => {
           // This handles the case where products exist but aren't linked to this position yet
           const existingProducts = await admin.graphql(`
             query getOneTimeOfferProducts {
-              products(first: 10, query: "tag:one-time-offer") {
+              products(first: 10, query: "tag:sb-one-time-offer") {
                 edges {
                   node {
                     id
@@ -381,8 +375,14 @@ export const action = async ({ request }) => {
           const productsResult = await existingProducts.json();
           const oneTimeOfferProducts = productsResult.data?.products?.edges || [];
           
-          // Check if we have fewer than 3 products, if so create a new one
-          if (oneTimeOfferProducts.length < 3) {
+          // FIXED: Each position needs its own unique product
+          // Check if we need to create a new product for this specific position
+          // We'll create up to 3 products total (one for each position)
+          const positionIndex = parseInt(data.position) - 1; // Convert position to 0-based index
+
+          // SAFE: Always create a new product for new offers
+          // Only reuse products when updating existing offers
+          if (!existingOffer) {
             
             const createProductResponse = await admin.graphql(`
               mutation productCreate($input: ProductInput!) {
@@ -408,7 +408,7 @@ export const action = async ({ request }) => {
                 input: {
                   title: data.title,
                   descriptionHtml: data.description || '',
-                  tags: ['one-time-offer', 'sb-one-time-offer'],
+                  tags: ['sb-one-time-offer'],
                 }
               }
             });
@@ -416,7 +416,6 @@ export const action = async ({ request }) => {
             const createResult = await createProductResponse.json();
             
             if (createResult.data?.productCreate?.userErrors?.length > 0) {
-              console.error('Shopify product creation errors:', createResult.data.productCreate.userErrors);
               throw new Error(`Failed to create Shopify product: ${createResult.data.productCreate.userErrors.map(e => e.message).join(', ')}`);
             }
 
@@ -454,14 +453,15 @@ export const action = async ({ request }) => {
             const newVariantUpdateResult = await updateNewVariantResponse.json();
 
             if (newVariantUpdateResult.data?.productVariantsBulkUpdate?.userErrors?.length > 0) {
-              console.error('Shopify variant update failed:', newVariantUpdateResult.data.productVariantsBulkUpdate.userErrors);
             } else {
               const updatedVariants = newVariantUpdateResult.data?.productVariantsBulkUpdate?.productVariants || [];
               const updatedPrice = updatedVariants[0]?.price;
             }
-          } else {
-            // Reuse the oldest product (first in the list)
-            const productToReuse = oneTimeOfferProducts[0].node;
+          } else if (existingOffer) {
+            // FIXED: For existing offers, keep using their assigned product
+            // This preserves the product association when updating
+            shopifyProductId = existingOffer.shopifyProductId;
+            shopifyVariantId = existingOffer.shopifyVariantId;
             
             // Update the existing product
             const updateProductResponse = await admin.graphql(`
@@ -489,55 +489,53 @@ export const action = async ({ request }) => {
                   id: productToReuse.id,
                   title: data.title,
                   descriptionHtml: data.description || '',
-                  tags: ['one-time-offer', 'sb-one-time-offer'],
+                  tags: ['sb-one-time-offer'],
                 }
               }
             });
 
             const updateResult = await updateProductResponse.json();
             if (updateResult.data?.productUpdate?.userErrors?.length > 0) {
-              console.error('Shopify product update errors:', updateResult.data.productUpdate.userErrors);
             }
 
-            shopifyProductId = productToReuse.id;
-            shopifyVariantId = productToReuse.variants.edges[0].node.id;
+            shopifyProductId = existingOffer.shopifyProductId;
+            shopifyVariantId = existingOffer.shopifyVariantId;
 
-            // CRITICAL: Always update variant price to $0 for reused products
+          }
 
-            const updateVariantResponse = await admin.graphql(`
-              mutation productVariantsBulkUpdate($productId: ID!, $variants: [ProductVariantsBulkInput!]!) {
-                productVariantsBulkUpdate(productId: $productId, variants: $variants) {
-                  productVariants {
-                    id
-                    price
-                    compareAtPrice
-                  }
-                  userErrors {
-                    field
-                    message
-                  }
+          // CRITICAL: Always update variant price to $0 for all products (new or existing)
+          const updateVariantResponse = await admin.graphql(`
+            mutation productVariantsBulkUpdate($productId: ID!, $variants: [ProductVariantsBulkInput!]!) {
+              productVariantsBulkUpdate(productId: $productId, variants: $variants) {
+                productVariants {
+                  id
+                  price
+                  compareAtPrice
+                }
+                userErrors {
+                  field
+                  message
                 }
               }
-            `, {
-              variables: {
-                productId: shopifyProductId,
-                variants: [{
-                  id: shopifyVariantId,
-                  price: "0.00", // Always free for one-time offers
-                  compareAtPrice: null,
-                  inventoryPolicy: 'CONTINUE'
-                }]
-              }
-            });
-
-            const variantUpdateResult = await updateVariantResponse.json();
-
-            if (variantUpdateResult.data?.productVariantsBulkUpdate?.userErrors?.length > 0) {
-              console.error('Shopify variant update failed:', variantUpdateResult.data.productVariantsBulkUpdate.userErrors);
-            } else {
-              const updatedVariants = variantUpdateResult.data?.productVariantsBulkUpdate?.productVariants || [];
-              const updatedPrice = updatedVariants[0]?.price;
             }
+          `, {
+            variables: {
+              productId: shopifyProductId,
+              variants: [{
+                id: shopifyVariantId,
+                price: "0.00", // Always free for one-time offers
+                compareAtPrice: null,
+                inventoryPolicy: 'CONTINUE'
+              }]
+            }
+          });
+
+          const variantUpdateResult = await updateVariantResponse.json();
+
+          if (variantUpdateResult.data?.productVariantsBulkUpdate?.userErrors?.length > 0) {
+          } else {
+            const updatedVariants = variantUpdateResult.data?.productVariantsBulkUpdate?.productVariants || [];
+            const updatedPrice = updatedVariants[0]?.price;
           }
 
           // All variants now guaranteed to be $0
@@ -549,7 +547,6 @@ export const action = async ({ request }) => {
 
 
       } catch (shopifyError) {
-        console.error('Error managing Shopify product:', shopifyError);
       }
 
 
@@ -583,7 +580,6 @@ export const action = async ({ request }) => {
 
     return { error: "Invalid action", success: false };
   } catch (error) {
-    console.error('Error in One Time Offers action:', error);
     return { error: "Server error", success: false };
   }
 };
@@ -625,7 +621,6 @@ export default function OneTimeOffersPage() {
       });
       setEditingPosition(position);
     } catch (error) {
-      console.error('Error in handleEdit:', error);
     }
   }
 
