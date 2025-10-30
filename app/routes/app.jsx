@@ -26,7 +26,6 @@ export default function App() {
         <a href="/app/configuring-products">Configuring Products</a>
         <a href="/app/milestones">Milestone Configuration</a>
         <a href="/app/one-time-offers">One Time Offers</a>
-        <a href="/app/selling-plans">Selling Plans</a>
       </NavMenu>
       <Frame>
         <Outlet />
