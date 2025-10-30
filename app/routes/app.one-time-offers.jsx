@@ -138,7 +138,15 @@ export const action = async ({ request }) => {
               input: {
                 title: offer.title,
                 descriptionHtml: offer.description || '',
-                tags: ['one-time-offer', 'sb-one-time-offer']
+                tags: ['one-time-offer', 'sb-one-time-offer'],
+                metafields: [
+                  {
+                    namespace: "seo",
+                    key: "hidden",
+                    value: "1",
+                    type: "number_integer"
+                  }
+                ]
               }
             }
           });
@@ -301,6 +309,14 @@ export const action = async ({ request }) => {
                 title: data.title,
                 descriptionHtml: data.description || '',
                 tags: ['one-time-offer', 'sb-one-time-offer'],
+                metafields: [
+                  {
+                    namespace: "seo",
+                    key: "hidden",
+                    value: "1",
+                    type: "number_integer"
+                  }
+                ]
               }
             }
           });
@@ -409,6 +425,14 @@ export const action = async ({ request }) => {
                   title: data.title,
                   descriptionHtml: data.description || '',
                   tags: ['sb-one-time-offer'],
+                  metafields: [
+                    {
+                      namespace: "seo",
+                      key: "hidden",
+                      value: "1",
+                      type: "number_integer"
+                    }
+                  ]
                 }
               }
             });
