@@ -22,7 +22,7 @@ api_version = "2025-04"
 
 [access_scopes]
 # Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
-scopes = "write_products,write_draft_orders"
+scopes = "write_products,read_products,write_draft_orders"
 
 [auth]
 redirect_urls = ["https://marble-hills-subscriptions-production.up.railway.app/auth/callback", "https://marble-hills-subscriptions-production.up.railway.app/auth/shopify/callback", "https://marble-hills-subscriptions-production.up.railway.app/api/auth/callback"]

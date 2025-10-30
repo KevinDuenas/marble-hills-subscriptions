@@ -22,13 +22,21 @@ export const loader = async ({ request }) => {
   const { authenticate } = await import("../shopify.server");
   const { admin } = await authenticate.admin(request);
 
+  // Hardcoded Group IDs from your setup
+  const groupIds = [
+    "gid://shopify/SellingPlanGroup/1078755372", // 5% discount group
+    "gid://shopify/SellingPlanGroup/1078788140"  // 10% discount group
+  ];
+
   try {
-    // Get all Selling Plan Groups
-    const response = await admin.graphql(`
-      query getSellingPlanGroups {
-        sellingPlanGroups(first: 10) {
-          edges {
-            node {
+    const sellingPlanGroups = [];
+
+    // Query each group individually
+    for (const groupId of groupIds) {
+      try {
+        const response = await admin.graphql(`
+          query getSellingPlanGroup($id: ID!) {
+            sellingPlanGroup(id: $id) {
               id
               name
               merchantCode
@@ -61,12 +69,19 @@ export const loader = async ({ request }) => {
               }
             }
           }
-        }
-      }
-    `);
+        `, {
+          variables: { id: groupId }
+        });
 
-    const data = await response.json();
-    const sellingPlanGroups = data.data?.sellingPlanGroups?.edges?.map(edge => edge.node) || [];
+        const data = await response.json();
+
+        if (data.data?.sellingPlanGroup) {
+          sellingPlanGroups.push(data.data.sellingPlanGroup);
+        }
+      } catch (err) {
+        console.error(`Error loading group ${groupId}:`, err);
+      }
+    }
 
     return { sellingPlanGroups };
   } catch (error) {
@@ -311,7 +326,11 @@ export default function SellingPlansPage() {
           <Banner title="Manage Selling Plan Names" status="info">
             <p>
               Customize how subscription plans appear to customers in the cart and checkout.
-              The names you set here will be displayed as "Deliver every X weeks, Y% off".
+              The names you set here will be displayed to customers during checkout.
+            </p>
+            <p style={{ marginTop: '8px' }}>
+              <strong>Groups Found:</strong> {sellingPlanGroups.length}
+              {sellingPlanGroups.length === 0 && " - If you see 0, the selling plans may have been created by another app and cannot be edited via API."}
             </p>
           </Banner>
         </Layout.Section>
@@ -327,26 +346,47 @@ export default function SellingPlansPage() {
         {sellingPlanGroups.length === 0 && !loaderError && (
           <Layout.Section>
             <Banner title="No Selling Plans Found" status="warning">
-              <p>No selling plan groups were found. Please create selling plans first in your Shopify admin.</p>
+              <p>
+                No selling plan groups were found using the specified Group IDs (1078755372 and 1078788140).
+                This likely means:
+              </p>
+              <ul style={{ marginTop: '8px', marginLeft: '20px' }}>
+                <li>The selling plans were created by Shopify's Subscriptions app (not accessible via your app's API)</li>
+                <li>The Group IDs are incorrect</li>
+                <li>Your app doesn't have the necessary permissions</li>
+              </ul>
+              <p style={{ marginTop: '8px' }}>
+                <strong>Solution:</strong> Edit the selling plan names manually in Shopify Admin → Products → Subscriptions
+              </p>
             </Banner>
           </Layout.Section>
         )}
 
-        {sellingPlanGroups.map((group) => (
+        {sellingPlanGroups.map((group, index) => {
+          const isFirstGroup = index === 0;
+          const discountLabel = isFirstGroup ? "5% Discount Group" : "10% Discount Group";
+
+          return (
           <Layout.Section key={group.id}>
             <Card>
               <BlockStack gap="400">
                 <Box>
                   <InlineStack align="space-between" blockAlign="center">
-                    <BlockStack gap="100">
-                      <Text variant="headingMd" as="h2">
-                        {group.name || "Unnamed Group"}
-                      </Text>
+                    <BlockStack gap="200">
+                      <InlineStack gap="200" blockAlign="center">
+                        <Text variant="headingMd" as="h2">
+                          {group.name || "Unnamed Group"}
+                        </Text>
+                        <Badge tone={isFirstGroup ? "info" : "success"}>{discountLabel}</Badge>
+                      </InlineStack>
                       {group.merchantCode && (
                         <Text variant="bodySm" tone="subdued">
                           Code: {group.merchantCode}
                         </Text>
                       )}
+                      <Text variant="bodySm" tone="subdued">
+                        Group ID: {group.id.split('/').pop()}
+                      </Text>
                     </BlockStack>
                     <Button
                       onClick={() => handleEditGroup(group.id, group.name)}
@@ -458,7 +498,8 @@ export default function SellingPlansPage() {
               </BlockStack>
             </Card>
           </Layout.Section>
-        ))}
+          );
+        })}
 
         <Layout.Section>
           <Card>
