@@ -4,8 +4,9 @@ class CartProtection {
     this.isSubscriptionCart = false;
     this.subscriptionItems = new Set();
     this.isProtectionActive = false;
+    this.isCreatingSubscription = false; // NEW: Flag to disable protection during subscription creation
     this.originalFetch = window.fetch;
-    
+
     this.init();
   }
 
@@ -82,6 +83,11 @@ class CartProtection {
   }
 
   async handleCartModification(url, options) {
+    // CRITICAL: If we're creating a subscription, allow ALL cart operations
+    if (this.isCreatingSubscription) {
+      return this.originalFetch.call(window, url, options);
+    }
+
     if (!this.isProtectionActive) {
       return this.originalFetch.call(window, url, options);
     }
@@ -148,47 +154,49 @@ class CartProtection {
   async clearEntireCart() {
     try {
       // Disable protection temporarily to avoid recursion
+      const wasProtectionActive = this.isProtectionActive;
       this.isProtectionActive = false;
       this.subscriptionItems.clear();
-      
+
       // Use original fetch without interception
-      const response = await fetch('/cart/clear.js', { 
+      const response = await fetch('/cart/clear.js', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         }
       });
-      
+
       if (response.ok) {
-        // Don't reload if protection is disabled (during subscription creation)
-        if (this.isProtectionActive) {
+        // CRITICAL: Never reload if we're creating a subscription
+        // Only reload if protection was active AND we're not creating subscription
+        if (wasProtectionActive && !this.isCreatingSubscription) {
           // Force page refresh to update cart UI
           setTimeout(() => {
             window.location.reload();
           }, 1000);
         }
-        
+
         // Return a successful response to prevent the original modification
-        return new Response(JSON.stringify({ 
-          success: true, 
+        return new Response(JSON.stringify({
+          success: true,
           message: "Cart cleared due to subscription protection",
           items: [],
           item_count: 0,
           total_price: 0
-        }), { 
+        }), {
           status: 200,
           headers: {
             'Content-Type': 'application/json',
           }
         });
       }
-      
+
       return response;
     } catch (error) {
-      return new Response(JSON.stringify({ 
-        success: false, 
-        error: "Failed to clear cart" 
-      }), { 
+      return new Response(JSON.stringify({
+        success: false,
+        error: "Failed to clear cart"
+      }), {
         status: 200,
         headers: {
           'Content-Type': 'application/json',
@@ -256,14 +264,14 @@ class CartProtection {
   blockRemoveButtons() {
     // Disable/hide remove buttons for subscription items
     const removeButtons = document.querySelectorAll('[data-cart-remove], .cart-remove, .cart__remove, .remove');
-    
+
     removeButtons.forEach(button => {
       if (this.isProtectionActive) {
         button.style.opacity = '0.3';
         button.style.pointerEvents = 'none';
         button.style.cursor = 'not-allowed';
         button.title = 'Subscription items are protected - removing one item will clear the entire cart';
-        
+
         // Add click handler to clear cart
         button.addEventListener('click', (e) => {
           e.preventDefault();
@@ -274,17 +282,38 @@ class CartProtection {
       }
     });
   }
+
+  // PUBLIC METHODS: For external use by cart-manager.js
+  startSubscriptionCreation() {
+    this.isCreatingSubscription = true;
+    this.isProtectionActive = false;
+  }
+
+  finishSubscriptionCreation() {
+    this.isCreatingSubscription = false;
+    // Re-check subscription cart status after creation
+    setTimeout(() => {
+      this.checkSubscriptionCart();
+    }, 500);
+  }
+}
+
+// Helper function to detect if we're on a checkout-related page
+function isCheckoutPage() {
+  const path = window.location.pathname.toLowerCase();
+  const checkoutPaths = ['/checkout', '/thank', '/orders', '/account', '/wallets'];
+
+  return checkoutPaths.some(checkoutPath => path.includes(checkoutPath)) ||
+         window.Shopify?.Checkout !== undefined; // Shopify Checkout object exists
 }
 
 // Initialize cart protection only if we're not on checkout pages
 document.addEventListener('DOMContentLoaded', function() {
-  // Skip initialization on checkout pages
-  if (window.location.pathname.includes('/checkout') || 
-      window.location.pathname.includes('/thank') ||
-      window.location.pathname.includes('/orders')) {
+  // CRITICAL: Never initialize on checkout-related pages
+  if (isCheckoutPage()) {
     return;
   }
-  
+
   // Small delay to ensure cart is loaded
   setTimeout(() => {
     if (!window.cartProtection) {
@@ -295,13 +324,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // Also initialize on page load for themes that load cart via AJAX
 window.addEventListener('load', function() {
-  // Skip on checkout pages
-  if (window.location.pathname.includes('/checkout') || 
-      window.location.pathname.includes('/thank') ||
-      window.location.pathname.includes('/orders')) {
+  // CRITICAL: Never initialize on checkout-related pages
+  if (isCheckoutPage()) {
     return;
   }
-  
+
   if (!window.cartProtection) {
     setTimeout(() => {
       window.cartProtection = new CartProtection();

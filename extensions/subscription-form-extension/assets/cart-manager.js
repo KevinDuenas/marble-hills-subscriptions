@@ -102,10 +102,11 @@ class CartManager {
       if (subscriptionData.oneTimeOffers && subscriptionData.oneTimeOffers.length > 0) {
         // Process one-time offers for inclusion in subscription
       }
-      
-      // Disable cart protection during subscription creation
+
+      // CRITICAL: Mark that we're starting subscription creation
+      // This completely disables cart protection to avoid any interference
       if (window.cartProtection) {
-        window.cartProtection.isProtectionActive = false;
+        window.cartProtection.startSubscriptionCreation();
       }
       
       const selectedProducts = subscriptionData.selectedProducts || [];
@@ -157,16 +158,16 @@ class CartManager {
       const result = await this.addToCartWithSubscription(allCartItems, discount, subscriptionData);
 
       if (result.success) {
+        // IMPORTANT: Don't finish subscription creation yet
+        // We're about to redirect to checkout, so cart protection shouldn't interfere
         window.location.href = "/checkout";
       } else {
         throw new Error(result.error || "Failed to add products to cart");
       }
     } catch (error) {
-      // Re-enable cart protection on error
+      // On error, finish subscription creation to re-enable protection
       if (window.cartProtection) {
-        setTimeout(() => {
-          window.cartProtection.checkSubscriptionCart();
-        }, 100);
+        window.cartProtection.finishSubscriptionCreation();
       }
       throw error;
     }
@@ -532,7 +533,7 @@ class CartManager {
             offer_count: (subscriptionData.oneTimeOffers || []).length.toString(),
             subscription_created: new Date().toISOString(),
             frequency_text: this.frequencyText[subscriptionData.frequency] || subscriptionData.frequency,
-            // Add detailed pricing information  
+            // Add detailed pricing information
             calculated_total: selectedProducts.reduce((sum, p) => sum + (p.price * p.quantity), 0),
             display_price: `$${selectedProducts.reduce((sum, p) => sum + (p.price * p.quantity), 0).toFixed(2)}`,
             subscription_note: `Custom subscription with ${totalCount} products and ${discount}% discount`,
@@ -544,20 +545,17 @@ class CartManager {
         }),
       });
 
-      // Re-enable cart protection after successful cart creation
-      setTimeout(() => {
-        if (window.cartProtection) {
-          window.cartProtection.checkSubscriptionCart();
-        }
-      }, 500);
+      // NOTE: We don't re-enable cart protection here
+      // The isCreatingSubscription flag will remain true until page redirect
+      // This prevents any interference during checkout redirect
 
       return { success: true, cart: cartData };
     } catch (error) {
-      // Re-enable protection even on error
+      // On error, finish subscription creation to re-enable protection
       if (window.cartProtection) {
-        window.cartProtection.isProtectionActive = false;
+        window.cartProtection.finishSubscriptionCreation();
       }
-      
+
       return { success: false, error: error.message };
     }
   }
